@@ -1,4 +1,4 @@
-# Agent Authorization Protocol — Broker & Resolution Layer
+# Agent Authorization Protocol, Broker & Resolution Layer
 
 ## Resolving Agent Trust Into Resource Access Without Exposing Credentials
 
@@ -7,9 +7,9 @@
 **Date:** June 2026
 **Status:** Draft companion to [`AAP-SPEC.md`](./AAP-SPEC.md). Intended for the IETF Internet-Draft.
 
-> **This is the resolution/enforcement layer of AAP.** The AAP token model — Agent Identity
+> **This is the resolution/enforcement layer of AAP.** The AAP token model, Agent Identity
 > Token (AIT), Capability Grant Token (CGT), Delegation Assertion (DA), Behavioral Attestation
-> Claim (BAC), federation, and revocation propagation — is defined in [`AAP-SPEC.md`](./AAP-SPEC.md).
+> Claim (BAC), federation, and revocation propagation, is defined in [`AAP-SPEC.md`](./AAP-SPEC.md).
 > This document defines how an agent *obtains and exercises* those tokens without the credential
 > value ever entering its reasoning context. Concept mapping is in §0.
 
@@ -38,18 +38,18 @@ and enforces the AAP tokens.
 
 The Agent Trust Protocol (ATP) answers *who an agent is* and *what it is trusted to be*. The Agent
 Trust eXtension (ATX) is the signed credential that carries that trust. This **broker & resolution
-layer of AAP** resolves an agent's trust into concrete, scoped access to a real downstream resource —
+layer of AAP** resolves an agent's trust into concrete, scoped access to a real downstream resource,
 **without the credential value ever entering the agent's reasoning context, and therefore without it
 ever reaching a language model provider.**
 
-AAP separates two things that are routinely and dangerously conflated. The *policy decision* —
-whether an agent holding a given trust class may use a resource — is expressed against the portable,
-signed ATX. The *policy enforcement* — turning that decision into a usable credential for a specific
-backend — is performed locally by a **broker** that the resource operator controls. An agent emits
+AAP separates two things that are routinely and dangerously conflated. The *policy decision*,
+whether an agent holding a given trust class may use a resource, is expressed against the portable,
+signed ATX. The *policy enforcement*, turning that decision into a usable credential for a specific
+backend, is performed locally by a **broker** that the resource operator controls. An agent emits
 only an abstract **grant reference** of the form `grant://name`. The broker verifies the agent's
 ATX, evaluates local policy, obtains a scoped credential through one of three credential-provider
 modes, performs the requested operation, and returns only the *result*. No secret, no temporary
-credential, no backend address, and no vendor name is ever placed where the agent — or its model —
+credential, no backend address, and no vendor name is ever placed where the agent, or its model,
 can read it.
 
 This specification defines the grant reference, the Credential Provider Interface (CPI) and its
@@ -60,15 +60,15 @@ without a credential redesign.
 
 AAP is designed to complement, not replace, existing standards:
 
-- **ATP / ATX** — AAP consumes the ATX as its subject claim. It does not redefine identity, trust
+- **ATP / ATX**, AAP consumes the ATX as its subject claim. It does not redefine identity, trust
   scoring, revocation, or the transparency log; it reuses them.
-- **OAuth 2.0 Token Exchange (RFC 8693)** — the Exchange mode is a profile of RFC 8693. The broker
+- **OAuth 2.0 Token Exchange (RFC 8693)**, the Exchange mode is a profile of RFC 8693. The broker
   acts as an OAuth-style authorization-server client performing a token exchange for a scoped
   downstream token.
-- **OAuth 2.0 / OpenID Connect** — in Exchange and Assume modes the broker acts as its own
+- **OAuth 2.0 / OpenID Connect**, in Exchange and Assume modes the broker acts as its own
   OIDC-style identity provider, minting short-lived assertions the downstream is configured to trust.
-- **W3C DID Core** — agent and authority identifiers are `did:opena2a` DIDs.
-- **AI Agent Threat Matrix** — AAP is a control against the credential-harvest and exfiltration
+- **W3C DID Core**, agent and authority identifiers are `did:opena2a` DIDs.
+- **AI Agent Threat Matrix**, AAP is a control against the credential-harvest and exfiltration
   attack classes (Section 12).
 
 ---
@@ -89,31 +89,31 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described in
 BCP 14 (RFC 2119, RFC 8174) when, and only when, they appear in all capitals.
 
-- **Agent** — an autonomous software actor, typically driven by a language model, that takes
+- **Agent**, an autonomous software actor, typically driven by a language model, that takes
   actions on behalf of a principal. The agent's *reasoning context* is the set of tokens visible to
   its model, including everything an upstream model provider receives.
-- **ATX (Agent Trust eXtension)** — the signed, portable credential defined by ATP that states what
+- **ATX (Agent Trust eXtension)**, the signed, portable credential defined by ATP that states what
   an agent *is*: its identity, issuer and issuer chain, trust level, scan summary, and capabilities
   expressed as trust classes. ATX is the *subject claim* in AAP. (ATX is the current name for the
   credential formerly called ATC; implementations may still reference the legacy `atc` name.)
-- **Trust class** — a capability expressed in abstract trust terms, e.g. `db:read`, `orders:read`.
+- **Trust class**, a capability expressed in abstract trust terms, e.g. `db:read`, `orders:read`.
   A trust class names *what an agent is trusted to do in the abstract*. It MUST NOT name a backend,
   a host, a path, a role, or a vendor.
-- **Grant reference** — the abstract identifier an agent emits instead of a secret, of the form
+- **Grant reference**, the abstract identifier an agent emits instead of a secret, of the form
   `grant://name` (Section 4). It names a logical resource the agent was granted. It MUST NOT encode
   a backend address, a credential, or a CPI mode.
-- **Broker** — the AAP enforcement point. A local, operator-controlled process that verifies an
+- **Broker**, the AAP enforcement point. A local, operator-controlled process that verifies an
   ATX, evaluates resource policy, resolves a grant reference through a credential provider, performs
   the requested operation, and returns only the result.
-- **Broker policy** — the local, operator-owned, deployment-specific ruleset that maps a trust
+- **Broker policy**, the local, operator-owned, deployment-specific ruleset that maps a trust
   class to a concrete resource and CPI mode (the *resource grant*). It is never part of the ATX.
-- **Credential Provider Interface (CPI)** — the interface a backend implements to plug into the
+- **Credential Provider Interface (CPI)**, the interface a backend implements to plug into the
   broker (Section 5). A provider declares which modes it supports. Providers are configuration,
   never protocol.
-- **CPI mode** — one of Retrieve, Assume, Exchange (Section 5).
-- **Broker assertion** — a short-lived token the broker mints from verified ATX claims, signed with
+- **CPI mode**, one of Retrieve, Assume, Exchange (Section 5).
+- **Broker assertion**, a short-lived token the broker mints from verified ATX claims, signed with
   the broker's own signing key, used as the subject token in Assume and Exchange modes.
-- **ATP Trust Program** — the governance and conformance program under which participants operate
+- **ATP Trust Program**, the governance and conformance program under which participants operate
   conformant **Root Authorities** and cross-trust. A sovereign or hyperscaler operates a conformant
   Root Authority; it does not "join" OpenA2A.
 
@@ -132,17 +132,17 @@ rules. Everyone else operates conformant Root Authorities and cross-trusts (Sect
 
 The following principles are normative and are referenced by number throughout:
 
-1. **Versioned and negotiated** — every protocol message, policy grammar, claim schema, and
+1. **Versioned and negotiated**, every protocol message, policy grammar, claim schema, and
    signature carries a version; two parties negotiate the highest version they share (Section 8.1).
-2. **Cryptographically agile** — the signature suite is a named, swappable field, never a hardcoded
+2. **Cryptographically agile**, the signature suite is a named, swappable field, never a hardcoded
    assumption (Section 8.2).
-3. **Extensible claims with safe ignore** — each claim is marked mandatory-to-understand or
+3. **Extensible claims with safe ignore**, each claim is marked mandatory-to-understand or
    optional-to-ignore; unknown optional claims are ignored safely (Section 8.3).
-4. **Abstract identifiers** — no vendor or product name appears in any protocol structure, ever.
+4. **Abstract identifiers**, no vendor or product name appears in any protocol structure, ever.
    The wire carries a CPI mode and a grant reference; vendors are configuration (Section 8.4).
-5. **The trust layer never embeds the resource layer** — the decision/enforcement split is a
+5. **The trust layer never embeds the resource layer**, the decision/enforcement split is a
    permanent invariant (Section 3).
-6. **Pluggable transport and discovery** — how a broker fetches keys, revocation, or an ATX is a
+6. **Pluggable transport and discovery**, how a broker fetches keys, revocation, or an ATX is a
    binding, not the trust core (Section 8.5).
 
 ---
@@ -156,7 +156,7 @@ separate and MUST NOT merge.
 
 The ATX states, in abstract trust terms, what an agent **is**: its identity, its issuer and issuer
 chain, its trust level, its scan summary, and its capabilities **as trust classes** such as
-`db:read` — never as resource bindings. The ATX is signed, portable, and travels with the agent. It
+`db:read`, never as resource bindings. The ATX is signed, portable, and travels with the agent. It
 is defined by ATP/ATX; AAP does not redefine it. A capability in an ATX MUST NOT name a backend, a
 path, or a role.
 
@@ -170,8 +170,8 @@ ATX.
 ### 3.3 The broker as enforcement point
 
 The broker is the enforcement point that **intersects** the subject claim and the resource grant and
-resolves a grant reference to a concrete action. This split is what lets the resource world — clouds,
-SaaS, databases, payment rails — evolve independently of the credential.
+resolves a grant reference to a concrete action. This split is what lets the resource world, clouds,
+SaaS, databases, payment rails, evolve independently of the credential.
 
 ### 3.4 Trust is not authorization
 
@@ -188,7 +188,7 @@ SaaS, databases, payment rails — evolve independently of the credential.
 
 ### 4.1 The core invariant
 
-An agent's reasoning context — and therefore anything that reaches a language-model provider — MAY
+An agent's reasoning context, and therefore anything that reaches a language-model provider, MAY
 contain **only** a grant reference. It MUST NOT contain:
 
 - a secret value;
@@ -236,7 +236,7 @@ extensible by the versioning rule (Section 8.1) should the world invent a fourth
 The provider **holds a secret and returns its value.** The broker either proxies the downstream
 operation itself so the value never leaves the broker, or injects the value into an ephemeral worker
 (Section 6.5). Secret stores, OS keychains, and password/vault platforms are Retrieve providers.
-*Dynamic secrets* (short-lived secrets minted on demand) fold in here with an ephemeral flag — they
+*Dynamic secrets* (short-lived secrets minted on demand) fold in here with an ephemeral flag, they
 are not a new mode.
 
 > Scope note: most Retrieve work is roadmapped in the Secretless reference implementation
@@ -281,15 +281,15 @@ produces a typed, opaque denial (Section 6.6).
 1. **Receive** the request on the broker-facing channel: the presented ATX plus a grant reference.
 2. **Verify the ATX locally**, reusing the ATP/ATX verification path: signature(s), suite, validity
    window (issuedAt/expiresAt with bounded clock skew), and the cached, federated CRL. Revocation
-   rides entirely on the ATX and the federated CRL — AAP defines no separate revocation system.
+   rides entirely on the ATX and the federated CRL, AAP defines no separate revocation system.
    Revoking an agent's ATX MUST remove its access within the existing CRL propagation window.
 3. **Negotiate version** (Section 8.1) if not already established for the channel.
 4. **Evaluate policy**: match the grant reference and the verified ATX's trust class against local
    broker policy, selecting a concrete CPI provider, mode, and downstream scope. Default-deny.
 5. **Resolve** through the selected CPI provider:
-   - **Retrieve** — proxy the operation in the broker, or inject the value into an ephemeral worker.
-   - **Assume** — mint a broker assertion from ATX claims; obtain short-lived role-scoped credentials.
-   - **Exchange** — mint a broker assertion; perform the RFC 8693 token exchange; obtain a scoped
+   - **Retrieve**, proxy the operation in the broker, or inject the value into an ephemeral worker.
+   - **Assume**, mint a broker assertion from ATX claims; obtain short-lived role-scoped credentials.
+   - **Exchange**, mint a broker assertion; perform the RFC 8693 token exchange; obtain a scoped
      downstream token.
 6. **Act** inside an ephemeral worker (Section 6.5) using the scoped credential, and return **only
    the result** of the operation to the agent.
@@ -306,7 +306,7 @@ result of the operation returns to the agent.
 ### 6.6 Denials
 
 A denial MUST be a typed error that reveals nothing sensitive about policy internals or backend
-topology — no backend name, host, scope, provider, or reason that could be used to map the
+topology, no backend name, host, scope, provider, or reason that could be used to map the
 deployment. The same opaque denial is returned whether the grant is unknown, the policy denies, the
 ATX is untrusted, or the provider fails. Diagnostic detail goes to the audit log, not to the agent.
 
@@ -409,14 +409,14 @@ the broker core rather than confining it to a thin provider adapter has a **bug 
 
 ### 8.5 Pluggable transport and discovery
 
-How a broker finds a peer's keys, fetches a CRL, or receives an ATX — over an HTTP header, an A2A
-agent card, or an MCP manifest — is a **binding**, not the trust core. AAP defines the bindings
+How a broker finds a peer's keys, fetches a CRL, or receives an ATX, over an HTTP header, an A2A
+agent card, or an MCP manifest, is a **binding**, not the trust core. AAP defines the bindings
 separately from the core so new transports get new bindings while the core is untouched. The
 initial bindings are:
 
-- **HTTP** — ATX presented in an `Agent-Trust-Credential` header (as in ATP).
-- **A2A agent card** — ATX embedded under the `atp` object of `/.well-known/agent.json`.
-- **MCP manifest** — ATX referenced from the server manifest.
+- **HTTP**, ATX presented in an `Agent-Trust-Credential` header (as in ATP).
+- **A2A agent card**, ATX embedded under the `atp` object of `/.well-known/agent.json`.
+- **MCP manifest**, ATX referenced from the server manifest.
 
 A broker publishes a discovery document (supported AAP versions, supported suites, and static public
 key material for its broker-assertion signing key) at a well-known location on the **operator's own
@@ -432,7 +432,7 @@ grammar slot now so cross-country enforcement in a later version needs no redesi
 - **ATX claim slot (proposed extension):** an optional, optional-to-ignore `jurisdiction` claim
   naming the region(s) in which the agent is authorized to operate (for example ISO 3166-1 codes or
   a named region set). Marked optional-to-ignore so v1 verifiers accept ATXs that omit it.
-- **Policy grammar slot:** a `jurisdiction` predicate (Section 7.1) able to constrain a grant — for
+- **Policy grammar slot:** a `jurisdiction` predicate (Section 7.1) able to constrain a grant, for
   example, "data may not be accessed by an agent operating outside the `eu` region."
 
 A v1 broker MUST parse the `jurisdiction` predicate but is **not** required to enforce it.
@@ -465,7 +465,7 @@ The conformance program polices the core and stays out of the edge.
 For Exchange and Assume, the broker acts as its **own OIDC-style identity provider.** It mints a
 short-lived **broker assertion** whose claims derive from the verified ATX (subject, trust class,
 trust level, and a bounded validity window), signed with the broker's signing key. The downstream
-authorization server (Exchange) or STS (Assume) is configured **once** to trust the broker's IdP —
+authorization server (Exchange) or STS (Assume) is configured **once** to trust the broker's IdP,
 the same way keyless CI authentication configures a downstream to trust a federated issuer.
 
 - The broker's IdP signing key is the existing short-lived **delegated signing key** (30-day default)
@@ -490,13 +490,13 @@ Agent Threat Matrix (https://threats.opena2a.org). By construction, no credentia
 agent context, which removes the substrate those techniques operate on. AAP references the following
 technique IDs (resolve the canonical titles from the live taxonomy):
 
-- **T-3002 — Environment Variable Exposure.** AAP keeps secrets out of the agent's environment;
+- **T-3002, Environment Variable Exposure.** AAP keeps secrets out of the agent's environment;
   there is no env var for an agent or a compromised tool to read.
-- **T-3003 — Tool Response Credential Capture.** The broker returns only operation results, never a
+- **T-3003, Tool Response Credential Capture.** The broker returns only operation results, never a
   credential, so there is nothing to capture in a tool response that crosses the context.
-- **T-3006 — Context Window Credential Leak.** The context-hygiene invariant (Section 4) guarantees
+- **T-3006, Context Window Credential Leak.** The context-hygiene invariant (Section 4) guarantees
   no credential ever entered the window, so none can leak from it.
-- **T-8002 — HTTP Callback (and the broader T-8xxx exfiltration class).** Even a fully compromised
+- **T-8002, HTTP Callback (and the broader T-8xxx exfiltration class).** Even a fully compromised
   agent can exfiltrate only grant references and operation results, not reusable credentials.
 
 A HackMyAgent check that verifies a deployment conforms to AAP SHOULD cite these IDs in `T-NNNN`
@@ -570,18 +570,18 @@ Until then, identifiers are managed in this specification.
 
 ### Normative
 
-- **RFC 2119 / RFC 8174** — Key words for requirement levels.
-- **RFC 3986** — Uniform Resource Identifier (URI): Generic Syntax.
-- **RFC 8693** — OAuth 2.0 Token Exchange.
-- **ATP** — Agent Trust Protocol specification (OpenA2A).
-- **ATX** — Agent Trust eXtension credential format (OpenA2A; see `atx-spec/core.md`).
-- **FIPS 204** — Module-Lattice-Based Digital Signature Standard (ML-DSA).
-- **RFC 8032** — Edwards-Curve Digital Signature Algorithm (EdDSA / Ed25519).
+- **RFC 2119 / RFC 8174**, Key words for requirement levels.
+- **RFC 3986**, Uniform Resource Identifier (URI): Generic Syntax.
+- **RFC 8693**, OAuth 2.0 Token Exchange.
+- **ATP**, Agent Trust Protocol specification (OpenA2A).
+- **ATX**, Agent Trust eXtension credential format (OpenA2A; see `atx-spec/core.md`).
+- **FIPS 204**, Module-Lattice-Based Digital Signature Standard (ML-DSA).
+- **RFC 8032**, Edwards-Curve Digital Signature Algorithm (EdDSA / Ed25519).
 
 ### Informative
 
-- **RFC 6749 / RFC 6750** — OAuth 2.0 and Bearer Token Usage.
+- **RFC 6749 / RFC 6750**, OAuth 2.0 and Bearer Token Usage.
 - **OpenID Connect Core 1.0.**
 - **W3C DID Core 1.0** and the `did:opena2a` method.
-- **AI Agent Threat Matrix** — https://threats.opena2a.org (techniques T-3002, T-3003, T-3006, T-8002).
-- **OASB** — Open Agent Security Benchmark (levels L1–L3).
+- **AI Agent Threat Matrix**, https://threats.opena2a.org (techniques T-3002, T-3003, T-3006, T-8002).
+- **OASB**, Open Agent Security Benchmark (levels L1–L3).

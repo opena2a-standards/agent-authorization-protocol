@@ -22,7 +22,7 @@ def recent_orders(customer_id):
 Everything the model can see is `grant://orders-db` and the returned rows. It cannot tell that the
 grant resolves through an OAuth token exchange rather than a vaulted secret or a cloud role.
 
-## 2. What the broker holds (configuration — never on the wire)
+## 2. What the broker holds (configuration, never on the wire)
 
 ```yaml
 # broker policy: maps a trust class to a concrete resource + CPI mode.
@@ -35,7 +35,7 @@ grant resolves through an OAuth token exchange rather than a vaulted secret or a
     jurisdiction: { in: [us, eu] }                            # v1: parsed, not enforced
   resolve:
     mode: exchange
-    provider: orders-idp        # thin adapter (e.g. Okta) — name lives ONLY here
+    provider: orders-idp        # thin adapter (e.g. Okta), name lives ONLY here
     scope: orders.read
     audience: https://api.orders.internal
     ttl: 300s
@@ -89,7 +89,7 @@ After this flow runs, a scan of the agent context / transcript surface MUST find
 - ❌ no backend identifier (no hostname, connection string, scope, audience, or provider name)
 - ❌ no signal of which CPI mode resolved the grant
 
-This is deliverable 3 in the reference implementation — the artifact that demonstrates the standard.
+This is deliverable 3 in the reference implementation, the artifact that demonstrates the standard.
 
 ## Threat-matrix mapping
 

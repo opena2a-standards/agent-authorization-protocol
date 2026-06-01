@@ -11,7 +11,7 @@
 > `aim-roadmap/master-plan/drafts/ietf-aap-internet-draft.md` by the same author. Changes
 > are non-architectural: the credential is renamed ATC → **ATX** (Agent Trust eXtension,
 > per `atx-spec/core.md`), DIDs move from `did:atp:` to `did:opena2a:`, and a companion
-> document — [`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md) — is referenced as the
+> document, [`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md), is referenced as the
 > resolution/enforcement layer. The six-component token model below is unchanged.
 
 ---
@@ -26,9 +26,9 @@ protocols (A2A, MCP) in the same way that OAuth 2.0 complements HTTP for web app
 
 AAP has two layers:
 
-1. **The token model** (this document) — the AAP credentials and assertions: what they
+1. **The token model** (this document), the AAP credentials and assertions: what they
    contain, how they are signed, and how they are verified.
-2. **The broker & resolution layer** ([`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md)) —
+2. **The broker & resolution layer** ([`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md)),
    how an agent obtains and exercises a grant without the credential value ever entering its
    reasoning context, via a `grant://` reference and a local broker. The broker is the
    component that mints and exchanges the tokens defined here.
@@ -52,17 +52,17 @@ and model state. Static authorization grants cannot account for this behavioral 
 AAP introduces six protocol components that together provide complete authorization coverage
 for agent-to-agent, agent-to-service, and human-to-agent interactions:
 
-1. **Agent Identity Token (AIT)** — cryptographic identity assertion.
-2. **Capability Grant Token (CGT)** — scoped, short-lived authorization.
-3. **Delegation Assertion (DA)** — cross-agent capability delegation.
-4. **Behavioral Attestation Claim (BAC)** — real-time behavioral state proof.
-5. **Cross-Org Trust Federation** — Registry-to-Registry mutual trust.
-6. **Revocation Propagation Protocol** — federated revocation within 60 seconds.
+1. **Agent Identity Token (AIT)**, cryptographic identity assertion.
+2. **Capability Grant Token (CGT)**, scoped, short-lived authorization.
+3. **Delegation Assertion (DA)**, cross-agent capability delegation.
+4. **Behavioral Attestation Claim (BAC)**, real-time behavioral state proof.
+5. **Cross-Org Trust Federation**, Registry-to-Registry mutual trust.
+6. **Revocation Propagation Protocol**, federated revocation within 60 seconds.
 
 The governing constraint on every choice in AAP: **OpenA2A owns the protocol and the
 vocabulary; it owns no one's trust.** Nothing in AAP may require a vendor, cloud, or
 government to surrender its own root. The topology is a trust *program* of federated
-conformant Root Authorities, not a single root — the same property that made DNS, TLS,
+conformant Root Authorities, not a single root, the same property that made DNS, TLS,
 OAuth, and OIDC universal.
 
 ## 2. Terminology
@@ -71,15 +71,15 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 "RECOMMENDED", "MAY", and "OPTIONAL" are to be interpreted as described in BCP 14 (RFC 2119,
 RFC 8174).
 
-- **Agent** — an AI system that can take actions on behalf of a user or organization.
-- **Agent Trust eXtension (ATX)** — a signed credential issued by a Registry attesting to an
+- **Agent**, an AI system that can take actions on behalf of a user or organization.
+- **Agent Trust eXtension (ATX)**, a signed credential issued by a Registry attesting to an
   agent's identity, code integrity, capabilities, and trust level. ATX is the credential the
   AIT references. (ATX is the current name for the credential formerly called ATC.)
-- **Agent Security Context (ASC)** — shared state describing an agent's current security
+- **Agent Security Context (ASC)**, shared state describing an agent's current security
   posture across monitoring products.
-- **NanoMind** — local semantic intent classification model used for intent-verified
+- **NanoMind**, local semantic intent classification model used for intent-verified
   authorization.
-- **Registry / Root Authority** — the trust authority that issues ATXs, maintains the
+- **Registry / Root Authority**, the trust authority that issues ATXs, maintains the
   transparency log, and computes trust scores. Participants operate conformant Root
   Authorities under the ATP Trust Program.
 
@@ -159,7 +159,7 @@ profile's Exchange mode is a realization of the DA over RFC 8693.
 
 ### 6.1 Purpose
 The BAC is a short-lived (60-second TTL) signed assertion of an agent's current behavioral
-state. It has no internet parallel — it exists because agents are non-deterministic.
+state. It has no internet parallel, it exists because agents are non-deterministic.
 
 ### 6.2 Three Levels
 - L1: build-time attestation (ATX + scan results).
@@ -181,7 +181,7 @@ Root Authority and cross-trusts.
 ### 7.2 Revocation Propagation
 When any node revokes an ATX, the revocation MUST propagate to all federation members within
 60 seconds via signed push. No member needs to poll. The broker profile binds authorization
-revocation entirely to this mechanism — it defines no separate revocation system.
+revocation entirely to this mechanism, it defines no separate revocation system.
 
 ## 8. Security Considerations
 
@@ -220,21 +220,21 @@ suite registry).
 ## 10. References
 
 ### Normative References
-- [RFC 2119] / [RFC 8174] — Key words for requirement levels.
-- [RFC 6749] — The OAuth 2.0 Authorization Framework.
-- [RFC 8693] — OAuth 2.0 Token Exchange.
-- [RFC 6962] — Certificate Transparency.
-- [FIPS 203] — Module-Lattice-Based Key-Encapsulation Mechanism Standard.
-- [FIPS 204] — Module-Lattice-Based Digital Signature Standard.
-- [ATX] — Agent Trust eXtension credential format (`atx-spec/core.md`).
-- [ATP] — Agent Trust Protocol.
+- [RFC 2119] / [RFC 8174], Key words for requirement levels.
+- [RFC 6749], The OAuth 2.0 Authorization Framework.
+- [RFC 8693], OAuth 2.0 Token Exchange.
+- [RFC 6962], Certificate Transparency.
+- [FIPS 203], Module-Lattice-Based Key-Encapsulation Mechanism Standard.
+- [FIPS 204], Module-Lattice-Based Digital Signature Standard.
+- [ATX], Agent Trust eXtension credential format (`atx-spec/core.md`).
+- [ATP], Agent Trust Protocol.
 
 ### Informative References
-- [A2A] — Agent-to-Agent Protocol Specification.
-- [MCP] — Model Context Protocol Specification.
-- [OpenA2A] — OpenA2A Platform Architecture.
-- [AAP-BROKER-PROFILE] — AAP Broker & Resolution Layer (this repository).
-- [AI Agent Threat Matrix] — https://threats.opena2a.org
+- [A2A], Agent-to-Agent Protocol Specification.
+- [MCP], Model Context Protocol Specification.
+- [OpenA2A], OpenA2A Platform Architecture.
+- [AAP-BROKER-PROFILE], AAP Broker & Resolution Layer (this repository).
+- [AI Agent Threat Matrix], https://threats.opena2a.org
 
 ## Authors' Addresses
 
