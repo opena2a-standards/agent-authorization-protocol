@@ -40,11 +40,24 @@ OIDC won.
 
 Assume and Exchange leave the broker holding nothing but one rotating key — prefer them.
 
+## Two layers
+
+AAP is defined in two documents:
+
+- **[`AAP-SPEC.md`](./AAP-SPEC.md)** — the AAP **token model**: Agent Identity Token (AIT),
+  Capability Grant Token (CGT), Delegation Assertion (DA), Behavioral Attestation Claim (BAC),
+  cross-org federation, and revocation propagation. What the credentials contain, how they are
+  signed and verified.
+- **[`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md)** — the **broker & resolution layer**: how
+  an agent obtains and exercises those tokens via a `grant://` reference and a local broker,
+  without the credential value ever entering its reasoning context. Defines the
+  decision/enforcement split, the Credential Provider Interface, and two-tier conformance.
+
 ## Status
 
-`0.1.0-draft`. Authored in the open; intended for submission as an IETF Internet-Draft. The
-normative core is written to be stable; the extensible edge is expected to evolve. See
-[`AAP-SPEC.md`](./AAP-SPEC.md).
+`0.2.0-draft`. Authored in the open; intended for submission as an IETF Internet-Draft. The
+0.2.0 reconciliation merges the March 2026 AAP token-model draft with the broker/resolution layer
+into one coherent protocol (ATC → ATX, `did:atp:` → `did:opena2a:`).
 
 ## Reference implementation
 
@@ -55,7 +68,8 @@ The developer surface is the AIM `@agent.perform_action` decorator. See
 
 ## Specification
 
-- [`AAP-SPEC.md`](./AAP-SPEC.md) — the full specification.
+- [`AAP-SPEC.md`](./AAP-SPEC.md) — the AAP token model (AIT/CGT/DA/BAC, federation, revocation).
+- [`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md) — the broker & resolution layer.
 - [`examples/`](./examples/) — worked examples (resolution flow, policy grammar, transport bindings).
 
 ## License
