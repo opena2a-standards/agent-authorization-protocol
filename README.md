@@ -64,7 +64,7 @@ into one coherent protocol (ATC → ATX, `did:atp:` → `did:opena2a:`).
 A v1 **Exchange** broker extends the existing Secretless broker, validated against Okta (RFC 8693).
 The developer surface is the AIM `@agent.perform_action` decorator. See
 [`examples/orders-db-exchange.md`](./examples/orders-db-exchange.md) and
-[`AAP-SPEC.md` §14](./AAP-SPEC.md#14-reference-implementation-informative).
+[`AAP-BROKER-PROFILE.md` §14](./AAP-BROKER-PROFILE.md#14-reference-implementation-informative).
 
 ## Specification
 
