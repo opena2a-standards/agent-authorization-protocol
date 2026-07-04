@@ -3,9 +3,9 @@
 ## Scoped, Attested Authorization for AI Agent Systems
 
 **Version:** 0.2.0-draft
-**Authors:** Abdel Fane (OpenA2A)
+**Authors:** OpenA2A
 **Date:** June 2026
-**Intended status:** Standards Track (IETF Internet-Draft)
+**Intended status:** Standards Track (IETF Internet-Draft; named individual authors will be attributed at Internet-Draft submission per IETF convention)
 
 > **Reconciliation note (2026-06-01).** This document supersedes the March 2026 draft
 > `aim-roadmap/master-plan/drafts/ietf-aap-internet-draft.md` by the same author. Changes
