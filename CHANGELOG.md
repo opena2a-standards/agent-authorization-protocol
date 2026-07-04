@@ -6,6 +6,18 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ## [Unreleased]
 
+### Added
+
+- `schemas/grant-reference-v1.schema.json`: machine-readable schema for the
+  broker-profile §4.2 grant reference — the one AAP wire artifact whose form
+  the spec fully pins.
+- `schemas/README.md`: explicit inventory of which AAP structures are
+  schema-tizable today and the four spec decisions that block the rest
+  (canonical signing serialization; scalar-vs-`signatures[]` representation,
+  §3.2/§4.2 vs §8.2; `jti`/version members; field-level value formats). This
+  list is also the prerequisite list for an `aap-conformance` fixture suite.
+- CI workflow metaschema-checking the schemas (`scripts/validate_examples.py`).
+
 ### Changed
 
 - Authorship normalized to the spec-family convention (`OpenA2A`), matching
