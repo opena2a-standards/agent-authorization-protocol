@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://specs.opena2a.org/schemas/aap/grant-reference-v1.schema.json",
+  "title": "AAP grant reference (broker profile, section 4.2)",
+  "description": "The one fully pinned AAP wire artifact: the opaque logical grant name an agent presents to the broker. ABNF: grant-reference = \"grant://\" 1*(unreserved), with unreserved per RFC 3986 (ALPHA / DIGIT / \"-\" / \".\" / \"_\" / \"~\"). Deliberately less expressive than backend-and-path schemes; it MUST NOT encode a backend, path, or credential shape.",
+  "type": "string",
+  "pattern": "^grant://[A-Za-z0-9._~-]+$",
+  "examples": ["grant://orders-db"]
+}
