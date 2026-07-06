@@ -1,41 +1,42 @@
 # AAP machine-readable schemas
 
 This directory holds the JSON Schemas for AAP structures whose wire form the
-specification actually pins. As of AAP-SPEC 0.2 that is a short list, and that
-is deliberate: publishing a schema for a structure whose canonical form is
-still unpinned would freeze illustration bytes as if they were normative.
+specification pins. As of AAP-SPEC 0.3 the token canonical form is pinned
+(AAP-SPEC §9, ratified byte-for-byte from the Secretless reference broker), so
+every AAP token structure is schema-tized. Spec examples are validated against
+these schemas in CI (`scripts/validate_examples.py` via
+`schemas/examples-map.json`), and the token fixtures are generated — never
+hand-authored — by `scripts/generate_examples.py`, with a CI drift gate.
 
 ## Published
 
 | Schema | Source of truth | Status |
 |---|---|---|
 | `grant-reference-v1.schema.json` | AAP-BROKER-PROFILE.md §4.2 ABNF | Pinned, normative |
+| `jose-header-v1.schema.json` | AAP-SPEC §9.2 | Pinned, normative |
+| `ait-claims-v1.schema.json` | AAP-SPEC §3.2 | Pinned, normative (no reference implementation yet) |
+| `cgt-claims-v1.schema.json` | AAP-SPEC §4.2 (ratified from Secretless `src/broker/cpi/assertion.ts`) | Pinned, normative, reference-implemented |
+| `da-claims-v1.schema.json` | AAP-SPEC §5.3 | Pinned, normative (reference realizes delegation via Exchange; no standalone `act`-chain minting yet) |
+| `bac-claims-v1.schema.json` | AAP-SPEC §6.4 | Pinned, normative (no reference implementation yet) |
+| `jws-general-v1.schema.json` | AAP-SPEC §9.4 | Pinned, normative (multi-suite container; v1 tokens are compact) |
 
-## Blocked, and what unblocks each
+## The former blockers, and what pinned each
 
-The remaining AAP token structures cannot be schema-tized (or fixture-tested —
-this list is also the prerequisite list for an `aap-conformance` suite) until
-the specification pins:
+The 0.2 revision of this README listed four spec decisions that blocked these
+schemas (and an `aap-conformance` suite). All four are resolved by AAP-SPEC 0.3:
 
-1. **A canonical signing serialization for AIT/CGT.** Unlike ATP §4.3
-   (pipe-delimited seven-field string) or ATX §1.3a.2 (JCS over a projected
-   TBS), AAP defines no byte-level canonical form for any token. Without one
-   there is no deterministic signing, and therefore no byte-stable fixture.
-2. **The signature representation.** AAP-SPEC §3.2/§4.2 show a scalar
-   `signature` member; §8.2 says signatures follow the named, swappable
-   per-signature suite model (the ATX/ATP `signatures[]` array of
-   `{keyId, algorithm, value}`). One of the two must be chosen.
-3. **Replay and versioning members.** §8.1 requires a unique token identifier
-   (`jti`) and the broker profile §8.1 requires a version member on every
-   message; neither appears in the §3.2/§4.2 structures.
-4. **Field-level value formats.** The §3.2/§4.2 blocks carry type annotations
-   ("uuid", "ISO 8601") rather than instances; the DA (§5) and BAC (§6)
-   structures are prose-only with no field inventory at all.
+| # | Blocker (0.2) | Pinned by (0.3) |
+|---|---|---|
+| 1 | No canonical signing serialization for AIT/CGT | AAP-SPEC §9.1: JWS Signing Input — serialization **is** canonicalization; compact JWT baseline ratified byte-for-byte from the reference broker assertion. |
+| 2 | Scalar `signature` member (§3.2/§4.2) vs §8.2 `signatures[]` suite model | Neither: the signature is the JWS segment. Single-suite tokens are compact (§9.3); the multi-suite model is JWS General JSON Serialization (§9.4), isomorphic to the family `{keyId, algorithm, value}` form. |
+| 3 | Missing `jti` / version members | `jti` REQUIRED in every claim set (§8.1: 16 random bytes hex); `aap_ver` defined in §9.6 (OPTIONAL in v1, REQUIRED at federation Level 3); message-level version negotiation unchanged (broker profile §8.1). |
+| 4 | Type-annotation placeholders in §3.2/§4.2; DA/BAC prose-only | §3.2/§4.2 rewritten as normative claims tables with generated example bytes; DA claim set pinned in §5.3; BAC claim set pinned in §6.4. |
 
-Until then, the Secretless broker (the AAP reference implementation) plus its
-in-repo end-to-end tests are the executable evidence for the broker profile.
+With the token form pinned, the prerequisite list for an `aap-conformance`
+fixture suite is satisfied: fixtures are byte-stable (deterministic generator,
+published test keys), and ACCEPT/REJECT verdicts are decidable against these
+schemas plus the signature rules of AAP-SPEC §9.
 
-Interim structural anchors that are already unambiguous if needed by tooling:
-CPI modes (`Retrieve` / `Assume` / `Exchange`, §5), CGT TTL tiers
-(`STANDARD` / `PRIVILEGED` / `SUPER_PRIVILEGED`, §4.3), broker conformance
-levels 1-3 (broker profile §13), and the CGT `scope` member key set (§4.2).
+Interim structural anchors (unchanged): CPI modes (`Retrieve` / `Assume` /
+`Exchange`, §5), CGT TTL tiers (`STANDARD` / `PRIVILEGED` / `SUPER_PRIVILEGED`,
+§4.3), and broker conformance levels 1-3 (broker profile §13).

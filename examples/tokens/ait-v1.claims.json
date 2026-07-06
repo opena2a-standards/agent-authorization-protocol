@@ -1,0 +1,11 @@
+{
+  "iss": "did:opena2a:authority:opena2a.org",
+  "sub": "did:opena2a:agent:acme/orders-reader",
+  "agent_id": "aim_orders_reader",
+  "atx_reference": "sha256:2052879dda15b1ca5e60319e3477a4008412bffdaf3c3566c658795a48cab8fd",
+  "declared_purpose": "Reads order records for reporting",
+  "trust_level": 4,
+  "iat": 1780315200,
+  "exp": 1780318800,
+  "jti": "1c9f2e8a7b6d5c4e3f2a1b0c9d8e7f6a"
+}

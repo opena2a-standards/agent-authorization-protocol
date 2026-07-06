@@ -1,1 +1,27 @@
-[]
+[
+  {
+    "file": "AAP-SPEC.md",
+    "heading": "### 3.2 Token Structure",
+    "schema": "schemas/ait-claims-v1.schema.json"
+  },
+  {
+    "file": "AAP-SPEC.md",
+    "heading": "### 4.2 Token Structure",
+    "schema": "schemas/cgt-claims-v1.schema.json"
+  },
+  {
+    "file": "AAP-SPEC.md",
+    "heading": "### 5.3 Assertion Form",
+    "schema": "schemas/da-claims-v1.schema.json"
+  },
+  {
+    "file": "AAP-SPEC.md",
+    "heading": "### 6.4 Claim Set",
+    "schema": "schemas/bac-claims-v1.schema.json"
+  },
+  {
+    "file": "AAP-SPEC.md",
+    "heading": "### 9.4 Multi-Signature Form",
+    "schema": "schemas/jws-general-v1.schema.json"
+  }
+]
