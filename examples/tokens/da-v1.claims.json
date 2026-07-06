@@ -1,0 +1,19 @@
+{
+  "iss": "https://broker.acme.example",
+  "sub": "did:opena2a:agent:acme/reporting-bot",
+  "aud": "https://api.orders.internal",
+  "scope": "orders.read",
+  "trust_class": "orders:read",
+  "issuer_chain": [
+    "did:opena2a:authority:opena2a.org"
+  ],
+  "trust_level": 4,
+  "act": {
+    "sub": "did:opena2a:agent:acme/orders-reader"
+  },
+  "max_depth": 1,
+  "delegator_atx": "sha256:2052879dda15b1ca5e60319e3477a4008412bffdaf3c3566c658795a48cab8fd",
+  "iat": 1780315200,
+  "exp": 1780315500,
+  "jti": "4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d"
+}

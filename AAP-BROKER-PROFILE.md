@@ -2,9 +2,9 @@
 
 ## Resolving Agent Trust Into Resource Access Without Exposing Credentials
 
-**Version:** 0.2.0-draft
+**Version:** 0.3.0-draft
 **Authors:** OpenA2A
-**Date:** June 2026
+**Date:** July 2026
 **Status:** Draft companion to [`AAP-SPEC.md`](./AAP-SPEC.md). Intended for the IETF Internet-Draft.
 
 > **This is the resolution/enforcement layer of AAP.** The AAP token model, Agent Identity
@@ -254,7 +254,7 @@ assertion (Section 11).
 The provider **is an OAuth-style authorization server, and the broker performs a token exchange**
 (RFC 8693) to obtain a scoped bearer token for a downstream API. There is no standing secret.
 Enterprise IdPs are Exchange providers. This is the mode implemented in the v1 reference
-implementation (Section 13).
+implementation (Section 14).
 
 ### 5.4 The security property to lead with
 
@@ -372,8 +372,10 @@ These are requirements, built into the protocol structure from the first version
 
 ### 8.1 Versioning and negotiation
 
-Every AAP protocol message, the policy grammar, every claim schema, and every signature carries a
-version. Two parties negotiate the **highest version they both support**.
+Every AAP protocol message and the policy grammar carry an explicit version; claim schemas and
+signatures are versioned through the rules below (a claim schema is itself versioned, and v1 tokens
+carry the version member only per the token rule in this section). Two parties negotiate the
+**highest version they both support**.
 
 - A broker advertises a set of supported AAP versions in its discovery document (Section 8.5).
 - A client selects the highest version in the intersection and stamps it on the request.
@@ -382,15 +384,22 @@ version. Two parties negotiate the **highest version they both support**.
   not sensitive topology).
 - ATX already carries a version field; AAP follows that lead and additionally defines the *active
   negotiation handshake* that ATP/ATX/AIP leave implicit.
+- For AAP **tokens**, the version is carried by the claim schema: the `aap_ver` claim
+  (AAP-SPEC §9.6), OPTIONAL in v1 and REQUIRED from the first federated version (Level 3),
+  where a peer broker must select a claim schema without a shared negotiation channel.
+  Protocol messages carry the negotiated version explicitly.
 
 ### 8.2 Cryptographic agility
 
-The signature suite is a **named, swappable field**, never a hardcoded assumption. The default suite
-is **hybrid Ed25519 + ML-DSA-65** (FIPS 204), matching ATX's per-signature `algorithm` model: a
-credential carrying an ML-DSA-65 signature requires at least one ML-DSA-65 signature **and** at
-least one Ed25519 signature to verify. Adding or retiring a suite is a suite-identifier change and a
-negotiation (Section 8.1), never a new credential format. A verifier MUST reject a credential whose
-declared suite it does not support rather than silently downgrade.
+The signature suite is a **named, swappable field** — the JOSE `alg` of each signature's protected
+header (AAP-SPEC §9) — never a hardcoded assumption. The v1 suite registry (AAP-SPEC §9.5) contains
+one active suite, `EdDSA` (Ed25519), which is what the reference broker signs today. The
+post-quantum target is **hybrid Ed25519 + ML-DSA-65** (FIPS 204) via the multi-signature form
+(AAP-SPEC §9.4), matching ATX's per-signature `algorithm` model: a credential carrying an ML-DSA-65
+signature requires at least one ML-DSA-65 signature **and** at least one Ed25519 signature to
+verify. Adding or retiring a suite is a suite-identifier change and a negotiation (Section 8.1),
+never a new credential format. A verifier MUST reject a credential whose declared suite it does not
+support rather than silently downgrade.
 
 ### 8.3 Extensible claims with safe ignore
 
@@ -463,8 +472,10 @@ The conformance program polices the core and stays out of the edge.
 ## 11. The Broker as Its Own Identity Provider
 
 For Exchange and Assume, the broker acts as its **own OIDC-style identity provider.** It mints a
-short-lived **broker assertion** whose claims derive from the verified ATX (subject, trust class,
-trust level, and a bounded validity window), signed with the broker's signing key. The downstream
+short-lived **broker assertion** — the CGT/DA of the token model, in the normative token form of
+AAP-SPEC §9 (a compact EdDSA JWT whose claim set is pinned by AAP-SPEC §4.2) — whose claims derive
+from the verified ATX (subject, trust class, trust level, and a bounded validity window), signed
+with the broker's signing key. The downstream
 authorization server (Exchange) or STS (Assume) is configured **once** to trust the broker's IdP,
 the same way keyless CI authentication configures a downstream to trust a federated issuer.
 
@@ -528,7 +539,7 @@ or policy by probing grant references. The audit log retains full diagnostic det
 | Level | Name | Requirements |
 |-------|------|--------------|
 | **1** | Context Hygiene | Grant-reference syntax; the context-hygiene invariant (Section 4); decision/enforcement split with default-deny (Section 3); ATX verification + CRL before resolution (Section 6); ephemeral-worker confinement; opaque denials; signed audit. At least one CPI mode implemented. |
-| **2** | Agile + Negotiated | Level 1 + version negotiation (8.1) + cryptographic agility with the hybrid default suite (8.2) + safe-ignore claim handling (8.3) + the published discovery document (8.5). |
+| **2** | Agile + Negotiated | Level 1 + version negotiation (8.1) + cryptographic agility under the AAP-SPEC §9.5 suite registry (8.2) + safe-ignore claim handling (8.3) + the published discovery document (8.5). |
 | **3** | Federated | Level 2 + full federation-aware policy evaluation (issuer chain, trust level, scan summary) + cross-broker verification of peer broker assertions + jurisdiction enforcement (Section 9). |
 
 The v1 reference implementation (Section 14) targets **Level 1** with the **Exchange** mode and the

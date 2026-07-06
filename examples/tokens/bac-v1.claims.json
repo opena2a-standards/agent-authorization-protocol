@@ -1,0 +1,13 @@
+{
+  "iss": "did:opena2a:authority:opena2a.org",
+  "sub": "did:opena2a:agent:acme/orders-reader",
+  "bac_level": 3,
+  "atx_reference": "sha256:2052879dda15b1ca5e60319e3477a4008412bffdaf3c3566c658795a48cab8fd",
+  "binary_hash": "sha256:479bd28a55e3a3eb20b9f5b48202318d5de9d0dbea9e6df20b2ee7ff95a4c135",
+  "drift_score": 0.04,
+  "anomaly_state": "nominal",
+  "intent_verified": true,
+  "iat": 1780315200,
+  "exp": 1780315260,
+  "jti": "7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b"
+}
