@@ -1,0 +1,526 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rfc xmlns:xi="http://www.w3.org/2001/XInclude"
+     docName="draft-fane-opena2a-aap-00"
+     ipr="trust200902"
+     category="std"
+     submissionType="IETF"
+     tocInclude="true"
+     sortRefs="true"
+     symRefs="true"
+     version="3">
+
+  <front>
+    <title abbrev="AAP">OpenA2A Agent Authorization Protocol (AAP)</title>
+    <seriesInfo name="Internet-Draft" value="draft-fane-opena2a-aap-00"/>
+
+    <author fullname="Abdel Fane" initials="A." surname="Fane">
+      <organization>OpenA2A</organization>
+      <address>
+        <email>info@opena2a.org</email>
+      </address>
+    </author>
+
+    <date year="2026" month="July" day="6"/>
+
+    <area>Security</area>
+    <workgroup>Individual Submission</workgroup>
+    <keyword>agent authorization</keyword>
+    <keyword>AI agents</keyword>
+    <keyword>delegation</keyword>
+    <keyword>credential isolation</keyword>
+    <keyword>behavioral attestation</keyword>
+
+    <abstract>
+      <t>This document defines the OpenA2A Agent Authorization Protocol (AAP), a
+      protocol for authorization in AI agent systems. AAP provides mechanisms
+      for agent identity assertion, scoped capability grants, cross-agent
+      delegation, behavioral attestation, cross-organizational federation, and
+      revocation propagation. AAP is the authorization complement to agent
+      communication protocols such as A2A and the Model Context Protocol, in the
+      same way that OAuth 2.0 complements HTTP for web applications.</t>
+
+      <t>AAP has two layers. The token model, defined in this document, specifies
+      the AAP credentials and assertions: what they contain, how they are signed,
+      and how they are verified. A companion broker and resolution layer
+      specifies how an agent obtains and exercises a grant without the credential
+      value ever entering the agent's reasoning context. This confinement
+      property, that no secret, temporary credential, or backend identifier
+      reaches the agent or the model behind it, is the primary design goal of the
+      protocol.</t>
+    </abstract>
+  </front>
+
+  <middle>
+
+    <section anchor="introduction">
+      <name>Introduction</name>
+      <t>AI agent systems present authorization challenges that existing
+      protocols such as OAuth 2.0 <xref target="RFC6749"/>, SAML, and OpenID
+      Connect were not designed to address. Agents are non-deterministic: the
+      same agent with identical permissions can behave differently depending on
+      its inputs, conversation history, and model state. Static authorization
+      grants cannot account for this behavioral variability.</t>
+
+      <t>A second, agent-specific hazard is credential exposure. An autonomous
+      agent that holds a secret in its reasoning context can be induced, through
+      prompt injection or tool-output poisoning, to disclose or misuse it. AAP
+      therefore treats the confinement of credentials away from the agent's
+      reasoning context as a first-class requirement rather than a deployment
+      detail.</t>
+
+      <t>AAP introduces six protocol components that together provide
+      authorization coverage for agent-to-agent, agent-to-service, and
+      human-to-agent interactions:</t>
+
+      <ol spacing="normal">
+        <li><t><strong>Agent Identity Token (AIT)</strong>: a cryptographic
+        identity assertion.</t></li>
+        <li><t><strong>Capability Grant Token (CGT)</strong>: a scoped,
+        short-lived authorization.</t></li>
+        <li><t><strong>Delegation Assertion (DA)</strong>: cross-agent capability
+        delegation.</t></li>
+        <li><t><strong>Behavioral Attestation Claim (BAC)</strong>: a real-time
+        behavioral state proof.</t></li>
+        <li><t><strong>Cross-Organizational Trust Federation</strong>: mutual
+        trust between issuing authorities.</t></li>
+        <li><t><strong>Revocation Propagation</strong>: federated revocation
+        within a bounded interval.</t></li>
+      </ol>
+
+      <t>AAP is positioned as the authorization complement to agent
+      communication protocols such as A2A <xref target="A2A"/> and the Model
+      Context Protocol <xref target="MCP"/>, which convey messages and tool
+      invocations but do not themselves define scoped, attested authorization.</t>
+
+      <t>A governing constraint applies to every choice in AAP: the protocol and
+      its vocabulary are open, and nothing in AAP requires a vendor, cloud
+      provider, or government to surrender control of its own trust root. The
+      topology is a trust program of federated, conformant Root Authorities, not
+      a single root, the same property that let DNS, TLS, OAuth, and OpenID
+      Connect achieve broad deployment.</t>
+    </section>
+
+    <section anchor="conventions">
+      <name>Conventions and Terminology</name>
+      <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+      "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+      "OPTIONAL" in this document are to be interpreted as described in BCP 14
+      <xref target="RFC2119"/> <xref target="RFC8174"/> when, and only when, they
+      appear in all capitals, as shown here.</t>
+
+      <dl spacing="normal">
+        <dt>Agent</dt>
+        <dd>An AI system that can take actions on behalf of a user or
+        organization.</dd>
+
+        <dt>Agent Trust eXtension (ATX)</dt>
+        <dd>A signed credential issued by a Registry attesting to an agent's
+        identity, code integrity, capabilities, and trust level, as defined in
+        <xref target="ATX"/>. The AIT references an ATX by hash.</dd>
+
+        <dt>Agent Security Context (ASC)</dt>
+        <dd>Shared state describing an agent's current security posture across
+        monitoring components.</dd>
+
+        <dt>Registry / Root Authority</dt>
+        <dd>A trust authority that issues ATXs, maintains a transparency log
+        <xref target="RFC6962"/>, and computes trust scores. Participants operate
+        conformant Root Authorities under the Agent Trust Protocol
+        <xref target="ATP"/>.</dd>
+
+        <dt>Broker</dt>
+        <dd>A local, operator-controlled component that resolves an abstract
+        grant reference to a concrete, scoped action on a resource without
+        exposing any credential to the agent, as specified in
+        <xref target="AAP-BROKER-PROFILE"/>.</dd>
+      </dl>
+    </section>
+
+    <section anchor="ait">
+      <name>Agent Identity Token (AIT)</name>
+      <t>The AIT is a cryptographic assertion of agent identity, analogous to an
+      OpenID Connect ID Token. It is presented by an agent to identify itself to
+      other agents, services, and infrastructure. An AIT is an identity assertion
+      only; it conveys no authorization (see <xref target="sec-trust-authz"/>).</t>
+
+      <t>An AIT carries an agent identifier, a decentralized identifier for the
+      agent, a hash reference to the agent's current ATX, a declared purpose, a
+      trust level, issuance and expiry timestamps, a hybrid signature, and the
+      issuer's decentralized identifier:</t>
+
+      <sourcecode type="json"><![CDATA[
+{
+  "agentId": "uuid",
+  "agentDid": "did:opena2a:agent:org/agent-name",
+  "atxReference": "sha256-hash-of-current-atx",
+  "declaredPurpose": "natural language description",
+  "trustLevel": 0,
+  "issuedAt": "ISO 8601",
+  "expiresAt": "ISO 8601",
+  "signature": "Ed25519 + ML-DSA-65 hybrid",
+  "issuerDid": "did:opena2a:authority:issuing-registry"
+}
+]]></sourcecode>
+
+      <t>AIT verification MUST be local. The verifier checks the signature
+      against the issuer's public key, distributed via the trust anchor
+      mechanism. No network call to a Registry is required at verification
+      time.</t>
+    </section>
+
+    <section anchor="cgt">
+      <name>Capability Grant Token (CGT)</name>
+      <t>The CGT is a short-lived, scoped authorization token, analogous to an
+      OAuth 2.0 access token <xref target="RFC6749"/>. It authorizes a specific
+      capability exercise under fine-grained authorization constraints. In a
+      broker deployment <xref target="AAP-BROKER-PROFILE"/>, the CGT is what the
+      broker mints from a verified ATX before exchanging it for a downstream
+      credential.</t>
+
+      <sourcecode type="json"><![CDATA[
+{
+  "tokenId": "unique-id",
+  "agentId": "uuid",
+  "capability": "db:read",
+  "scope": {
+    "resources": ["customers"],
+    "actions": ["read"],
+    "attributes": ["name", "email"],
+    "maxUses": 100,
+    "contextRequired": true
+  },
+  "fgaConstraints": "json-encoded FGA policy",
+  "intentVerified": true,
+  "issuedAt": "ISO 8601",
+  "expiresAt": "ISO 8601",
+  "signature": "Ed25519"
+}
+]]></sourcecode>
+
+      <t>A CGT has a bounded time-to-live. This document defines three tiers;
+      profiles MAY define others:</t>
+      <dl spacing="compact">
+        <dt>STANDARD</dt><dd>4 hours.</dd>
+        <dt>PRIVILEGED</dt><dd>30 minutes.</dd>
+        <dt>SUPER_PRIVILEGED</dt><dd>15 minutes, no renewal; human approval
+        REQUIRED.</dd>
+      </dl>
+    </section>
+
+    <section anchor="da">
+      <name>Delegation Assertion (DA)</name>
+      <t>The DA enables cross-agent capability delegation, analogous to OAuth 2.0
+      Token Exchange <xref target="RFC8693"/>. A delegatee's capability scope
+      MUST NOT exceed the delegator's scope. The exchange mode of the broker
+      profile is a realization of the DA over <xref target="RFC8693"/>.</t>
+
+      <t>A DA is subject to the following constraints:</t>
+      <ul spacing="normal">
+        <li>A maximum delegation depth limits the length of a delegation
+        chain.</li>
+        <li>The delegator's ATX hash is embedded to preserve an audit trail.</li>
+        <li>Scope is cryptographically bounded and MUST NOT be broadened by a
+        delegatee.</li>
+      </ul>
+    </section>
+
+    <section anchor="bac">
+      <name>Behavioral Attestation Claim (BAC)</name>
+      <t>The BAC is a short-lived signed assertion of an agent's current
+      behavioral state, with a time-to-live on the order of 60 seconds. It has no
+      direct parallel in existing web protocols; it exists because agents are
+      non-deterministic.</t>
+
+      <t>A BAC is issued at one of three levels:</t>
+      <dl spacing="compact">
+        <dt>L1</dt><dd>Build-time attestation: ATX plus scan results.</dd>
+        <dt>L2</dt><dd>Runtime self-attestation: binary hash match.</dd>
+        <dt>L3</dt><dd>Behavioral continuity: drift score, anomaly state, and
+        intent verification.</dd>
+      </dl>
+
+      <t>BAC verification is local. The receiver verifies the ML-DSA-65 signature
+      <xref target="FIPS204"/> against the issuing authority's public key.</t>
+    </section>
+
+    <section anchor="federation">
+      <name>Cross-Organizational Federation</name>
+      <t>Federation follows a PKI-style hierarchy: subordinate Registry nodes
+      (Root Authorities) issue ATXs that are trusted by their peers according to
+      published trust lists. Any federated node can verify any other node's ATXs
+      without direct contact. No participant joins a central operator; each
+      operates a conformant Root Authority and cross-trusts its peers.</t>
+
+      <section anchor="revocation">
+        <name>Revocation Propagation</name>
+        <t>When any node revokes an ATX, the revocation MUST propagate to all
+        federation members within 60 seconds via signed push. No member is
+        required to poll. Authorization revocation in the broker profile is bound
+        entirely to this mechanism; the profile defines no separate revocation
+        system.</t>
+      </section>
+    </section>
+
+    <section anchor="security">
+      <name>Security Considerations</name>
+
+      <section anchor="sec-confinement">
+        <name>Credential Confinement</name>
+        <t>Where AAP is deployed via a broker, no credential value, temporary
+        token, or backend identifier may enter an agent's reasoning context. This
+        requirement is normative in the broker profile
+        <xref target="AAP-BROKER-PROFILE"/> and is the property that defends
+        against the credential-harvest and exfiltration attack classes catalogued
+        in <xref target="THREATMATRIX"/>. An agent emits an abstract grant
+        reference; the broker verifies the agent's ATX, evaluates resource
+        policy, obtains a scoped credential, performs the operation, and returns
+        only the result.</t>
+      </section>
+
+      <section anchor="sec-replay">
+        <name>Replay Prevention</name>
+        <t>All tokens include a unique identifier ("jti"). Receivers MUST track
+        used identifiers for the token's time-to-live window and MUST reject a
+        repeated identifier.</t>
+      </section>
+
+      <section anchor="sec-pq">
+        <name>Post-Quantum Readiness</name>
+        <t>All signatures use a hybrid of Ed25519 and ML-DSA-65
+        <xref target="FIPS204"/>. Key exchange uses a hybrid of X25519 and
+        ML-KEM-768 <xref target="FIPS203"/>. The signature suite is a named,
+        negotiable field, so suites can be added or retired by negotiation rather
+        than by a new credential format.</t>
+      </section>
+
+      <section anchor="sec-intent">
+        <name>Intent Verification</name>
+        <t>Semantic intent classification can express constraints that static
+        policies cannot. Intent classification is probabilistic; systems MUST NOT
+        rely on it alone to authorize irreversible actions.</t>
+      </section>
+
+      <section anchor="sec-trust-authz">
+        <name>Trust Is Not Authorization</name>
+        <t>A valid AIT or ATX is an identity and posture assertion, not
+        permission to act on a resource, and trust is not transitive.
+        Authorization exists only where a local policy grants it. Brokers MUST
+        default-deny.</t>
+      </section>
+    </section>
+
+    <section anchor="iana">
+      <name>IANA Considerations</name>
+      <t>This document requests registration of the "aap" URI scheme in the
+      Uniform Resource Identifier (URI) Schemes registry, and, via the broker
+      profile <xref target="AAP-BROKER-PROFILE"/>, the "grant" URI scheme. It
+      further anticipates registries for AAP protocol versions, credential-provider
+      mode identifiers, and signature suite identifiers, to be coordinated with
+      the ATX signature suite registry <xref target="ATX"/>. The concrete
+      registration templates will be provided in a future revision of this
+      document.</t>
+    </section>
+
+  </middle>
+
+  <back>
+    <references>
+      <name>Normative References</name>
+
+      <reference anchor="RFC2119" target="https://www.rfc-editor.org/info/rfc2119">
+        <front>
+          <title>Key words for use in RFCs to Indicate Requirement Levels</title>
+          <author initials="S." surname="Bradner" fullname="S. Bradner"/>
+          <date year="1997" month="March"/>
+        </front>
+        <seriesInfo name="BCP" value="14"/>
+        <seriesInfo name="RFC" value="2119"/>
+      </reference>
+
+      <reference anchor="RFC8174" target="https://www.rfc-editor.org/info/rfc8174">
+        <front>
+          <title>Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words</title>
+          <author initials="B." surname="Leiba" fullname="B. Leiba"/>
+          <date year="2017" month="May"/>
+        </front>
+        <seriesInfo name="BCP" value="14"/>
+        <seriesInfo name="RFC" value="8174"/>
+      </reference>
+
+      <reference anchor="RFC6749" target="https://www.rfc-editor.org/info/rfc6749">
+        <front>
+          <title>The OAuth 2.0 Authorization Framework</title>
+          <author initials="D." surname="Hardt" fullname="D. Hardt" role="editor"/>
+          <date year="2012" month="October"/>
+        </front>
+        <seriesInfo name="RFC" value="6749"/>
+      </reference>
+
+      <reference anchor="RFC8693" target="https://www.rfc-editor.org/info/rfc8693">
+        <front>
+          <title>OAuth 2.0 Token Exchange</title>
+          <author initials="M." surname="Jones" fullname="M. Jones"/>
+          <author initials="A." surname="Nadalin" fullname="A. Nadalin"/>
+          <author initials="B." surname="Campbell" fullname="B. Campbell" role="editor"/>
+          <author initials="J." surname="Bradley" fullname="J. Bradley"/>
+          <author initials="C." surname="Mortimore" fullname="C. Mortimore"/>
+          <date year="2020" month="January"/>
+        </front>
+        <seriesInfo name="RFC" value="8693"/>
+      </reference>
+
+      <reference anchor="RFC6962" target="https://www.rfc-editor.org/info/rfc6962">
+        <front>
+          <title>Certificate Transparency</title>
+          <author initials="B." surname="Laurie" fullname="B. Laurie"/>
+          <author initials="A." surname="Langley" fullname="A. Langley"/>
+          <author initials="E." surname="Kasper" fullname="E. Kasper"/>
+          <date year="2013" month="June"/>
+        </front>
+        <seriesInfo name="RFC" value="6962"/>
+      </reference>
+
+      <reference anchor="FIPS203" target="https://doi.org/10.6028/NIST.FIPS.203">
+        <front>
+          <title>Module-Lattice-Based Key-Encapsulation Mechanism Standard</title>
+          <author>
+            <organization>National Institute of Standards and Technology</organization>
+          </author>
+          <date year="2024" month="August"/>
+        </front>
+        <seriesInfo name="FIPS" value="203"/>
+      </reference>
+
+      <reference anchor="FIPS204" target="https://doi.org/10.6028/NIST.FIPS.204">
+        <front>
+          <title>Module-Lattice-Based Digital Signature Standard</title>
+          <author>
+            <organization>National Institute of Standards and Technology</organization>
+          </author>
+          <date year="2024" month="August"/>
+        </front>
+        <seriesInfo name="FIPS" value="204"/>
+      </reference>
+
+      <reference anchor="ATX" target="https://specs.opena2a.org/atx">
+        <front>
+          <title>Agent Trust eXtension (ATX) Credential Format</title>
+          <author initials="A." surname="Fane" fullname="Abdel Fane">
+            <organization>OpenA2A</organization>
+          </author>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="ATP" target="https://specs.opena2a.org/atp">
+        <front>
+          <title>Agent Trust Protocol (ATP)</title>
+          <author initials="A." surname="Fane" fullname="Abdel Fane">
+            <organization>OpenA2A</organization>
+          </author>
+          <date year="2026"/>
+        </front>
+      </reference>
+    </references>
+
+    <references>
+      <name>Informative References</name>
+
+      <reference anchor="AAP-BROKER-PROFILE" target="https://specs.opena2a.org/aap/broker-profile">
+        <front>
+          <title>AAP Broker and Resolution Profile</title>
+          <author initials="A." surname="Fane" fullname="Abdel Fane">
+            <organization>OpenA2A</organization>
+          </author>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="A2A" target="https://a2aproject.github.io/A2A/">
+        <front>
+          <title>Agent2Agent (A2A) Protocol Specification</title>
+          <author>
+            <organization>A2A Project</organization>
+          </author>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="MCP" target="https://modelcontextprotocol.io/">
+        <front>
+          <title>Model Context Protocol Specification</title>
+          <author>
+            <organization>Model Context Protocol</organization>
+          </author>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="THREATMATRIX" target="https://threats.opena2a.org">
+        <front>
+          <title>AI Agent Threat Matrix</title>
+          <author>
+            <organization>OpenA2A</organization>
+          </author>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="CRUZ-AAP" target="https://datatracker.ietf.org/doc/draft-aap-oauth-profile/">
+        <front>
+          <title>Agent Authorization Profile (AAP) for OAuth 2.0</title>
+          <author surname="Cruz"/>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="DUNBAR-AAP" target="https://datatracker.ietf.org/doc/draft-dunbar-agent-attachment/">
+        <front>
+          <title>Agent Attachment Protocol (AAP)</title>
+          <author surname="Dunbar"/>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="MISHRA-DAAP" target="https://datatracker.ietf.org/doc/draft-mishra-oauth-agent-grants/">
+        <front>
+          <title>Delegated Agent Authorization Protocol (DAAP)</title>
+          <author surname="Mishra"/>
+          <date year="2026"/>
+        </front>
+      </reference>
+    </references>
+
+    <section anchor="related-work">
+      <name>Related Work</name>
+      <t>The "AAP" acronym is contested in this space. An independent
+      Internet-Draft, "Agent Authorization Profile" <xref target="CRUZ-AAP"/>,
+      specifies an OAuth 2.0 and JSON Web Token profile for agent authorization;
+      it is a profile of existing OAuth mechanisms and introduces no new protocol
+      elements. A separate Internet-Draft uses the same "AAP" letters for an
+      unrelated "Agent Attachment Protocol" <xref target="DUNBAR-AAP"/> concerned
+      with edge-node attachment. The present document defines a distinct token
+      model (AIT, CGT, DA, and BAC), a broker-based credential-confinement layer,
+      and a federation and revocation model. These documents are author-namespaced
+      and are intended to coexist on the Internet-Drafts record.</t>
+
+      <t>Closest in intent is the "Delegated Agent Authorization Protocol"
+      <xref target="MISHRA-DAAP"/>, which extends OAuth 2.0 with agent grant and
+      delegation semantics. The present document differs in that authorization is
+      exercised through a local broker that confines the credential value away
+      from the agent's reasoning context (<xref target="sec-confinement"/>) and
+      binds to behavioral attestation (<xref target="bac"/>), rather than issuing
+      an OAuth token the agent holds directly. Related agent-identity drafts using
+      the "AIP" acronym address identity assertion rather than the
+      scoped-authorization and credential-confinement problems that are the focus
+      of this document.</t>
+    </section>
+
+    <section anchor="ack">
+      <name>Acknowledgments</name>
+      <t>This specification was authored in the open and benefits from review of
+      its authorization and delegation model by the OpenA2A community.</t>
+    </section>
+  </back>
+
+</rfc>
