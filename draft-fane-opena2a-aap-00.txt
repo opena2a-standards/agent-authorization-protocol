@@ -1,0 +1,560 @@
+
+
+
+
+Individual Submission                                            A. Fane
+Internet-Draft                                                   OpenA2A
+Intended status: Standards Track                             6 July 2026
+Expires: 7 January 2027
+
+
+               OpenA2A Agent Authorization Protocol (AAP)
+                       draft-fane-opena2a-aap-00
+
+Abstract
+
+   This document defines the OpenA2A Agent Authorization Protocol (AAP),
+   a protocol for authorization in AI agent systems.  AAP provides
+   mechanisms for agent identity assertion, scoped capability grants,
+   cross-agent delegation, behavioral attestation, cross-organizational
+   federation, and revocation propagation.  AAP is the authorization
+   complement to agent communication protocols such as A2A and the Model
+   Context Protocol, in the same way that OAuth 2.0 complements HTTP for
+   web applications.
+
+   AAP has two layers.  The token model, defined in this document,
+   specifies the AAP credentials and assertions: what they contain, how
+   they are signed, and how they are verified.  A companion broker and
+   resolution layer specifies how an agent obtains and exercises a grant
+   without the credential value ever entering the agent's reasoning
+   context.  This confinement property, that no secret, temporary
+   credential, or backend identifier reaches the agent or the model
+   behind it, is the primary design goal of the protocol.
+
+Status of This Memo
+
+   This Internet-Draft is submitted in full conformance with the
+   provisions of BCP 78 and BCP 79.
+
+   Internet-Drafts are working documents of the Internet Engineering
+   Task Force (IETF).  Note that other groups may also distribute
+   working documents as Internet-Drafts.  The list of current Internet-
+   Drafts is at https://datatracker.ietf.org/drafts/current/.
+
+   Internet-Drafts are draft documents valid for a maximum of six months
+   and may be updated, replaced, or obsoleted by other documents at any
+   time.  It is inappropriate to use Internet-Drafts as reference
+   material or to cite them other than as "work in progress."
+
+   This Internet-Draft will expire on 7 January 2027.
+
+
+
+
+
+
+Fane                     Expires 7 January 2027                 [Page 1]
+
+Internet-Draft                     AAP                         July 2026
+
+
+Copyright Notice
+
+   Copyright (c) 2026 IETF Trust and the persons identified as the
+   document authors.  All rights reserved.
+
+   This document is subject to BCP 78 and the IETF Trust's Legal
+   Provisions Relating to IETF Documents (https://trustee.ietf.org/
+   license-info) in effect on the date of publication of this document.
+   Please review these documents carefully, as they describe your rights
+   and restrictions with respect to this document.  Code Components
+   extracted from this document must include Revised BSD License text as
+   described in Section 4.e of the Trust Legal Provisions and are
+   provided without warranty as described in the Revised BSD License.
+
+Table of Contents
+
+   1.  Introduction  . . . . . . . . . . . . . . . . . . . . . . . .   2
+   2.  Conventions and Terminology . . . . . . . . . . . . . . . . .   3
+   3.  Agent Identity Token (AIT)  . . . . . . . . . . . . . . . . .   4
+   4.  Capability Grant Token (CGT)  . . . . . . . . . . . . . . . .   5
+   5.  Delegation Assertion (DA) . . . . . . . . . . . . . . . . . .   5
+   6.  Behavioral Attestation Claim (BAC)  . . . . . . . . . . . . .   6
+   7.  Cross-Organizational Federation . . . . . . . . . . . . . . .   6
+     7.1.  Revocation Propagation  . . . . . . . . . . . . . . . . .   6
+   8.  Security Considerations . . . . . . . . . . . . . . . . . . .   6
+     8.1.  Credential Confinement  . . . . . . . . . . . . . . . . .   7
+     8.2.  Replay Prevention . . . . . . . . . . . . . . . . . . . .   7
+     8.3.  Post-Quantum Readiness  . . . . . . . . . . . . . . . . .   7
+     8.4.  Intent Verification . . . . . . . . . . . . . . . . . . .   7
+     8.5.  Trust Is Not Authorization  . . . . . . . . . . . . . . .   7
+   9.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   7
+   10. Normative References  . . . . . . . . . . . . . . . . . . . .   8
+   11. Informative References  . . . . . . . . . . . . . . . . . . .   8
+   Appendix A.  Related Work . . . . . . . . . . . . . . . . . . . .   9
+   Appendix B.  Acknowledgments  . . . . . . . . . . . . . . . . . .  10
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  10
+
+1.  Introduction
+
+   AI agent systems present authorization challenges that existing
+   protocols such as OAuth 2.0 [RFC6749], SAML, and OpenID Connect were
+   not designed to address.  Agents are non-deterministic: the same
+   agent with identical permissions can behave differently depending on
+   its inputs, conversation history, and model state.  Static
+   authorization grants cannot account for this behavioral variability.
+
+
+
+
+
+
+Fane                     Expires 7 January 2027                 [Page 2]
+
+Internet-Draft                     AAP                         July 2026
+
+
+   A second, agent-specific hazard is credential exposure.  An
+   autonomous agent that holds a secret in its reasoning context can be
+   induced, through prompt injection or tool-output poisoning, to
+   disclose or misuse it.  AAP therefore treats the confinement of
+   credentials away from the agent's reasoning context as a first-class
+   requirement rather than a deployment detail.
+
+   AAP introduces six protocol components that together provide
+   authorization coverage for agent-to-agent, agent-to-service, and
+   human-to-agent interactions:
+
+   1.  *Agent Identity Token (AIT)*: a cryptographic identity assertion.
+
+   2.  *Capability Grant Token (CGT)*: a scoped, short-lived
+       authorization.
+
+   3.  *Delegation Assertion (DA)*: cross-agent capability delegation.
+
+   4.  *Behavioral Attestation Claim (BAC)*: a real-time behavioral
+       state proof.
+
+   5.  *Cross-Organizational Trust Federation*: mutual trust between
+       issuing authorities.
+
+   6.  *Revocation Propagation*: federated revocation within a bounded
+       interval.
+
+   AAP is positioned as the authorization complement to agent
+   communication protocols such as A2A [A2A] and the Model Context
+   Protocol [MCP], which convey messages and tool invocations but do not
+   themselves define scoped, attested authorization.
+
+   A governing constraint applies to every choice in AAP: the protocol
+   and its vocabulary are open, and nothing in AAP requires a vendor,
+   cloud provider, or government to surrender control of its own trust
+   root.  The topology is a trust program of federated, conformant Root
+   Authorities, not a single root, the same property that let DNS, TLS,
+   OAuth, and OpenID Connect achieve broad deployment.
+
+2.  Conventions and Terminology
+
+   The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+   "SHOULD", "SHOULD NOT", "RECOMMENDED", "NOT RECOMMENDED", "MAY", and
+   "OPTIONAL" in this document are to be interpreted as described in BCP
+   14 [RFC2119] [RFC8174] when, and only when, they appear in all
+   capitals, as shown here.
+
+   Agent  An AI system that can take actions on behalf of a user or
+
+
+
+Fane                     Expires 7 January 2027                 [Page 3]
+
+Internet-Draft                     AAP                         July 2026
+
+
+      organization.
+
+   Agent Trust eXtension (ATX)  A signed credential issued by a Registry
+      attesting to an agent's identity, code integrity, capabilities,
+      and trust level, as defined in [ATX].  The AIT references an ATX
+      by hash.
+
+   Agent Security Context (ASC)  Shared state describing an agent's
+      current security posture across monitoring components.
+
+   Registry / Root Authority  A trust authority that issues ATXs,
+      maintains a transparency log [RFC6962], and computes trust scores.
+      Participants operate conformant Root Authorities under the Agent
+      Trust Protocol [ATP].
+
+   Broker  A local, operator-controlled component that resolves an
+      abstract grant reference to a concrete, scoped action on a
+      resource without exposing any credential to the agent, as
+      specified in [AAP-BROKER-PROFILE].
+
+3.  Agent Identity Token (AIT)
+
+   The AIT is a cryptographic assertion of agent identity, analogous to
+   an OpenID Connect ID Token.  It is presented by an agent to identify
+   itself to other agents, services, and infrastructure.  An AIT is an
+   identity assertion only; it conveys no authorization (see
+   Section 8.5).
+
+   An AIT carries an agent identifier, a decentralized identifier for
+   the agent, a hash reference to the agent's current ATX, a declared
+   purpose, a trust level, issuance and expiry timestamps, a hybrid
+   signature, and the issuer's decentralized identifier:
+
+   {
+     "agentId": "uuid",
+     "agentDid": "did:opena2a:agent:org/agent-name",
+     "atxReference": "sha256-hash-of-current-atx",
+     "declaredPurpose": "natural language description",
+     "trustLevel": 0,
+     "issuedAt": "ISO 8601",
+     "expiresAt": "ISO 8601",
+     "signature": "Ed25519 + ML-DSA-65 hybrid",
+     "issuerDid": "did:opena2a:authority:issuing-registry"
+   }
+
+
+
+
+
+
+
+Fane                     Expires 7 January 2027                 [Page 4]
+
+Internet-Draft                     AAP                         July 2026
+
+
+   AIT verification MUST be local.  The verifier checks the signature
+   against the issuer's public key, distributed via the trust anchor
+   mechanism.  No network call to a Registry is required at verification
+   time.
+
+4.  Capability Grant Token (CGT)
+
+   The CGT is a short-lived, scoped authorization token, analogous to an
+   OAuth 2.0 access token [RFC6749].  It authorizes a specific
+   capability exercise under fine-grained authorization constraints.  In
+   a broker deployment [AAP-BROKER-PROFILE], the CGT is what the broker
+   mints from a verified ATX before exchanging it for a downstream
+   credential.
+
+   {
+     "tokenId": "unique-id",
+     "agentId": "uuid",
+     "capability": "db:read",
+     "scope": {
+       "resources": ["customers"],
+       "actions": ["read"],
+       "attributes": ["name", "email"],
+       "maxUses": 100,
+       "contextRequired": true
+     },
+     "fgaConstraints": "json-encoded FGA policy",
+     "intentVerified": true,
+     "issuedAt": "ISO 8601",
+     "expiresAt": "ISO 8601",
+     "signature": "Ed25519"
+   }
+
+   A CGT has a bounded time-to-live.  This document defines three tiers;
+   profiles MAY define others:
+
+   STANDARD  4 hours.
+   PRIVILEGED  30 minutes.
+   SUPER_PRIVILEGED  15 minutes, no renewal; human approval REQUIRED.
+
+5.  Delegation Assertion (DA)
+
+   The DA enables cross-agent capability delegation, analogous to OAuth
+   2.0 Token Exchange [RFC8693].  A delegatee's capability scope MUST
+   NOT exceed the delegator's scope.  The exchange mode of the broker
+   profile is a realization of the DA over [RFC8693].
+
+   A DA is subject to the following constraints:
+
+
+
+
+Fane                     Expires 7 January 2027                 [Page 5]
+
+Internet-Draft                     AAP                         July 2026
+
+
+   *  A maximum delegation depth limits the length of a delegation
+      chain.
+
+   *  The delegator's ATX hash is embedded to preserve an audit trail.
+
+   *  Scope is cryptographically bounded and MUST NOT be broadened by a
+      delegatee.
+
+6.  Behavioral Attestation Claim (BAC)
+
+   The BAC is a short-lived signed assertion of an agent's current
+   behavioral state, with a time-to-live on the order of 60 seconds.  It
+   has no direct parallel in existing web protocols; it exists because
+   agents are non-deterministic.
+
+   A BAC is issued at one of three levels:
+
+   L1  Build-time attestation: ATX plus scan results.
+   L2  Runtime self-attestation: binary hash match.
+   L3  Behavioral continuity: drift score, anomaly state, and intent
+      verification.
+
+   BAC verification is local.  The receiver verifies the ML-DSA-65
+   signature [FIPS204] against the issuing authority's public key.
+
+7.  Cross-Organizational Federation
+
+   Federation follows a PKI-style hierarchy: subordinate Registry nodes
+   (Root Authorities) issue ATXs that are trusted by their peers
+   according to published trust lists.  Any federated node can verify
+   any other node's ATXs without direct contact.  No participant joins a
+   central operator; each operates a conformant Root Authority and
+   cross-trusts its peers.
+
+7.1.  Revocation Propagation
+
+   When any node revokes an ATX, the revocation MUST propagate to all
+   federation members within 60 seconds via signed push.  No member is
+   required to poll.  Authorization revocation in the broker profile is
+   bound entirely to this mechanism; the profile defines no separate
+   revocation system.
+
+8.  Security Considerations
+
+
+
+
+
+
+
+
+Fane                     Expires 7 January 2027                 [Page 6]
+
+Internet-Draft                     AAP                         July 2026
+
+
+8.1.  Credential Confinement
+
+   Where AAP is deployed via a broker, no credential value, temporary
+   token, or backend identifier may enter an agent's reasoning context.
+   This requirement is normative in the broker profile
+   [AAP-BROKER-PROFILE] and is the property that defends against the
+   credential-harvest and exfiltration attack classes catalogued in
+   [THREATMATRIX].  An agent emits an abstract grant reference; the
+   broker verifies the agent's ATX, evaluates resource policy, obtains a
+   scoped credential, performs the operation, and returns only the
+   result.
+
+8.2.  Replay Prevention
+
+   All tokens include a unique identifier ("jti").  Receivers MUST track
+   used identifiers for the token's time-to-live window and MUST reject
+   a repeated identifier.
+
+8.3.  Post-Quantum Readiness
+
+   All signatures use a hybrid of Ed25519 and ML-DSA-65 [FIPS204].  Key
+   exchange uses a hybrid of X25519 and ML-KEM-768 [FIPS203].  The
+   signature suite is a named, negotiable field, so suites can be added
+   or retired by negotiation rather than by a new credential format.
+
+8.4.  Intent Verification
+
+   Semantic intent classification can express constraints that static
+   policies cannot.  Intent classification is probabilistic; systems
+   MUST NOT rely on it alone to authorize irreversible actions.
+
+8.5.  Trust Is Not Authorization
+
+   A valid AIT or ATX is an identity and posture assertion, not
+   permission to act on a resource, and trust is not transitive.
+   Authorization exists only where a local policy grants it.  Brokers
+   MUST default-deny.
+
+9.  IANA Considerations
+
+   This document requests registration of the "aap" URI scheme in the
+   Uniform Resource Identifier (URI) Schemes registry, and, via the
+   broker profile [AAP-BROKER-PROFILE], the "grant" URI scheme.  It
+   further anticipates registries for AAP protocol versions, credential-
+   provider mode identifiers, and signature suite identifiers, to be
+   coordinated with the ATX signature suite registry [ATX].  The
+   concrete registration templates will be provided in a future revision
+   of this document.
+
+
+
+Fane                     Expires 7 January 2027                 [Page 7]
+
+Internet-Draft                     AAP                         July 2026
+
+
+10.  Normative References
+
+   [ATP]      Fane, A., "Agent Trust Protocol (ATP)", 2026,
+              <https://specs.opena2a.org/atp>.
+
+   [ATX]      Fane, A., "Agent Trust eXtension (ATX) Credential Format",
+              2026, <https://specs.opena2a.org/atx>.
+
+   [FIPS203]  National Institute of Standards and Technology, "Module-
+              Lattice-Based Key-Encapsulation Mechanism Standard",
+              FIPS 203, August 2024,
+              <https://doi.org/10.6028/NIST.FIPS.203>.
+
+   [FIPS204]  National Institute of Standards and Technology, "Module-
+              Lattice-Based Digital Signature Standard", FIPS 204,
+              August 2024, <https://doi.org/10.6028/NIST.FIPS.204>.
+
+   [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
+              Requirement Levels", BCP 14, RFC 2119, March 1997,
+              <https://www.rfc-editor.org/info/rfc2119>.
+
+   [RFC6749]  Hardt, D., Ed., "The OAuth 2.0 Authorization Framework",
+              RFC 6749, October 2012,
+              <https://www.rfc-editor.org/info/rfc6749>.
+
+   [RFC6962]  Laurie, B., Langley, A., and E. Kasper, "Certificate
+              Transparency", RFC 6962, June 2013,
+              <https://www.rfc-editor.org/info/rfc6962>.
+
+   [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
+              2119 Key Words", BCP 14, RFC 8174, May 2017,
+              <https://www.rfc-editor.org/info/rfc8174>.
+
+   [RFC8693]  Jones, M., Nadalin, A., Campbell, B., Ed., Bradley, J.,
+              and C. Mortimore, "OAuth 2.0 Token Exchange", RFC 8693,
+              January 2020, <https://www.rfc-editor.org/info/rfc8693>.
+
+11.  Informative References
+
+   [A2A]      A2A Project, "Agent2Agent (A2A) Protocol Specification",
+              2026, <https://a2aproject.github.io/A2A/>.
+
+   [AAP-BROKER-PROFILE]
+              Fane, A., "AAP Broker and Resolution Profile", 2026,
+              <https://specs.opena2a.org/aap/broker-profile>.
+
+
+
+
+
+
+Fane                     Expires 7 January 2027                 [Page 8]
+
+Internet-Draft                     AAP                         July 2026
+
+
+   [CRUZ-AAP] "Agent Authorization Profile (AAP) for OAuth 2.0", 2026,
+              <https://datatracker.ietf.org/doc/draft-aap-oauth-
+              profile/>.
+
+   [DUNBAR-AAP]
+              "Agent Attachment Protocol (AAP)", 2026,
+              <https://datatracker.ietf.org/doc/draft-dunbar-agent-
+              attachment/>.
+
+   [MCP]      Model Context Protocol, "Model Context Protocol
+              Specification", 2026, <https://modelcontextprotocol.io/>.
+
+   [MISHRA-DAAP]
+              "Delegated Agent Authorization Protocol (DAAP)", 2026,
+              <https://datatracker.ietf.org/doc/draft-mishra-oauth-
+              agent-grants/>.
+
+   [THREATMATRIX]
+              OpenA2A, "AI Agent Threat Matrix", 2026,
+              <https://threats.opena2a.org>.
+
+Appendix A.  Related Work
+
+   The "AAP" acronym is contested in this space.  An independent
+   Internet-Draft, "Agent Authorization Profile" [CRUZ-AAP], specifies
+   an OAuth 2.0 and JSON Web Token profile for agent authorization; it
+   is a profile of existing OAuth mechanisms and introduces no new
+   protocol elements.  A separate Internet-Draft uses the same "AAP"
+   letters for an unrelated "Agent Attachment Protocol" [DUNBAR-AAP]
+   concerned with edge-node attachment.  The present document defines a
+   distinct token model (AIT, CGT, DA, and BAC), a broker-based
+   credential-confinement layer, and a federation and revocation model.
+   These documents are author-namespaced and are intended to coexist on
+   the Internet-Drafts record.
+
+   Closest in intent is the "Delegated Agent Authorization Protocol"
+   [MISHRA-DAAP], which extends OAuth 2.0 with agent grant and
+   delegation semantics.  The present document differs in that
+   authorization is exercised through a local broker that confines the
+   credential value away from the agent's reasoning context
+   (Section 8.1) and binds to behavioral attestation (Section 6), rather
+   than issuing an OAuth token the agent holds directly.  Related agent-
+   identity drafts using the "AIP" acronym address identity assertion
+   rather than the scoped-authorization and credential-confinement
+   problems that are the focus of this document.
+
+
+
+
+
+
+Fane                     Expires 7 January 2027                 [Page 9]
+
+Internet-Draft                     AAP                         July 2026
+
+
+Appendix B.  Acknowledgments
+
+   This specification was authored in the open and benefits from review
+   of its authorization and delegation model by the OpenA2A community.
+
+Author's Address
+
+   Abdel Fane
+   OpenA2A
+   Email: info@opena2a.org
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Fane                     Expires 7 January 2027                [Page 10]
