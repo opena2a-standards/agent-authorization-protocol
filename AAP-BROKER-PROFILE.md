@@ -254,7 +254,7 @@ assertion (Section 11).
 The provider **is an OAuth-style authorization server, and the broker performs a token exchange**
 (RFC 8693) to obtain a scoped bearer token for a downstream API. There is no standing secret.
 Enterprise IdPs are Exchange providers. This is the mode implemented in the v1 reference
-implementation (Section 13).
+implementation (Section 14).
 
 ### 5.4 The security property to lead with
 
@@ -372,8 +372,10 @@ These are requirements, built into the protocol structure from the first version
 
 ### 8.1 Versioning and negotiation
 
-Every AAP protocol message, the policy grammar, every claim schema, and every signature carries a
-version. Two parties negotiate the **highest version they both support**.
+Every AAP protocol message and the policy grammar carry an explicit version; claim schemas and
+signatures are versioned through the rules below (a claim schema is itself versioned, and v1 tokens
+carry the version member only per the token rule in this section). Two parties negotiate the
+**highest version they both support**.
 
 - A broker advertises a set of supported AAP versions in its discovery document (Section 8.5).
 - A client selects the highest version in the intersection and stamps it on the request.

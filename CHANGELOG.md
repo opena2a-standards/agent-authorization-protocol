@@ -41,6 +41,19 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   compact token to appear verbatim in AAP-SPEC.md.
 - `schemas/examples-map.json` entries validating the five decoded claim-set
   examples in AAP-SPEC.md against their schemas in CI.
+- Adversarial-review hardening (pre-merge): §9.2 scopes `typ` to the compact
+  form (the general form's per-signature headers carry exactly `alg` + `kid` —
+  the spec's own §9.4 example was rejected by §9.2 as first written); v1
+  headers are closed (unknown parameters, including `crit`, MUST be rejected;
+  `jose-header-v1` gains `additionalProperties: false`); the drift gate also
+  compares every embedded decoded claim-set block (values and member order)
+  and every protected header shape; four safe-ignore citations corrected to
+  broker profile §8.3 (AAP-SPEC §8.3 is Intent Verification); TTL tiers
+  clarified as ceilings; the §9.4 example labeled non-conformant-as-hybrid;
+  README decidability claim qualified (TTL window, BAC 60-second rule, DA
+  scope subsetting are verifier rules, not schema checks). Companion reference
+  fix: the broker now throws when minting without a trust class instead of
+  falling back to the scope (secretless-ai#92).
 
 ### Changed
 

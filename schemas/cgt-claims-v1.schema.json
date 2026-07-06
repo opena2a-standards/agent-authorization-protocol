@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://specs.opena2a.org/schemas/aap/cgt-claims-v1.schema.json",
   "title": "AAP Capability Grant Token claim set (AAP-SPEC section 4.2)",
-  "description": "Claims of the CGT, ratified byte-for-byte from the reference broker assertion (Secretless src/broker/cpi/assertion.ts). `iss` is the minting broker's issuer identifier, `sub` the agent DID from the verified ATX, `aud`/`scope` the downstream audience and OAuth scope, `trust_class` the ATX capability (abstract trust class) exercised for this grant, `issuer_chain`/`trust_level` the federation attributes carried for v2 cross-broker verification. The optional FGA members (`fga_constraints`, `intent_verified`, `max_uses`, `context_required`) are optional-to-ignore (AAP-SPEC section 8.3) and are not minted by the v1 reference.",
+  "description": "Claims of the CGT, ratified byte-for-byte from the reference broker assertion (Secretless src/broker/cpi/assertion.ts). `iss` is the minting broker's issuer identifier, `sub` the agent DID from the verified ATX, `aud`/`scope` the downstream audience and OAuth scope, `trust_class` the ATX capability (abstract trust class) exercised for this grant, `issuer_chain`/`trust_level` the federation attributes carried for v2 cross-broker verification. The optional FGA members (`fga_constraints`, `intent_verified`, `max_uses`, `context_required`) are optional-to-ignore (AAP broker profile section 8.3) and are not minted by the v1 reference.",
   "type": "object",
   "required": ["iss", "sub", "aud", "scope", "trust_class", "issuer_chain", "trust_level", "iat", "exp", "jti"],
   "properties": {

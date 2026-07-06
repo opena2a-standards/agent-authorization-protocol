@@ -35,7 +35,10 @@ schemas (and an `aap-conformance` suite). All four are resolved by AAP-SPEC 0.3:
 With the token form pinned, the prerequisite list for an `aap-conformance`
 fixture suite is satisfied: fixtures are byte-stable (deterministic generator,
 published test keys), and ACCEPT/REJECT verdicts are decidable against these
-schemas plus the signature rules of AAP-SPEC §9.
+schemas plus the signature rules of AAP-SPEC §9 and the claim-semantics rules
+of §4–§6 (TTL tiers, the BAC 60-second window, DA scope subsetting — prose
+rules a suite encodes as verifier checks, not schema checks; the schema
+descriptions state which is which).
 
 Interim structural anchors (unchanged): CPI modes (`Retrieve` / `Assume` /
 `Exchange`, §5), CGT TTL tiers (`STANDARD` / `PRIVILEGED` / `SUPER_PRIVILEGED`,

@@ -198,6 +198,84 @@ def bac_claims() -> dict:
     }
 
 
+# --- spec-embed gates (--check) ------------------------------------------------
+
+
+def extract_json_block(spec: str, heading: str) -> dict:
+    """First ```json block after the exact heading line (validate_examples.py rules)."""
+    lines = spec.splitlines()
+    start = next(i for i, l in enumerate(lines) if l.strip() == heading)
+    in_block, block = False, []
+    for line in lines[start + 1 :]:
+        if not in_block and line.strip() == "```json":
+            in_block = True
+            continue
+        if in_block:
+            if line.strip() == "```":
+                return json.loads("\n".join(block))
+            block.append(line)
+    raise SystemExit(f"no json block after {heading!r}")
+
+
+def same_with_order(a, b) -> bool:
+    """Equality that also requires identical member order (the signed bytes' order)."""
+    if isinstance(a, dict) and isinstance(b, dict):
+        return list(a) == list(b) and all(same_with_order(a[k], b[k]) for k in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(same_with_order(x, y) for x, y in zip(a, b))
+    return a == b
+
+
+def check_spec_blocks(spec: str) -> int:
+    """Each decoded claim-set block embedded in AAP-SPEC.md must equal the generated
+    structure, values AND member order — an edited spec block fails even if the
+    schemas still accept it."""
+    expected = {
+        "### 3.2 Token Structure": ait_claims(),
+        "### 4.2 Token Structure": cgt_claims(),
+        "### 5.3 Assertion Form": da_claims(),
+        "### 6.4 Claim Set": bac_claims(),
+        "### 9.4 Multi-Signature Form": mint_general(["broker-key-1", "broker-key-2"], cgt_claims()),
+    }
+    failures = 0
+    for heading, want in expected.items():
+        got = extract_json_block(spec, heading)
+        if same_with_order(got, want):
+            print(f"spec block OK  {heading}")
+        else:
+            print(f"SPEC BLOCK DRIFT at {heading!r} (must equal the generated fixture, values and order)")
+            failures += 1
+    return failures
+
+
+def check_header_shapes() -> int:
+    """Every protected header must be exactly the pinned section 9.2/9.4 shape."""
+    failures = 0
+    compact_kids = {"ait": "registry-key-1", "cgt": "broker-key-1", "da": "broker-key-1", "bac": "registry-key-1"}
+    for name, kid in compact_kids.items():
+        token = (OUT / f"{name}-v1.jwt").read_text(encoding="utf-8").strip()
+        h = token.split(".")[0]
+        header = json.loads(base64.urlsafe_b64decode(h + "=" * (-len(h) % 4)))
+        want = {"alg": "EdDSA", "typ": "JWT", "kid": kid}
+        if same_with_order(header, want):
+            print(f"header OK      {name}-v1.jwt")
+        else:
+            print(f"HEADER SHAPE   {name}-v1.jwt: {header} != {want}")
+            failures += 1
+    general = json.loads((OUT / "cgt-v1.general.json").read_text(encoding="utf-8"))
+    for i, entry in enumerate(general["signatures"]):
+        p = entry["protected"]
+        header = json.loads(base64.urlsafe_b64decode(p + "=" * (-len(p) % 4)))
+        kid = ["broker-key-1", "broker-key-2"][i]
+        want = {"alg": "EdDSA", "kid": kid}
+        if same_with_order(header, want):
+            print(f"header OK      cgt-v1.general.json signatures[{i}]")
+        else:
+            print(f"HEADER SHAPE   cgt-v1.general.json signatures[{i}]: {header} != {want}")
+            failures += 1
+    return failures
+
+
 # --- output -------------------------------------------------------------------
 
 
@@ -255,6 +333,8 @@ def main() -> int:
             if name.endswith(".jwt") and content.strip() not in spec:
                 print(f"NOT EMBEDDED in AAP-SPEC.md: examples/tokens/{name}")
                 failures += 1
+        failures += check_spec_blocks(spec)
+        failures += check_header_shapes()
         return 1 if failures else 0
 
     OUT.mkdir(parents=True, exist_ok=True)
