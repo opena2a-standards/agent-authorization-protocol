@@ -393,11 +393,12 @@ carry the version member only per the token rule in this section). Two parties n
 
 The signature suite is a **named, swappable field** — the JOSE `alg` of each signature's protected
 header (AAP-SPEC §9) — never a hardcoded assumption. The v1 suite registry (AAP-SPEC §9.5) contains
-one active suite, `EdDSA` (Ed25519), which is what the reference broker signs today. The
-post-quantum target is **hybrid Ed25519 + ML-DSA-65** (FIPS 204) via the multi-signature form
-(AAP-SPEC §9.4), matching ATX's per-signature `algorithm` model: a credential carrying an ML-DSA-65
-signature requires at least one ML-DSA-65 signature **and** at least one Ed25519 signature to
-verify. Adding or retiring a suite is a suite-identifier change and a negotiation (Section 8.1),
+two active suites, `EdDSA` (Ed25519) and `ML-DSA-65` (FIPS 204; JOSE registration RFC 9964). The
+post-quantum profile is **hybrid Ed25519 + ML-DSA-65** via the multi-signature form
+(AAP-SPEC §9.4), matching ATX's per-signature `algorithm` model — the RECOMMENDED form wherever
+both ends implement AAP, and minted by the reference broker alongside the compact forms: a
+credential carrying an ML-DSA-65 signature requires at least one ML-DSA-65 signature **and** at
+least one Ed25519 signature to verify. Adding or retiring a suite is a suite-identifier change and a negotiation (Section 8.1),
 never a new credential format. A verifier MUST reject a credential whose declared suite it does not
 support rather than silently downgrade.
 
@@ -587,6 +588,7 @@ Until then, identifiers are managed in this specification.
 - **ATP**, Agent Trust Protocol specification (OpenA2A).
 - **ATX**, Agent Trust eXtension credential format (OpenA2A; see `atx-spec/core.md`).
 - **FIPS 204**, Module-Lattice-Based Digital Signature Standard (ML-DSA).
+- **RFC 9964**, ML-DSA for JOSE and COSE (the `ML-DSA-65` `alg` and `AKP` key type).
 - **RFC 8032**, Edwards-Curve Digital Signature Algorithm (EdDSA / Ed25519).
 
 ### Informative
