@@ -78,22 +78,23 @@ Table of Contents
    2.  Conventions and Terminology . . . . . . . . . . . . . . . . .   3
    3.  Agent Identity Token (AIT)  . . . . . . . . . . . . . . . . .   4
    4.  Capability Grant Token (CGT)  . . . . . . . . . . . . . . . .   5
-   5.  Delegation Assertion (DA) . . . . . . . . . . . . . . . . . .   5
-   6.  Behavioral Attestation Claim (BAC)  . . . . . . . . . . . . .   6
-   7.  Cross-Organizational Federation . . . . . . . . . . . . . . .   6
-     7.1.  Revocation Propagation  . . . . . . . . . . . . . . . . .   6
-   8.  Security Considerations . . . . . . . . . . . . . . . . . . .   6
-     8.1.  Credential Confinement  . . . . . . . . . . . . . . . . .   7
-     8.2.  Replay Prevention . . . . . . . . . . . . . . . . . . . .   7
-     8.3.  Post-Quantum Readiness  . . . . . . . . . . . . . . . . .   7
-     8.4.  Intent Verification . . . . . . . . . . . . . . . . . . .   7
-     8.5.  Trust Is Not Authorization  . . . . . . . . . . . . . . .   7
-   9.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .   7
-   10. Normative References  . . . . . . . . . . . . . . . . . . . .   8
-   11. Informative References  . . . . . . . . . . . . . . . . . . .   8
-   Appendix A.  Related Work . . . . . . . . . . . . . . . . . . . .   9
-   Appendix B.  Acknowledgments  . . . . . . . . . . . . . . . . . .  10
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  10
+   5.  Delegation Assertion (DA) . . . . . . . . . . . . . . . . . .   6
+   6.  Behavioral Attestation Claim (BAC)  . . . . . . . . . . . . .   7
+   7.  Cross-Organizational Federation . . . . . . . . . . . . . . .   8
+     7.1.  Revocation Propagation  . . . . . . . . . . . . . . . . .   8
+   8.  Security Considerations . . . . . . . . . . . . . . . . . . .   8
+     8.1.  Credential Confinement  . . . . . . . . . . . . . . . . .   9
+     8.2.  Replay Prevention . . . . . . . . . . . . . . . . . . . .   9
+     8.3.  Cryptographic Agility and Post-Quantum Readiness  . . . .   9
+     8.4.  Intent Verification . . . . . . . . . . . . . . . . . . .   9
+     8.5.  Trust Is Not Authorization  . . . . . . . . . . . . . . .  10
+   9.  Token Serialization and Signing . . . . . . . . . . . . . . .  10
+   10. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  11
+   11. Normative References  . . . . . . . . . . . . . . . . . . . .  11
+   12. Informative References  . . . . . . . . . . . . . . . . . . .  12
+   Appendix A.  Related Work . . . . . . . . . . . . . . . . . . . .  13
+   Appendix B.  Acknowledgments  . . . . . . . . . . . . . . . . . .  14
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  14
 
 1.  Introduction
 
@@ -103,7 +104,6 @@ Table of Contents
    agent with identical permissions can behave differently depending on
    its inputs, conversation history, and model state.  Static
    authorization grants cannot account for this behavioral variability.
-
 
 
 
@@ -198,22 +198,22 @@ Internet-Draft                     AAP                         July 2026
    identity assertion only; it conveys no authorization (see
    Section 8.5).
 
-   An AIT carries an agent identifier, a decentralized identifier for
-   the agent, a hash reference to the agent's current ATX, a declared
-   purpose, a trust level, issuance and expiry timestamps, a hybrid
-   signature, and the issuer's decentralized identifier:
+   An AIT is an AAP token in the serialized form of Section 9: a JWT
+   [RFC7519] whose claims follow the JWT registry naming convention.
+   The required claims are "iss" (the issuing Registry decentralized
+   identifier), "sub" (the agent decentralized identifier),
+   "atx_reference" (the SHA-256 of the agent's current ATX),
+   "trust_level" (the Registry trust level, an integer from 0 to 4),
+   "iat" and "exp" (the validity window as NumericDate values, that is,
+   seconds since the epoch), and "jti" (a unique token identifier).  The
+   optional "agent_id", "declared_purpose", and "aap_ver" claims MAY
+   also appear.
 
-   {
-     "agentId": "uuid",
-     "agentDid": "did:opena2a:agent:org/agent-name",
-     "atxReference": "sha256-hash-of-current-atx",
-     "declaredPurpose": "natural language description",
-     "trustLevel": 0,
-     "issuedAt": "ISO 8601",
-     "expiresAt": "ISO 8601",
-     "signature": "Ed25519 + ML-DSA-65 hybrid",
-     "issuerDid": "did:opena2a:authority:issuing-registry"
-   }
+
+
+
+
+
 
 
 
@@ -225,6 +225,22 @@ Fane                     Expires 7 January 2027                 [Page 4]
 
 Internet-Draft                     AAP                         July 2026
 
+
+   {
+     "iss": "did:opena2a:authority:opena2a.org",
+     "sub": "did:opena2a:agent:acme/orders-reader",
+     "agent_id": "aim_orders_reader",
+     "atx_reference":
+       "sha256:2052879dda15b1ca5e60319e3477a4008412bffdaf3c3566c658795a48cab8fd",
+     "declared_purpose": "Reads order records for reporting",
+     "trust_level": 4,
+     "iat": 1780315200,
+     "exp": 1780318800,
+     "jti": "1c9f2e8a7b6d5c4e3f2a1b0c9d8e7f6a"
+   }
+
+   No reference implementation mints AITs yet; the claim schema and this
+   generated example pin the form for implementers.
 
    AIT verification MUST be local.  The verifier checks the signature
    against the issuer's public key, distributed via the trust anchor
@@ -240,23 +256,50 @@ Internet-Draft                     AAP                         July 2026
    mints from a verified ATX before exchanging it for a downstream
    credential.
 
+   The CGT claim set is ratified byte-for-byte from the reference broker
+   implementation.  The required claims are "iss" (the minting broker's
+   issuer identifier), "sub" (the agent decentralized identifier, taken
+   from the verified ATX and never from agent input), "aud" (the
+   downstream audience or resource), "scope" (the downstream
+   authorization scope as a string, for example "orders.read"),
+   "trust_class" (the abstract ATX capability exercised for this grant,
+   in "class:action" form), "issuer_chain" (the ATX issuer chain),
+   "trust_level" (an integer from 0 to 4), "iat" and "exp" (the validity
+   window, where "exp" minus "iat" is the policy time-to-live), and
+   "jti".  The "fga_constraints", "intent_verified", "max_uses", and
+   "context_required" claims are OPTIONAL and are not minted by the v1
+   reference.
+
+
+
+
+
+
+
+
+Fane                     Expires 7 January 2027                 [Page 5]
+
+Internet-Draft                     AAP                         July 2026
+
+
    {
-     "tokenId": "unique-id",
-     "agentId": "uuid",
-     "capability": "db:read",
-     "scope": {
-       "resources": ["customers"],
-       "actions": ["read"],
-       "attributes": ["name", "email"],
-       "maxUses": 100,
-       "contextRequired": true
-     },
-     "fgaConstraints": "json-encoded FGA policy",
-     "intentVerified": true,
-     "issuedAt": "ISO 8601",
-     "expiresAt": "ISO 8601",
-     "signature": "Ed25519"
+     "iss": "https://broker.acme.example",
+     "sub": "did:opena2a:agent:acme/orders-reader",
+     "aud": "https://api.orders.internal",
+     "scope": "orders.read",
+     "trust_class": "orders:read",
+     "issuer_chain": ["did:opena2a:authority:opena2a.org"],
+     "trust_level": 4,
+     "iat": 1780315200,
+     "exp": 1780315500,
+     "jti": "9f8e7d6c5b4a39281706f5e4d3c2b1a0"
    }
+
+   In a broker deployment the CGT is used as the OAuth 2.0 Token
+   Exchange [RFC8693] "subject_token" with a "subject_token_type" of
+   "urn:ietf:params:oauth:token-type:jwt", so the downstream
+   authorization server verifies it as a standard JWT against the
+   broker's published key material.
 
    A CGT has a bounded time-to-live.  This document defines three tiers;
    profiles MAY define others:
@@ -274,14 +317,6 @@ Internet-Draft                     AAP                         July 2026
 
    A DA is subject to the following constraints:
 
-
-
-
-Fane                     Expires 7 January 2027                 [Page 5]
-
-Internet-Draft                     AAP                         July 2026
-
-
    *  A maximum delegation depth limits the length of a delegation
       chain.
 
@@ -290,6 +325,49 @@ Internet-Draft                     AAP                         July 2026
    *  Scope is cryptographically bounded and MUST NOT be broadened by a
       delegatee.
 
+
+
+
+
+
+
+
+
+Fane                     Expires 7 January 2027                 [Page 6]
+
+Internet-Draft                     AAP                         July 2026
+
+
+   A DA is an AAP token in the form of Section 9: the CGT claim set plus
+   the delegation members of [RFC8693].  Here "sub" is the delegatee;
+   "act" carries the delegating agent as {"sub": delegator}, with nested
+   "act" objects expressing a chain, innermost actor first; "max_depth"
+   bounds further delegation; and "delegator_atx" embeds the delegator's
+   ATX hash for the audit trail.  The delegatee's "scope" and
+   "trust_class" MUST be equal to or a subset of the delegator's.
+
+   {
+     "iss": "https://broker.acme.example",
+     "sub": "did:opena2a:agent:acme/reporting-bot",
+     "aud": "https://api.orders.internal",
+     "scope": "orders.read",
+     "trust_class": "orders:read",
+     "issuer_chain": ["did:opena2a:authority:opena2a.org"],
+     "trust_level": 4,
+     "act": { "sub": "did:opena2a:agent:acme/orders-reader" },
+     "max_depth": 1,
+     "delegator_atx":
+       "sha256:2052879dda15b1ca5e60319e3477a4008412bffdaf3c3566c658795a48cab8fd",
+     "iat": 1780315200,
+     "exp": 1780315500,
+     "jti": "4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d"
+   }
+
+   The v1 reference realizes delegation through the broker profile's
+   Exchange mode, where the broker assertion is the subject token of the
+   [RFC8693] exchange; it does not yet mint standalone DAs with an "act"
+   chain.
+
 6.  Behavioral Attestation Claim (BAC)
 
    The BAC is a short-lived signed assertion of an agent's current
@@ -297,15 +375,49 @@ Internet-Draft                     AAP                         July 2026
    has no direct parallel in existing web protocols; it exists because
    agents are non-deterministic.
 
-   A BAC is issued at one of three levels:
+   A BAC declares its level in the "bac_level" claim, an integer 1, 2,
+   or 3.  The levels are cumulative: an L2 claim carries the L1 members,
+   and an L3 claim carries all of them.
 
-   L1  Build-time attestation: ATX plus scan results.
-   L2  Runtime self-attestation: binary hash match.
-   L3  Behavioral continuity: drift score, anomaly state, and intent
-      verification.
+   1  Build-time attestation: the "atx_reference".
+   2  Runtime self-attestation: additionally the "binary_hash".
+   3  Behavioral continuity: additionally the "drift_score", the
+      "anomaly_state", and "intent_verified".
 
-   BAC verification is local.  The receiver verifies the ML-DSA-65
-   signature [FIPS204] against the issuing authority's public key.
+
+
+
+
+
+Fane                     Expires 7 January 2027                 [Page 7]
+
+Internet-Draft                     AAP                         July 2026
+
+
+   {
+     "iss": "did:opena2a:authority:opena2a.org",
+     "sub": "did:opena2a:agent:acme/orders-reader",
+     "bac_level": 3,
+     "atx_reference":
+       "sha256:2052879dda15b1ca5e60319e3477a4008412bffdaf3c3566c658795a48cab8fd",
+     "binary_hash":
+       "sha256:479bd28a55e3a3eb20b9f5b48202318d5de9d0dbea9e6df20b2ee7ff95a4c135",
+     "drift_score": 0.04,
+     "anomaly_state": "nominal",
+     "intent_verified": true,
+     "iat": 1780315200,
+     "exp": 1780315260,
+     "jti": "7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b"
+   }
+
+   The validity window MUST satisfy "exp" minus "iat" less than or equal
+   to 60 seconds.  BAC verification is local: the receiver verifies the
+   signature against the issuing Registry instance's published public
+   key, under the suite model of Section 8.3.  The post-quantum profile
+   for BACs, an ML-DSA-65 [FIPS204] signature alongside Ed25519 via the
+   multi-signature form of Section 9, is a target rather than a shipped
+   property: no implementation mints BACs yet, and v1 fixtures carry a
+   single Ed25519 signature.
 
 7.  Cross-Organizational Federation
 
@@ -333,7 +445,7 @@ Internet-Draft                     AAP                         July 2026
 
 
 
-Fane                     Expires 7 January 2027                 [Page 6]
+Fane                     Expires 7 January 2027                 [Page 8]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -352,22 +464,47 @@ Internet-Draft                     AAP                         July 2026
 
 8.2.  Replay Prevention
 
-   All tokens include a unique identifier ("jti").  Receivers MUST track
-   used identifiers for the token's time-to-live window and MUST reject
-   a repeated identifier.
+   All tokens include a unique identifier in the "jti" claim: 16 random
+   bytes encoded as 32 lowercase hexadecimal characters, as minted by
+   the reference implementation.  Receivers MUST track used identifiers
+   for the token's time-to-live window and MUST reject a repeated
+   identifier.
 
-8.3.  Post-Quantum Readiness
+8.3.  Cryptographic Agility and Post-Quantum Readiness
 
-   All signatures use a hybrid of Ed25519 and ML-DSA-65 [FIPS204].  Key
-   exchange uses a hybrid of X25519 and ML-KEM-768 [FIPS203].  The
-   signature suite is a named, negotiable field, so suites can be added
-   or retired by negotiation rather than by a new credential format.
+   The signature suite is a named, swappable field, the JOSE "alg" of
+   each signature's protected header (Section 9), so suites can be added
+   or retired by negotiation rather than by a new credential format.  A
+   verifier MUST reject a token whose declared suite it does not support
+   rather than silently downgrade.
+
+   The v1 suite registry (Section 9) contains exactly one entry, "EdDSA"
+   (Ed25519 [RFC8037]), which is what the reference implementation signs
+   today.  The post-quantum target is a hybrid of Ed25519 and ML-DSA-65
+   [FIPS204], carried as two signature entries of the multi-signature
+   form (Section 9), one per suite: a hybrid token verifies only if at
+   least one ML-DSA-65 signature and at least one Ed25519 signature
+   verify.  The ML-DSA-65 "alg" identifier is adopted on IETF
+   registration of ML-DSA for JOSE; until then no AAP token declares it,
+   and no AAP implementation mints post-quantum signatures yet.  Key
+   exchange, where AAP deployments negotiate transport keys, targets a
+   hybrid of X25519 and ML-KEM-768 [FIPS203] on the same adoption path.
 
 8.4.  Intent Verification
 
    Semantic intent classification can express constraints that static
    policies cannot.  Intent classification is probabilistic; systems
    MUST NOT rely on it alone to authorize irreversible actions.
+
+
+
+
+
+
+Fane                     Expires 7 January 2027                 [Page 9]
+
+Internet-Draft                     AAP                         July 2026
+
 
 8.5.  Trust Is Not Authorization
 
@@ -376,25 +513,89 @@ Internet-Draft                     AAP                         July 2026
    Authorization exists only where a local policy grants it.  Brokers
    MUST default-deny.
 
-9.  IANA Considerations
+9.  Token Serialization and Signing
+
+   This section pins the byte-level form of every AAP token: the AIT,
+   CGT, DA, and BAC.  AAP tokens are JOSE objects, that is, JWTs
+   [RFC7519] over JWS [RFC7515].  The form is ratified from the
+   reference implementation: what the reference broker actually signs is
+   normative, byte for byte.
+
+   The signed bytes are the JWS Signing Input:
+
+   ASCII( BASE64URL(UTF8(protected header)) || "." || BASE64URL(payload) )
+
+   AAP defines no other canonical form: serialization is
+   canonicalization.  The producer serializes the header and claim set
+   once, as compact JSON with no insignificant whitespace, and signs
+   those exact bytes; a verifier operates on the transmitted base64url
+   segments and never re-serializes.  There is no separate
+   canonicalization step and no field projection.  This is a deliberate
+   difference from ATX and ATP, and it exists because AAP tokens,
+   uniquely in the family, are verified by foreign systems: OAuth 2.0
+   Token Exchange [RFC8693] authorization servers and OpenID Connect-
+   style verifiers that understand exactly one thing, a standard JWT.
+   Base64url is unpadded, per [RFC7515].
+
+   The protected header carries "alg" (a suite identifier from the
+   registry below; v1 uses "EdDSA"), "typ" (the value "JWT"), and "kid"
+   (the key identifier of the signing key in the issuer's published key
+   material).
+
+   The compact serialization "header.payload.signature" is the v1
+   baseline and is REQUIRED on every interoperability path where a
+   foreign system verifies the token; in particular a CGT or DA
+   presented as an [RFC8693] "subject_token" MUST be compact.  A compact
+   token carries exactly one signature, and therefore exactly one suite.
+   Where more than one signature is required, the hybrid post-quantum
+   profile of Section 8.3, the token is carried as JWS General JSON
+   Serialization ([RFC7515]), with one signature entry per suite, each
+   with its own protected header over the same payload.  Every declared
+   entry MUST verify; a verifier MUST NOT accept a token on a subset of
+   its declared signatures.
+
+
+
+
+Fane                     Expires 7 January 2027                [Page 10]
+
+Internet-Draft                     AAP                         July 2026
+
+
+   The v1 suite registry contains two entries:
+
+   EdDSA  Ed25519 [RFC8037].  Active; the only suite the v1 reference
+      mints.
+   ML-DSA-65  FIPS 204 [FIPS204].  Reserved; adopted on IETF
+      registration of ML-DSA for JOSE.  Until then no AAP token declares
+      it.
+
+   Adding or retiring a suite is a change to this registry plus version
+   negotiation, never a change of format.
+
+   Claim names use the JWT registry convention, lowercase with
+   snake_case for compound names such as "trust_class" and
+   "issuer_chain".  This is a deliberate exception to the OpenA2A
+   camelCase JSON convention, which governs API responses rather than
+   IETF-track token claims.  The "iat" and "exp" claims are NumericDate
+   values (seconds since the epoch), not date strings.  The optional
+   "aap_ver" claim carries the claim-schema version; it is OPTIONAL in
+   v1 and REQUIRED from the first federated version, where a peer broker
+   must select a claim schema without a shared channel.
+
+10.  IANA Considerations
 
    This document requests registration of the "aap" URI scheme in the
    Uniform Resource Identifier (URI) Schemes registry, and, via the
    broker profile [AAP-BROKER-PROFILE], the "grant" URI scheme.  It
    further anticipates registries for AAP protocol versions, credential-
    provider mode identifiers, and signature suite identifiers, to be
-   coordinated with the ATX signature suite registry [ATX].  The
-   concrete registration templates will be provided in a future revision
-   of this document.
+   coordinated with the ATX signature suite registry [ATX].  Until those
+   registries exist, the signature suite registry of Section 9 is
+   managed within this specification.  The concrete registration
+   templates will be provided in a future revision of this document.
 
-
-
-Fane                     Expires 7 January 2027                 [Page 7]
-
-Internet-Draft                     AAP                         July 2026
-
-
-10.  Normative References
+11.  Normative References
 
    [ATP]      Fane, A., "Agent Trust Protocol (ATP)", 2026,
               <https://specs.opena2a.org/atp>.
@@ -406,6 +607,16 @@ Internet-Draft                     AAP                         July 2026
               Lattice-Based Key-Encapsulation Mechanism Standard",
               FIPS 203, August 2024,
               <https://doi.org/10.6028/NIST.FIPS.203>.
+
+
+
+
+
+
+Fane                     Expires 7 January 2027                [Page 11]
+
+Internet-Draft                     AAP                         July 2026
+
 
    [FIPS204]  National Institute of Standards and Technology, "Module-
               Lattice-Based Digital Signature Standard", FIPS 204,
@@ -423,6 +634,19 @@ Internet-Draft                     AAP                         July 2026
               Transparency", RFC 6962, June 2013,
               <https://www.rfc-editor.org/info/rfc6962>.
 
+   [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
+              Signature (JWS)", RFC 7515, May 2015,
+              <https://www.rfc-editor.org/info/rfc7515>.
+
+   [RFC7519]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web Token
+              (JWT)", RFC 7519, May 2015,
+              <https://www.rfc-editor.org/info/rfc7519>.
+
+   [RFC8037]  Liusvaara, I., "CFRG Elliptic Curve Diffie-Hellman (ECDH)
+              and Signatures in JSON Object Signing and Encryption
+              (JOSE)", RFC 8037, January 2017,
+              <https://www.rfc-editor.org/info/rfc8037>.
+
    [RFC8174]  Leiba, B., "Ambiguity of Uppercase vs Lowercase in RFC
               2119 Key Words", BCP 14, RFC 8174, May 2017,
               <https://www.rfc-editor.org/info/rfc8174>.
@@ -431,7 +655,7 @@ Internet-Draft                     AAP                         July 2026
               and C. Mortimore, "OAuth 2.0 Token Exchange", RFC 8693,
               January 2020, <https://www.rfc-editor.org/info/rfc8693>.
 
-11.  Informative References
+12.  Informative References
 
    [A2A]      A2A Project, "Agent2Agent (A2A) Protocol Specification",
               2026, <https://a2aproject.github.io/A2A/>.
@@ -445,7 +669,7 @@ Internet-Draft                     AAP                         July 2026
 
 
 
-Fane                     Expires 7 January 2027                 [Page 8]
+Fane                     Expires 7 January 2027                [Page 12]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -501,7 +725,7 @@ Appendix A.  Related Work
 
 
 
-Fane                     Expires 7 January 2027                 [Page 9]
+Fane                     Expires 7 January 2027                [Page 13]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -557,4 +781,4 @@ Author's Address
 
 
 
-Fane                     Expires 7 January 2027                [Page 10]
+Fane                     Expires 7 January 2027                [Page 14]
