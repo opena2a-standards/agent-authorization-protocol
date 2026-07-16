@@ -20,7 +20,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install validator dependencies
-        run: python3 -m pip install "jsonschema>=4.21" "cryptography>=42"
+        run: python3 -m pip install "jsonschema>=4.21" "cryptography>=42" "dilithium-py>=1.4"
 
       - name: Validate schemas and mapped spec examples
         run: python3 scripts/validate_examples.py

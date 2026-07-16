@@ -6,12 +6,17 @@ script, never hand-authored. The construction mirrors the reference
 implementation (Secretless src/broker/cpi/assertion.ts) byte-for-byte:
 
     signing input = BASE64URL(UTF8(JSON(header))) || "." || BASE64URL(UTF8(JSON(claims)))
-    signature     = Ed25519(signing input)
+    signature     = Ed25519(signing input)          # suite "EdDSA"
+                  | ML-DSA-65(signing input)        # suite "ML-DSA-65" (RFC 9964)
     token         = signing input || "." || BASE64URL(signature)
 
 JSON serialization is compact (no whitespace), members in the pinned order
 below, matching Node's JSON.stringify of the reference's literal objects.
-Ed25519 signing is deterministic, so fixed keys + fixed claims = fixed bytes.
+Ed25519 signing is deterministic, and ML-DSA-65 signing here uses the FIPS 204
+deterministic variant (AAP-SPEC section 9.7 requires it for fixtures), so
+fixed keys + fixed claims = fixed bytes. ML-DSA-65 signs with an empty context
+string, as RFC 9964 mandates. The ML-DSA-65 keypair derives from a published
+32-byte seed, the same seed form RFC 9964 pins for the AKP `priv` parameter.
 
 All keys in this file are TEST KEYS with published seeds. Never use them for
 anything but fixtures.
@@ -37,6 +42,14 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
 )
 
+try:
+    from dilithium_py.ml_dsa import ML_DSA_65
+except ImportError:  # pragma: no cover
+    raise SystemExit(
+        "error: the 'dilithium-py' package is required for the ML-DSA-65 fixtures "
+        "(pip install 'dilithium-py>=1.4')"
+    )
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "examples" / "tokens"
 
@@ -48,6 +61,13 @@ KEYS = {
     "registry-key-1": "8f7a1c2e4b6d8091a3c5e7f90b2d4f6a8c0e1f3a5b7d9e0c2a4b6d8f0a1c3e5f",
     "broker-key-1": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
     "broker-key-2": "202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f",
+}
+
+# ML-DSA-65 test key seeds (32 bytes hex, the FIPS 204 xi input — the same seed
+# form RFC 9964 pins for the AKP `priv` parameter). Published deliberately, like
+# KEYS above. NEVER use outside fixtures.
+PQC_KEYS = {
+    "broker-pqc-1": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
 }
 
 REGISTRY_ISSUER = "did:opena2a:authority:opena2a.org"
@@ -66,6 +86,9 @@ JTI = {
     "cgt": "9f8e7d6c5b4a39281706f5e4d3c2b1a0",
     "da": "4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d",
     "bac": "7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b",
+    # The PQ-interop compact CGT is a distinct minted token, so it carries its
+    # own jti (section 8.1: receivers track jti; two live tokens never share one).
+    "cgt_pq": "b1c2d3e4f5a60718293a4b5c6d7e8f90",
 }
 
 # --- JWS primitives (mirror assertion.ts exactly) -----------------------------
@@ -89,6 +112,40 @@ def public_jwk(kid: str) -> dict:
     return {"kty": "OKP", "crv": "Ed25519", "x": b64url(pub), "kid": kid, "use": "sig", "alg": "EdDSA"}
 
 
+def pqc_keypair(kid: str) -> tuple[bytes, bytes]:
+    """(pk, sk) derived from the published 32-byte seed (FIPS 204 ML-DSA.KeyGen)."""
+    return ML_DSA_65.key_derive(bytes.fromhex(PQC_KEYS[kid]))
+
+
+def public_akp_jwk(kid: str) -> dict:
+    """RFC 9964 AKP public JWK; `alg` is REQUIRED on AKP keys."""
+    pk, _ = pqc_keypair(kid)
+    return {"kty": "AKP", "pub": b64url(pk), "kid": kid, "use": "sig", "alg": "ML-DSA-65"}
+
+
+def suite_sign(kid: str, alg: str, message: bytes) -> bytes:
+    if alg == "EdDSA":
+        return private_key(kid).sign(message)
+    if alg == "ML-DSA-65":
+        _, sk = pqc_keypair(kid)
+        # Deterministic variant, empty context: AAP-SPEC section 9.7 / RFC 9964.
+        return ML_DSA_65.sign(sk, message, ctx=b"", deterministic=True)
+    raise SystemExit(f"unknown suite {alg!r}")
+
+
+def suite_verify(kid: str, alg: str, message: bytes, sig: bytes) -> None:
+    """Self-verify before any token leaves this process; SystemExit on failure."""
+    if alg == "EdDSA":
+        pub_raw = private_key(kid).public_key().public_bytes_raw()
+        Ed25519PublicKey.from_public_bytes(pub_raw).verify(sig, message)
+    elif alg == "ML-DSA-65":
+        pk, _ = pqc_keypair(kid)
+        if not ML_DSA_65.verify(pk, message, sig, ctx=b""):
+            raise SystemExit(f"ML-DSA-65 self-verify failed for {kid}")
+    else:
+        raise SystemExit(f"unknown suite {alg!r}")
+
+
 def mint_compact(kid: str, claims: dict) -> str:
     header = {"alg": "EdDSA", "typ": "JWT", "kid": kid}
     signing_input = f"{b64url(compact_json(header))}.{b64url(compact_json(claims))}"
@@ -109,22 +166,30 @@ def verify_compact(token: str) -> None:
     )
 
 
-def mint_general(kids: list[str], claims: dict) -> dict:
+def mint_compact_mldsa65(kid: str, claims: dict) -> str:
+    """Compact serialization under the ML-DSA-65 suite (the PQ-interop lane)."""
+    header = {"alg": "ML-DSA-65", "typ": "JWT", "kid": kid}
+    signing_input = f"{b64url(compact_json(header))}.{b64url(compact_json(claims))}"
+    sig = suite_sign(kid, "ML-DSA-65", signing_input.encode("ascii"))
+    suite_verify(kid, "ML-DSA-65", signing_input.encode("ascii"), sig)
+    return f"{signing_input}.{b64url(sig)}"
+
+
+def mint_general(entries: list[tuple[str, str]], claims: dict) -> dict:
     """JWS General JSON Serialization (RFC 7515 section 7.2.1) over the same claims.
 
     One entry per signature; each protected header carries its own alg + kid —
-    this is the multi-suite vehicle of AAP-SPEC section 8.2.
+    this is the multi-suite vehicle of AAP-SPEC section 8.2. `entries` is a list
+    of (kid, alg) pairs; the hybrid post-quantum profile is one EdDSA entry plus
+    one ML-DSA-65 entry over the same payload.
     """
     payload = b64url(compact_json(claims))
     signatures = []
-    for kid in kids:
-        protected = b64url(compact_json({"alg": "EdDSA", "kid": kid}))
-        sig = private_key(kid).sign(f"{protected}.{payload}".encode("ascii"))
-        # self-verify
-        pub_raw = private_key(kid).public_key().public_bytes_raw()
-        Ed25519PublicKey.from_public_bytes(pub_raw).verify(
-            sig, f"{protected}.{payload}".encode("ascii")
-        )
+    for kid, alg in entries:
+        protected = b64url(compact_json({"alg": alg, "kid": kid}))
+        message = f"{protected}.{payload}".encode("ascii")
+        sig = suite_sign(kid, alg, message)
+        suite_verify(kid, alg, message, sig)
         signatures.append({"protected": protected, "signature": b64url(sig)})
     return {"payload": payload, "signatures": signatures}
 
@@ -161,6 +226,13 @@ def cgt_claims() -> dict:
         "exp": IAT + 300,
         "jti": JTI["cgt"],
     }
+
+
+def cgt_pq_claims() -> dict:
+    # The PQ-interop compact CGT: identical shape, its own jti (a distinct token).
+    claims = cgt_claims()
+    claims["jti"] = JTI["cgt_pq"]
+    return claims
 
 
 def da_claims() -> dict:
@@ -235,7 +307,9 @@ def check_spec_blocks(spec: str) -> int:
         "### 4.2 Token Structure": cgt_claims(),
         "### 5.3 Assertion Form": da_claims(),
         "### 6.4 Claim Set": bac_claims(),
-        "### 9.4 Multi-Signature Form": mint_general(["broker-key-1", "broker-key-2"], cgt_claims()),
+        "### 9.4 Multi-Signature Form": mint_general(
+            [("broker-key-1", "EdDSA"), ("broker-pqc-1", "ML-DSA-65")], cgt_claims()
+        ),
     }
     failures = 0
     for heading, want in expected.items():
@@ -251,28 +325,42 @@ def check_spec_blocks(spec: str) -> int:
 def check_header_shapes() -> int:
     """Every protected header must be exactly the pinned section 9.2/9.4 shape."""
     failures = 0
-    compact_kids = {"ait": "registry-key-1", "cgt": "broker-key-1", "da": "broker-key-1", "bac": "registry-key-1"}
-    for name, kid in compact_kids.items():
-        token = (OUT / f"{name}-v1.jwt").read_text(encoding="utf-8").strip()
+    compact_headers = {
+        "ait-v1.jwt": {"alg": "EdDSA", "typ": "JWT", "kid": "registry-key-1"},
+        "cgt-v1.jwt": {"alg": "EdDSA", "typ": "JWT", "kid": "broker-key-1"},
+        "da-v1.jwt": {"alg": "EdDSA", "typ": "JWT", "kid": "broker-key-1"},
+        "bac-v1.jwt": {"alg": "EdDSA", "typ": "JWT", "kid": "registry-key-1"},
+        "cgt-v1.mldsa65.jwt": {"alg": "ML-DSA-65", "typ": "JWT", "kid": "broker-pqc-1"},
+    }
+    for name, want in compact_headers.items():
+        token = (OUT / name).read_text(encoding="utf-8").strip()
         h = token.split(".")[0]
         header = json.loads(base64.urlsafe_b64decode(h + "=" * (-len(h) % 4)))
-        want = {"alg": "EdDSA", "typ": "JWT", "kid": kid}
         if same_with_order(header, want):
-            print(f"header OK      {name}-v1.jwt")
+            print(f"header OK      {name}")
         else:
-            print(f"HEADER SHAPE   {name}-v1.jwt: {header} != {want}")
+            print(f"HEADER SHAPE   {name}: {header} != {want}")
             failures += 1
-    general = json.loads((OUT / "cgt-v1.general.json").read_text(encoding="utf-8"))
-    for i, entry in enumerate(general["signatures"]):
-        p = entry["protected"]
-        header = json.loads(base64.urlsafe_b64decode(p + "=" * (-len(p) % 4)))
-        kid = ["broker-key-1", "broker-key-2"][i]
-        want = {"alg": "EdDSA", "kid": kid}
-        if same_with_order(header, want):
-            print(f"header OK      cgt-v1.general.json signatures[{i}]")
-        else:
-            print(f"HEADER SHAPE   cgt-v1.general.json signatures[{i}]: {header} != {want}")
-            failures += 1
+    general_headers = {
+        "cgt-v1.general.json": [
+            {"alg": "EdDSA", "kid": "broker-key-1"},
+            {"alg": "EdDSA", "kid": "broker-key-2"},
+        ],
+        "cgt-v1.hybrid.general.json": [
+            {"alg": "EdDSA", "kid": "broker-key-1"},
+            {"alg": "ML-DSA-65", "kid": "broker-pqc-1"},
+        ],
+    }
+    for name, wants in general_headers.items():
+        general = json.loads((OUT / name).read_text(encoding="utf-8"))
+        for i, entry in enumerate(general["signatures"]):
+            p = entry["protected"]
+            header = json.loads(base64.urlsafe_b64decode(p + "=" * (-len(p) % 4)))
+            if same_with_order(header, wants[i]):
+                print(f"header OK      {name} signatures[{i}]")
+            else:
+                print(f"HEADER SHAPE   {name} signatures[{i}]: {header} != {wants[i]}")
+                failures += 1
     return failures
 
 
@@ -292,8 +380,21 @@ def build_files() -> dict[str, str]:
         files[f"{name}-v1.jwt"] = mint_compact(kid, claims) + "\n"
         files[f"{name}-v1.claims.json"] = json.dumps(claims, indent=2) + "\n"
 
-    general = mint_general(["broker-key-1", "broker-key-2"], cgt_claims())
+    # PQ-interop lane: compact under the ML-DSA-65 suite (RFC 9964).
+    files["cgt-v1.mldsa65.jwt"] = mint_compact_mldsa65("broker-pqc-1", cgt_pq_claims()) + "\n"
+    files["cgt-v1.mldsa65.claims.json"] = json.dumps(cgt_pq_claims(), indent=2) + "\n"
+
+    general = mint_general(
+        [("broker-key-1", "EdDSA"), ("broker-key-2", "EdDSA")], cgt_claims()
+    )
     files["cgt-v1.general.json"] = json.dumps(general, indent=2) + "\n"
+
+    # Hybrid post-quantum profile (section 8.2): one EdDSA entry + one ML-DSA-65
+    # entry over the same payload; every declared entry MUST verify.
+    hybrid = mint_general(
+        [("broker-key-1", "EdDSA"), ("broker-pqc-1", "ML-DSA-65")], cgt_claims()
+    )
+    files["cgt-v1.hybrid.general.json"] = json.dumps(hybrid, indent=2) + "\n"
 
     files["test-keys.json"] = (
         json.dumps(
@@ -302,6 +403,10 @@ def build_files() -> dict[str, str]:
                 "keys": [
                     {"kid": kid, "ed25519SeedHex": seed, "publicJwk": public_jwk(kid)}
                     for kid, seed in KEYS.items()
+                ]
+                + [
+                    {"kid": kid, "mlDsa65SeedHex": seed, "publicJwk": public_akp_jwk(kid)}
+                    for kid, seed in PQC_KEYS.items()
                 ],
             },
             indent=2,

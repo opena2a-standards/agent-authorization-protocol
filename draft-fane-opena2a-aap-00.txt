@@ -86,13 +86,13 @@ Table of Contents
      8.1.  Credential Confinement  . . . . . . . . . . . . . . . . .   9
      8.2.  Replay Prevention . . . . . . . . . . . . . . . . . . . .   9
      8.3.  Cryptographic Agility and Post-Quantum Readiness  . . . .   9
-     8.4.  Intent Verification . . . . . . . . . . . . . . . . . . .   9
+     8.4.  Intent Verification . . . . . . . . . . . . . . . . . . .  10
      8.5.  Trust Is Not Authorization  . . . . . . . . . . . . . . .  10
    9.  Token Serialization and Signing . . . . . . . . . . . . . . .  10
-   10. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  11
-   11. Normative References  . . . . . . . . . . . . . . . . . . . .  11
-   12. Informative References  . . . . . . . . . . . . . . . . . . .  12
-   Appendix A.  Related Work . . . . . . . . . . . . . . . . . . . .  13
+   10. IANA Considerations . . . . . . . . . . . . . . . . . . . . .  12
+   11. Normative References  . . . . . . . . . . . . . . . . . . . .  12
+   12. Informative References  . . . . . . . . . . . . . . . . . . .  13
+   Appendix A.  Related Work . . . . . . . . . . . . . . . . . . . .  14
    Appendix B.  Acknowledgments  . . . . . . . . . . . . . . . . . .  14
    Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  14
 
@@ -413,11 +413,12 @@ Internet-Draft                     AAP                         July 2026
    The validity window MUST satisfy "exp" minus "iat" less than or equal
    to 60 seconds.  BAC verification is local: the receiver verifies the
    signature against the issuing Registry instance's published public
-   key, under the suite model of Section 8.3.  The post-quantum profile
-   for BACs, an ML-DSA-65 [FIPS204] signature alongside Ed25519 via the
-   multi-signature form of Section 9, is a target rather than a shipped
-   property: no implementation mints BACs yet, and v1 fixtures carry a
-   single Ed25519 signature.
+   key, under the suite model of Section 8.3.  The post-quantum profile,
+   an ML-DSA-65 [FIPS204] signature alongside Ed25519 via the multi-
+   signature form of Section 9, is shipped for CGTs (the reference
+   broker mints it and the conformance suite carries generated hybrid
+   fixtures); for BACs it remains a target: no implementation mints BACs
+   yet, and the v1 BAC fixtures carry a single Ed25519 signature.
 
 7.  Cross-Organizational Federation
 
@@ -437,7 +438,6 @@ Internet-Draft                     AAP                         July 2026
    revocation system.
 
 8.  Security Considerations
-
 
 
 
@@ -468,7 +468,10 @@ Internet-Draft                     AAP                         July 2026
    bytes encoded as 32 lowercase hexadecimal characters, as minted by
    the reference implementation.  Receivers MUST track used identifiers
    for the token's time-to-live window and MUST reject a repeated
-   identifier.
+   identifier.  The reference verifiers enforce this: an identifier is
+   remembered from first acceptance until the token's "exp", and a
+   second presentation inside that window is rejected after all other
+   checks pass.
 
 8.3.  Cryptographic Agility and Post-Quantum Readiness
 
@@ -476,28 +479,25 @@ Internet-Draft                     AAP                         July 2026
    each signature's protected header (Section 9), so suites can be added
    or retired by negotiation rather than by a new credential format.  A
    verifier MUST reject a token whose declared suite it does not support
-   rather than silently downgrade.
+   rather than silently downgrade.  Suite acceptance is pinned by
+   verifier policy per path, never selected by the token; a producer
+   configured for the hybrid profile on a path MUST NOT fall back to a
+   classical-only token on that path except through explicit version
+   negotiation.
 
-   The v1 suite registry (Section 9) contains exactly one entry, "EdDSA"
-   (Ed25519 [RFC8037]), which is what the reference implementation signs
-   today.  The post-quantum target is a hybrid of Ed25519 and ML-DSA-65
-   [FIPS204], carried as two signature entries of the multi-signature
-   form (Section 9), one per suite: a hybrid token verifies only if at
-   least one ML-DSA-65 signature and at least one Ed25519 signature
-   verify.  The ML-DSA-65 "alg" identifier is adopted on IETF
-   registration of ML-DSA for JOSE; until then no AAP token declares it,
-   and no AAP implementation mints post-quantum signatures yet.  Key
-   exchange, where AAP deployments negotiate transport keys, targets a
-   hybrid of X25519 and ML-KEM-768 [FIPS203] on the same adoption path.
-
-8.4.  Intent Verification
-
-   Semantic intent classification can express constraints that static
-   policies cannot.  Intent classification is probabilistic; systems
-   MUST NOT rely on it alone to authorize irreversible actions.
-
-
-
+   The v1 suite registry (Section 9) contains two active entries:
+   "EdDSA" (Ed25519 [RFC8037]) and "ML-DSA-65" (FIPS 204 [FIPS204],
+   whose JOSE "alg" identifier and AKP key type are registered by
+   [RFC9964]).  The post-quantum profile is a hybrid of Ed25519 and ML-
+   DSA-65, carried as two signature entries of the multi-signature form
+   (Section 9), one per suite: a hybrid token verifies only if at least
+   one ML-DSA-65 signature and at least one Ed25519 signature verify,
+   with every declared entry verifying.  The hybrid form is RECOMMENDED
+   wherever both ends implement AAP; single-suite compact tokens remain
+   the interoperability baseline.  ML-DSA-65 signing uses the empty
+   context string and no pre-hash variant, as [RFC9964] requires, and
+   ML-DSA-65 verification keys publish as AKP JSON Web Keys.  The
+   reference implementation mints all three forms, and the conformance
 
 
 
@@ -505,6 +505,19 @@ Fane                     Expires 7 January 2027                 [Page 9]
 
 Internet-Draft                     AAP                         July 2026
 
+
+   suite carries generated hybrid and ML-DSA-65 fixtures, including
+   rejection fixtures in which one of a hybrid token's two signatures is
+   invalid.  Key exchange, where AAP deployments negotiate transport
+   keys, targets a hybrid of X25519 and ML-KEM-768 [FIPS203]; ML-KEM has
+   no final JOSE registration, so that row remains reserved on the
+   adoption path this section previously applied to ML-DSA-65.
+
+8.4.  Intent Verification
+
+   Semantic intent classification can express constraints that static
+   policies cannot.  Intent classification is probabilistic; systems
+   MUST NOT rely on it alone to authorize irreversible actions.
 
 8.5.  Trust Is Not Authorization
 
@@ -537,22 +550,9 @@ Internet-Draft                     AAP                         July 2026
    style verifiers that understand exactly one thing, a standard JWT.
    Base64url is unpadded, per [RFC7515].
 
-   The protected header carries "alg" (a suite identifier from the
-   registry below; v1 uses "EdDSA"), "typ" (the value "JWT"), and "kid"
-   (the key identifier of the signing key in the issuer's published key
-   material).
 
-   The compact serialization "header.payload.signature" is the v1
-   baseline and is REQUIRED on every interoperability path where a
-   foreign system verifies the token; in particular a CGT or DA
-   presented as an [RFC8693] "subject_token" MUST be compact.  A compact
-   token carries exactly one signature, and therefore exactly one suite.
-   Where more than one signature is required, the hybrid post-quantum
-   profile of Section 8.3, the token is carried as JWS General JSON
-   Serialization ([RFC7515]), with one signature entry per suite, each
-   with its own protected header over the same payload.  Every declared
-   entry MUST verify; a verifier MUST NOT accept a token on a subset of
-   its declared signatures.
+
+
 
 
 
@@ -562,13 +562,44 @@ Fane                     Expires 7 January 2027                [Page 10]
 Internet-Draft                     AAP                         July 2026
 
 
+   The protected header carries "alg" (a suite identifier from the
+   registry below), "typ" (the value "JWT"), and "kid" (the key
+   identifier of the signing key in the issuer's published key material;
+   Ed25519 keys publish as OKP JSON Web Keys and ML-DSA-65 keys as AKP
+   JSON Web Keys per [RFC9964]).
+
+   The compact serialization "header.payload.signature" is the v1
+   baseline and is REQUIRED on every interoperability path where a
+   foreign system verifies the token; in particular a CGT or DA
+   presented as an [RFC8693] "subject_token" MUST be compact.  A compact
+   token carries exactly one signature, and therefore exactly one suite.
+   The suite of a compact token is pinned per path by verifier policy
+   (Section 8.3): "EdDSA" is the interoperability baseline, and an "ML-
+   DSA-65" compact token serves counterparties that support the
+   [RFC9964] suites.  During the current adoption window the RECOMMENDED
+   default on foreign-interoperability paths remains "EdDSA", because
+   deployed token-exchange and OpenID Connect-style verifiers do not yet
+   verify the [RFC9964] suites.  Where more than one signature is
+   required, the hybrid post-quantum profile of Section 8.3, the token
+   is carried as JWS General JSON Serialization ([RFC7515]), with one
+   signature entry per suite, each with its own protected header over
+   the same payload.  Every declared entry MUST verify; a verifier MUST
+   NOT accept a token on a subset of its declared signatures.  A
+   general-form token that declares any ML-DSA-65 entry is on the hybrid
+   profile and MUST carry at least one Ed25519 entry and at least one
+   ML-DSA-65 entry; a verifier MUST reject a general-form token missing
+   either family, so a stripped hybrid token can never degrade to
+   single-family acceptance.  Multiple entries of one suite with no ML-
+   DSA-65 entry remain a legal multi-signature (co-signature) form.
+
    The v1 suite registry contains two entries:
 
-   EdDSA  Ed25519 [RFC8037].  Active; the only suite the v1 reference
-      mints.
-   ML-DSA-65  FIPS 204 [FIPS204].  Reserved; adopted on IETF
-      registration of ML-DSA for JOSE.  Until then no AAP token declares
-      it.
+   EdDSA  Ed25519 [RFC8037].  Active; the interoperability baseline.
+   ML-DSA-65  FIPS 204 [FIPS204], JOSE registration [RFC9964].  Active.
+      Hybrid with EdDSA via the multi-signature form, or single-suite
+      compact on post-quantum-capable interoperability paths.  ML-DSA-44
+      and ML-DSA-87, though registered for JOSE, are not in this
+      registry and are rejected as unknown suites.
 
    Adding or retiring a suite is a change to this registry plus version
    negotiation, never a change of format.
@@ -579,6 +610,14 @@ Internet-Draft                     AAP                         July 2026
    camelCase JSON convention, which governs API responses rather than
    IETF-track token claims.  The "iat" and "exp" claims are NumericDate
    values (seconds since the epoch), not date strings.  The optional
+
+
+
+Fane                     Expires 7 January 2027                [Page 11]
+
+Internet-Draft                     AAP                         July 2026
+
+
    "aap_ver" claim carries the claim-schema version; it is OPTIONAL in
    v1 and REQUIRED from the first federated version, where a peer broker
    must select a claim schema without a shared channel.
@@ -608,16 +647,6 @@ Internet-Draft                     AAP                         July 2026
               FIPS 203, August 2024,
               <https://doi.org/10.6028/NIST.FIPS.203>.
 
-
-
-
-
-
-Fane                     Expires 7 January 2027                [Page 11]
-
-Internet-Draft                     AAP                         July 2026
-
-
    [FIPS204]  National Institute of Standards and Technology, "Module-
               Lattice-Based Digital Signature Standard", FIPS 204,
               August 2024, <https://doi.org/10.6028/NIST.FIPS.204>.
@@ -638,6 +667,13 @@ Internet-Draft                     AAP                         July 2026
               (JWT)", RFC 7519, May 2015,
               <https://www.rfc-editor.org/info/rfc7519>.
 
+
+
+Fane                     Expires 7 January 2027                [Page 12]
+
+Internet-Draft                     AAP                         July 2026
+
+
    [RFC8037]  Liusvaara, I., "CFRG Elliptic Curve Diffie-Hellman (ECDH)
               and Signatures in JSON Object Signing and Encryption
               (JOSE)", RFC 8037, January 2017,
@@ -655,6 +691,11 @@ Internet-Draft                     AAP                         July 2026
               Transparency Version 2.0", RFC 9162, December 2021,
               <https://www.rfc-editor.org/info/rfc9162>.
 
+   [RFC9964]  Prorock, M. and O. Steele, "ML-DSA for JSON Object Signing
+              and Encryption (JOSE) and CBOR Object Signing and
+              Encryption (COSE)", RFC 9964, DOI 10.17487/RFC9964, May
+              2026, <https://www.rfc-editor.org/info/rfc9964>.
+
 12.  Informative References
 
    [A2A]      A2A Project, "Agent2Agent (A2A) Protocol Specification",
@@ -663,16 +704,6 @@ Internet-Draft                     AAP                         July 2026
    [AAP-BROKER-PROFILE]
               Fane, A., "AAP Broker and Resolution Profile", 2026,
               <https://specs.opena2a.org/aap/broker-profile>.
-
-
-
-
-
-
-Fane                     Expires 7 January 2027                [Page 12]
-
-Internet-Draft                     AAP                         July 2026
-
 
    [CRUZ-AAP] "Agent Authorization Profile (AAP) for OAuth 2.0", 2026,
               <https://datatracker.ietf.org/doc/draft-aap-oauth-
@@ -690,6 +721,14 @@ Internet-Draft                     AAP                         July 2026
               "Delegated Agent Authorization Protocol (DAAP)", 2026,
               <https://datatracker.ietf.org/doc/draft-mishra-oauth-
               agent-grants/>.
+
+
+
+
+Fane                     Expires 7 January 2027                [Page 13]
+
+Internet-Draft                     AAP                         July 2026
+
 
    [THREATMATRIX]
               OpenA2A, "AI Agent Threat Matrix", 2026,
@@ -720,16 +759,6 @@ Appendix A.  Related Work
    rather than the scoped-authorization and credential-confinement
    problems that are the focus of this document.
 
-
-
-
-
-
-Fane                     Expires 7 January 2027                [Page 13]
-
-Internet-Draft                     AAP                         July 2026
-
-
 Appendix B.  Acknowledgments
 
    This specification was authored in the open and benefits from review
@@ -741,35 +770,6 @@ Author's Address
    OpenA2A
    United States of America
    Email: info@opena2a.org
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
