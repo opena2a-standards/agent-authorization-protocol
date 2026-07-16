@@ -127,7 +127,7 @@
 
         <dt>Registry / Root Authority</dt>
         <dd>A trust authority that issues ATXs, maintains a transparency log
-        <xref target="RFC6962"/>, and computes trust scores. Participants operate
+        <xref target="RFC9162"/>, and computes trust scores. Participants operate
         conformant Root Authorities under the Agent Trust Protocol
         <xref target="ATP"/>.</dd>
 
@@ -562,15 +562,15 @@ ASCII( BASE64URL(UTF8(protected header)) || "." || BASE64URL(payload) )
         <seriesInfo name="RFC" value="8693"/>
       </reference>
 
-      <reference anchor="RFC6962" target="https://www.rfc-editor.org/info/rfc6962">
+      <reference anchor="RFC9162" target="https://www.rfc-editor.org/info/rfc9162">
         <front>
-          <title>Certificate Transparency</title>
+          <title>Certificate Transparency Version 2.0</title>
           <author initials="B." surname="Laurie" fullname="B. Laurie"/>
-          <author initials="A." surname="Langley" fullname="A. Langley"/>
-          <author initials="E." surname="Kasper" fullname="E. Kasper"/>
-          <date year="2013" month="June"/>
+          <author initials="E." surname="Messeri" fullname="E. Messeri"/>
+          <author initials="R." surname="Stradling" fullname="R. Stradling"/>
+          <date year="2021" month="December"/>
         </front>
-        <seriesInfo name="RFC" value="6962"/>
+        <seriesInfo name="RFC" value="9162"/>
       </reference>
 
       <reference anchor="FIPS203" target="https://doi.org/10.6028/NIST.FIPS.203">
