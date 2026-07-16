@@ -321,11 +321,13 @@
       <t>The validity window MUST satisfy "exp" minus "iat" less than or equal to
       60 seconds. BAC verification is local: the receiver verifies the signature
       against the issuing Registry instance's published public key, under the
-      suite model of <xref target="sec-pq"/>. The post-quantum profile for BACs,
-      an ML-DSA-65 <xref target="FIPS204"/> signature alongside Ed25519 via the
-      multi-signature form of <xref target="serialization"/>, is a target rather
-      than a shipped property: no implementation mints BACs yet, and v1 fixtures
-      carry a single Ed25519 signature.</t>
+      suite model of <xref target="sec-pq"/>. The post-quantum profile, an
+      ML-DSA-65 <xref target="FIPS204"/> signature alongside Ed25519 via the
+      multi-signature form of <xref target="serialization"/>, is shipped for
+      CGTs (the reference broker mints it and the conformance suite carries
+      generated hybrid fixtures); for BACs it remains a target: no
+      implementation mints BACs yet, and the v1 BAC fixtures carry a single
+      Ed25519 signature.</t>
     </section>
 
     <section anchor="federation">
@@ -367,7 +369,10 @@
         <t>All tokens include a unique identifier in the "jti" claim: 16 random
         bytes encoded as 32 lowercase hexadecimal characters, as minted by the
         reference implementation. Receivers MUST track used identifiers for the
-        token's time-to-live window and MUST reject a repeated identifier.</t>
+        token's time-to-live window and MUST reject a repeated identifier. The
+        reference verifiers enforce this: an identifier is remembered from first
+        acceptance until the token's "exp", and a second presentation inside
+        that window is rejected after all other checks pass.</t>
       </section>
 
       <section anchor="sec-pq">
@@ -376,20 +381,33 @@
         signature's protected header (<xref target="serialization"/>), so suites
         can be added or retired by negotiation rather than by a new credential
         format. A verifier MUST reject a token whose declared suite it does not
-        support rather than silently downgrade.</t>
+        support rather than silently downgrade. Suite acceptance is pinned by
+        verifier policy per path, never selected by the token; a producer
+        configured for the hybrid profile on a path MUST NOT fall back to a
+        classical-only token on that path except through explicit version
+        negotiation.</t>
 
-        <t>The v1 suite registry (<xref target="serialization"/>) contains
-        exactly one entry, "EdDSA" (Ed25519 <xref target="RFC8037"/>), which is
-        what the reference implementation signs today. The post-quantum target is
-        a hybrid of Ed25519 and ML-DSA-65 <xref target="FIPS204"/>, carried as two
-        signature entries of the multi-signature form
-        (<xref target="serialization"/>), one per suite: a hybrid token verifies
-        only if at least one ML-DSA-65 signature and at least one Ed25519
-        signature verify. The ML-DSA-65 "alg" identifier is adopted on IETF
-        registration of ML-DSA for JOSE; until then no AAP token declares it, and
-        no AAP implementation mints post-quantum signatures yet. Key exchange,
-        where AAP deployments negotiate transport keys, targets a hybrid of X25519
-        and ML-KEM-768 <xref target="FIPS203"/> on the same adoption path.</t>
+        <t>The v1 suite registry (<xref target="serialization"/>) contains two
+        active entries: "EdDSA" (Ed25519 <xref target="RFC8037"/>) and
+        "ML-DSA-65" (FIPS 204 <xref target="FIPS204"/>, whose JOSE "alg"
+        identifier and AKP key type are registered by
+        <xref target="RFC9964"/>). The post-quantum profile is a hybrid of
+        Ed25519 and ML-DSA-65, carried as two signature entries of the
+        multi-signature form (<xref target="serialization"/>), one per suite: a
+        hybrid token verifies only if at least one ML-DSA-65 signature and at
+        least one Ed25519 signature verify, with every declared entry verifying.
+        The hybrid form is RECOMMENDED wherever both ends implement AAP;
+        single-suite compact tokens remain the interoperability baseline.
+        ML-DSA-65 signing uses the empty context string and no pre-hash variant,
+        as <xref target="RFC9964"/> requires, and ML-DSA-65 verification keys
+        publish as AKP JSON Web Keys. The reference implementation mints all
+        three forms, and the conformance suite carries generated hybrid and
+        ML-DSA-65 fixtures, including rejection fixtures in which one of a
+        hybrid token's two signatures is invalid. Key exchange, where AAP
+        deployments negotiate transport keys, targets a hybrid of X25519 and
+        ML-KEM-768 <xref target="FIPS203"/>; ML-KEM has no final JOSE
+        registration, so that row remains reserved on the adoption path this
+        section previously applied to ML-DSA-65.</t>
       </section>
 
       <section anchor="sec-intent">
@@ -433,28 +451,46 @@ ASCII( BASE64URL(UTF8(protected header)) || "." || BASE64URL(payload) )
       Base64url is unpadded, per <xref target="RFC7515"/>.</t>
 
       <t>The protected header carries "alg" (a suite identifier from the registry
-      below; v1 uses "EdDSA"), "typ" (the value "JWT"), and "kid" (the key
-      identifier of the signing key in the issuer's published key material).</t>
+      below), "typ" (the value "JWT"), and "kid" (the key identifier of the
+      signing key in the issuer's published key material; Ed25519 keys publish
+      as OKP JSON Web Keys and ML-DSA-65 keys as AKP JSON Web Keys per
+      <xref target="RFC9964"/>).</t>
 
       <t>The compact serialization "header.payload.signature" is the v1 baseline
       and is REQUIRED on every interoperability path where a foreign system
       verifies the token; in particular a CGT or DA presented as an
       <xref target="RFC8693"/> "subject_token" MUST be compact. A compact token
-      carries exactly one signature, and therefore exactly one suite. Where more
+      carries exactly one signature, and therefore exactly one suite. The suite
+      of a compact token is pinned per path by verifier policy
+      (<xref target="sec-pq"/>): "EdDSA" is the interoperability baseline, and
+      an "ML-DSA-65" compact token serves counterparties that support the
+      <xref target="RFC9964"/> suites. During the current adoption window the
+      RECOMMENDED default on foreign-interoperability paths remains "EdDSA",
+      because deployed token-exchange and OpenID Connect-style verifiers do not
+      yet verify the <xref target="RFC9964"/> suites. Where more
       than one signature is required, the hybrid post-quantum profile of
       <xref target="sec-pq"/>, the token is carried as JWS General JSON
       Serialization (<xref target="RFC7515"/>), with one signature entry per
       suite, each with its own protected header over the same payload. Every
       declared entry MUST verify; a verifier MUST NOT accept a token on a subset
-      of its declared signatures.</t>
+      of its declared signatures. A general-form token that declares any
+      ML-DSA-65 entry is on the hybrid profile and MUST carry at least one
+      Ed25519 entry and at least one ML-DSA-65 entry; a verifier MUST reject a
+      general-form token missing either family, so a stripped hybrid token can
+      never degrade to single-family acceptance. Multiple entries of one suite
+      with no ML-DSA-65 entry remain a legal multi-signature (co-signature)
+      form.</t>
 
       <t>The v1 suite registry contains two entries:</t>
       <dl spacing="compact">
-        <dt>EdDSA</dt><dd>Ed25519 <xref target="RFC8037"/>. Active; the only
-        suite the v1 reference mints.</dd>
-        <dt>ML-DSA-65</dt><dd>FIPS 204 <xref target="FIPS204"/>. Reserved; adopted
-        on IETF registration of ML-DSA for JOSE. Until then no AAP token declares
-        it.</dd>
+        <dt>EdDSA</dt><dd>Ed25519 <xref target="RFC8037"/>. Active; the
+        interoperability baseline.</dd>
+        <dt>ML-DSA-65</dt><dd>FIPS 204 <xref target="FIPS204"/>, JOSE
+        registration <xref target="RFC9964"/>. Active. Hybrid with EdDSA via the
+        multi-signature form, or single-suite compact on
+        post-quantum-capable interoperability paths. ML-DSA-44 and ML-DSA-87,
+        though registered for JOSE, are not in this registry and are rejected as
+        unknown suites.</dd>
       </dl>
       <t>Adding or retiring a suite is a change to this registry plus version
       negotiation, never a change of format.</t>
@@ -593,6 +629,18 @@ ASCII( BASE64URL(UTF8(protected header)) || "." || BASE64URL(payload) )
           <date year="2024" month="August"/>
         </front>
         <seriesInfo name="FIPS" value="204"/>
+      </reference>
+
+      <reference anchor="RFC9964" target="https://www.rfc-editor.org/info/rfc9964">
+        <front>
+          <title>ML-DSA for JSON Object Signing and Encryption (JOSE) and CBOR
+          Object Signing and Encryption (COSE)</title>
+          <author initials="M." surname="Prorock"/>
+          <author initials="O." surname="Steele"/>
+          <date year="2026" month="May"/>
+        </front>
+        <seriesInfo name="RFC" value="9964"/>
+        <seriesInfo name="DOI" value="10.17487/RFC9964"/>
       </reference>
 
       <reference anchor="ATX" target="https://specs.opena2a.org/atx">
