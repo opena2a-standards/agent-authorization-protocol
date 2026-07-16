@@ -181,7 +181,7 @@ Internet-Draft                     AAP                         July 2026
       current security posture across monitoring components.
 
    Registry / Root Authority  A trust authority that issues ATXs,
-      maintains a transparency log [RFC6962], and computes trust scores.
+      maintains a transparency log [RFC9162], and computes trust scores.
       Participants operate conformant Root Authorities under the Agent
       Trust Protocol [ATP].
 
@@ -630,10 +630,6 @@ Internet-Draft                     AAP                         July 2026
               RFC 6749, October 2012,
               <https://www.rfc-editor.org/info/rfc6749>.
 
-   [RFC6962]  Laurie, B., Langley, A., and E. Kasper, "Certificate
-              Transparency", RFC 6962, June 2013,
-              <https://www.rfc-editor.org/info/rfc6962>.
-
    [RFC7515]  Jones, M., Bradley, J., and N. Sakimura, "JSON Web
               Signature (JWS)", RFC 7515, May 2015,
               <https://www.rfc-editor.org/info/rfc7515>.
@@ -654,6 +650,10 @@ Internet-Draft                     AAP                         July 2026
    [RFC8693]  Jones, M., Nadalin, A., Campbell, B., Ed., Bradley, J.,
               and C. Mortimore, "OAuth 2.0 Token Exchange", RFC 8693,
               January 2020, <https://www.rfc-editor.org/info/rfc8693>.
+
+   [RFC9162]  Laurie, B., Messeri, E., and R. Stradling, "Certificate
+              Transparency Version 2.0", RFC 9162, December 2021,
+              <https://www.rfc-editor.org/info/rfc9162>.
 
 12.  Informative References
 
