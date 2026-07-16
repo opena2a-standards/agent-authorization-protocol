@@ -1,9 +1,11 @@
 # [CHIEF-CA + CHIEF-CSR] DECISION: ML-DSA-65 activation and hybrid serialization profile
 
 **Date:** 2026-07-16
-**Status:** Decided, except one escalated knob (see ESCALATION). Implementation of the
-decided portion proceeds; the escalated knob is one sentence of RECOMMENDED-default
-prose and one broker configuration default, both reversible.
+**Status:** Decided. The one escalated knob (see ESCALATION) proceeded on the chiefs'
+recommendation — option (B), `EdDSA` default on foreign-interop paths through an
+adoption window — with Abdel's go-ahead to continue (2026-07-16). Flipping to (A)
+remains a one-sentence §9.3 change plus the broker's foreign-lane default; the
+re-evaluation triggers in ESCALATION stand either way.
 **Trigger:** RFC 9964 ("ML-DSA for JOSE and COSE", Standards Track, May 2026) registers
 the JOSE `alg` values `ML-DSA-44` / `ML-DSA-65` / `ML-DSA-87` and the `AKP` JWK key type
 (`pub`, plus `priv` pinned to the 32-byte seed). AAP-SPEC v0.3.0 §8.2/§9.5 gate ML-DSA-65
