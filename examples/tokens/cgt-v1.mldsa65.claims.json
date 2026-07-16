@@ -1,0 +1,14 @@
+{
+  "iss": "https://broker.acme.example",
+  "sub": "did:opena2a:agent:acme/orders-reader",
+  "aud": "https://api.orders.internal",
+  "scope": "orders.read",
+  "trust_class": "orders:read",
+  "issuer_chain": [
+    "did:opena2a:authority:opena2a.org"
+  ],
+  "trust_level": 4,
+  "iat": 1780315200,
+  "exp": 1780315500,
+  "jti": "b1c2d3e4f5a60718293a4b5c6d7e8f90"
+}

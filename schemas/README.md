@@ -18,7 +18,7 @@ hand-authored — by `scripts/generate_examples.py`, with a CI drift gate.
 | `cgt-claims-v1.schema.json` | AAP-SPEC §4.2 (ratified from Secretless `src/broker/cpi/assertion.ts`) | Pinned, normative, reference-implemented |
 | `da-claims-v1.schema.json` | AAP-SPEC §5.3 | Pinned, normative (reference realizes delegation via Exchange; no standalone `act`-chain minting yet) |
 | `bac-claims-v1.schema.json` | AAP-SPEC §6.4 | Pinned, normative (no reference implementation yet) |
-| `jws-general-v1.schema.json` | AAP-SPEC §9.4 | Pinned, normative (multi-suite container; v1 tokens are compact) |
+| `jws-general-v1.schema.json` | AAP-SPEC §9.4 | Pinned, normative (multi-suite container; hybrid Ed25519 + ML-DSA-65 profile active as of 0.4, RFC 9964) |
 
 ## The former blockers, and what pinned each
 

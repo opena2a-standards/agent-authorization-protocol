@@ -6,6 +6,42 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ## [Unreleased]
 
+## [0.4.0-draft] - 2026-07-16
+
+### Changed
+
+- **ML-DSA-65: Reserved → Active (§8.2, §9.5).** RFC 9964 ("ML-DSA for JOSE and
+  COSE", Standards Track, May 2026) registered the `ML-DSA-65` JOSE `alg` and the
+  `AKP` key type — the exact adoption condition §9.5 named. The suite registry now
+  carries two active entries; ML-DSA-65 keys publish as RFC 9964 `AKP` JWKs
+  (seed-form `priv`); signing is pure ML-DSA with empty context, no pre-hash.
+  Serialization-profile decision (three lanes: hybrid General JSON AAP-native,
+  compact `EdDSA` foreign-interop baseline, compact `ML-DSA-65` PQ-interop) with
+  rationale and the one escalated knob recorded in
+  `decisions/2026-07-16-mldsa65-serialization-profile.md`.
+- **Hybrid family gate (§9.4).** A general-form token declaring any `ML-DSA-65`
+  entry is on the hybrid profile and MUST carry ≥1 `EdDSA` and ≥1 `ML-DSA-65`
+  entry, every declared entry verifying (conformance category
+  `HYBRID_INCOMPLETE`). The §9.4 example is now a real generated hybrid token;
+  the 2× Ed25519 co-signature example remains published as
+  `examples/tokens/cgt-v1.general.json`.
+- **Downgrade rules tightened (§8.2).** Suite acceptance is pinned by verifier
+  policy per path, never token-selected; hybrid-configured producers MUST NOT
+  fall back to classical-only except via broker-profile §8.1 negotiation.
+- **Replay prevention sharpened (§8.1).** Receivers MUST reject a repeated `jti`
+  (conformance category `REPLAYED_JTI`); tracked from first acceptance to `exp`.
+
+### Added
+
+- Generated PQ fixtures: `cgt-v1.mldsa65.jwt` (+ claims), embedded in §9.3;
+  `cgt-v1.hybrid.general.json`, embedded in §9.4; ML-DSA-65 test key
+  `broker-pqc-1` (published seed, `mlDsa65SeedHex` + AKP public JWK) in
+  `test-keys.json`. ML-DSA-65 fixtures use FIPS 204 deterministic signing and are
+  cross-verified by three independent implementations (dilithium-py,
+  @noble/post-quantum, OpenSSL via Node ≥ 25). Generator dependency:
+  `dilithium-py>=1.4`.
+- RFC 9964 added to Normative References.
+
 ## [0.3.0-draft] - 2026-07-05
 
 ### Added

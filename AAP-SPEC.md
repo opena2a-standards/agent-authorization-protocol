@@ -2,7 +2,7 @@
 
 ## Scoped, Attested Authorization for AI Agent Systems
 
-**Version:** 0.3.0-draft
+**Version:** 0.4.0-draft
 **Authors:** OpenA2A
 **Date:** July 2026
 **Intended status:** Standards Track (IETF Internet-Draft; named individual authors will be attributed at Internet-Draft submission per IETF convention)
@@ -347,24 +347,32 @@ revocation entirely to this mechanism, it defines no separate revocation system.
 ### 8.1 Replay Prevention
 All tokens include a unique identifier (`jti`): 16 random bytes, lowercase hex (32
 characters), as minted by the reference implementation. Receivers MUST track used
-identifiers for the token's TTL window.
+identifiers for the token's TTL window and MUST reject a repeated identifier. The
+reference verifiers enforce this (conformance category `REPLAYED_JTI`): a jti is
+remembered from first acceptance until the token's `exp`, and a second presentation
+inside that window rejects, after all other checks pass.
 
 ### 8.2 Cryptographic Agility and Post-Quantum Readiness
 The signature suite is a named, swappable field — the JOSE `alg` of each signature's
 protected header (Section 9) — so suites can be added or retired by negotiation, never by
 a new credential format. A verifier MUST reject a token whose declared suite it does not
-support rather than silently downgrade.
+support rather than silently downgrade. Suite acceptance is pinned by verifier policy per
+path, never selected by the token; a producer configured for the hybrid profile on a path
+MUST NOT fall back to a classical-only token on that path except through explicit version
+negotiation (broker profile §8.1).
 
-The v1 suite registry (Section 9.5) contains exactly one entry, `EdDSA` (Ed25519,
-RFC 8037), which is what the reference implementation signs today. The post-quantum
-target is hybrid Ed25519 + ML-DSA-65 (FIPS 204), carried as two `signatures[]` entries of
-the multi-signature form (Section 9.4) — one per suite, matching ATX's per-signature
-`algorithm` model: a hybrid token verifies only if at least one ML-DSA-65 signature
-**and** at least one Ed25519 signature verify. The ML-DSA-65 `alg` identifier is adopted
-on IETF registration of ML-DSA for JOSE (coordinated with the ATX suite registry); no AAP
-implementation mints post-quantum signatures yet. Key exchange, where AAP deployments
-negotiate transport keys, targets hybrid X25519 + ML-KEM-768 (FIPS 203) on the same
-adoption path.
+The v1 suite registry (Section 9.5) contains two active entries: `EdDSA` (Ed25519,
+RFC 8037) and `ML-DSA-65` (FIPS 204; JOSE `alg` identifier and `AKP` key type registered
+by RFC 9964, May 2026). The post-quantum profile is hybrid Ed25519 + ML-DSA-65, carried
+as two `signatures[]` entries of the multi-signature form (Section 9.4) — one per suite,
+matching ATX's per-signature `algorithm` model: a hybrid token verifies only if at least
+one ML-DSA-65 signature **and** at least one Ed25519 signature verify, with every declared
+entry verifying (Section 9.4). Hybrid is the RECOMMENDED form wherever both ends implement
+AAP; single-suite compact tokens remain the interoperability baseline (Section 9.3).
+ML-DSA-65 signing uses the empty context string and no pre-hash variant, as RFC 9964
+requires. Key exchange, where AAP deployments negotiate transport keys, targets hybrid
+X25519 + ML-KEM-768 (FIPS 203); ML-KEM has no final JOSE registration yet, so that row
+remains reserved on the same adoption path this section previously applied to ML-DSA-65.
 
 ### 8.3 Intent Verification
 NanoMind intent verification provides semantic understanding that static policies cannot.
@@ -424,6 +432,20 @@ interoperability path where a foreign system verifies the token — in particula
 presented as an RFC 8693 `subject_token` (`urn:ietf:params:oauth:token-type:jwt`) MUST be
 compact. A compact token carries exactly one signature and therefore exactly one suite.
 
+The suite of a compact token is pinned per path by verifier policy (§8.2). `EdDSA` is the
+v1 interoperability baseline; an `ML-DSA-65` compact token is the PQ-interop form, minted
+where the counterparty advertises support for the RFC 9964 suites. During the current
+adoption window the RECOMMENDED default on foreign-interop paths remains `EdDSA` —
+deployed RFC 8693/OIDC verifiers do not yet verify RFC 9964 suites; the re-evaluation
+triggers are recorded in
+[`decisions/2026-07-16-mldsa65-serialization-profile.md`](./decisions/2026-07-16-mldsa65-serialization-profile.md).
+Example (generated; the §4.2 CGT claim shape with its own `jti`, signed `ML-DSA-65` under
+test key `broker-pqc-1`):
+
+```
+eyJhbGciOiJNTC1EU0EtNjUiLCJ0eXAiOiJKV1QiLCJraWQiOiJicm9rZXItcHFjLTEifQ.eyJpc3MiOiJodHRwczovL2Jyb2tlci5hY21lLmV4YW1wbGUiLCJzdWIiOiJkaWQ6b3BlbmEyYTphZ2VudDphY21lL29yZGVycy1yZWFkZXIiLCJhdWQiOiJodHRwczovL2FwaS5vcmRlcnMuaW50ZXJuYWwiLCJzY29wZSI6Im9yZGVycy5yZWFkIiwidHJ1c3RfY2xhc3MiOiJvcmRlcnM6cmVhZCIsImlzc3Vlcl9jaGFpbiI6WyJkaWQ6b3BlbmEyYTphdXRob3JpdHk6b3BlbmEyYS5vcmciXSwidHJ1c3RfbGV2ZWwiOjQsImlhdCI6MTc4MDMxNTIwMCwiZXhwIjoxNzgwMzE1NTAwLCJqdGkiOiJiMWMyZDNlNGY1YTYwNzE4MjkzYTRiNWM2ZDdlOGY5MCJ9.9vagfB_BNqu_Yk-Sh8muBWLdHvgguw1XheApS2LEmj7ZUWERjxxNtsyXESMFcFd2zzCtCtaS74FCMZtjEWCO3s1vemtsqbk-BOtHBEemovDMTMvW_7YCZ8_qlDLYj0XbW3If8lYpy5JIpdLRO_Cuqh1KMmLJv8G2znNUUiZIwpyAVSAlpG0sMh_Ue_qEV4CArWStBhMGouh5RBKol9UUiitomcaIInMHmZyDSWyeW3IZFMpUTSSjO3QemOHv6sF4TXs-IfdfcfgjLAhH4L8WLfDKslaxD1qlG3OIQJiZBWu-YmylDbSuRiRKBvlCl_Nq4fD44NdxK8oNZnYrK1ZDO-cUZCZHdldUY8up-6l7yG8nlbzpwk5YjQZFgWvUseg5bH3a7Nmwsh0cCPObdHMU-g0uHBw687MzPB9OlEI8X-Yfm0U13SQ7s0OtdvwYz0PtcFOqcZpBtI0DNfmqR44aOSjQkvlzuuZHH7CFPPzgG3y1VItBl4exw_Uh9wkxTxwzTJIloR_OSAjU-FgJi0dAx6aaUEJbTyKtNnteS3TVzG_cMO-UYKAsTzpaK8zddPaSMadPZycHAOnk-ZbUV1SZVbaX80M1ZFLJ8lhPzjs2XEd3XCY0ipvA-O6G9Hrm67gEJCpnka7u0uUBDHTGlgu-BNI_JS11NmyOb58kshaaoh5FAAEa-249VUSa17uzcZV8hl4GaZmfn2zDnj1-rnXAqtZSNoHiPB1pTCkw5ow2Ljrt8FlIR4cXh19JFy2lrh6_4jWQXng9D0Y9xh42nrI9kSLV09spoVFKSNNAAKf5rdR7W0LMje3YGFWp_DZHQv9Mt_KtvWO-ZsRbAeZ7l6YSsmqiX0fjAcxQmVhfykea787dwVQgpy-nOzSyhe-_QuqdfdYco1MIWSgdpFmRyQsMzN0AWRT1Y2KOcU7zqfg2xH6TyVSMyuvU3J9KhkPuhHaItaWgntdcvnyG3ioKlJfucKA3_5qNZoKIiAe73aNZQUE0TnTdIX-I1f--Y9LT8EbDtSVx1RahCBmJwGRvYaC0TYQXO86AmGUTGRnWqaBNX7Bd9QgTVR_jtVSmJ7MCelP50zdm-ODeHqoqT3e_VC-K7ouesTuDvCqBvpgBvTlntr4p3L3jr_QgtCWtA23rk0WmEN3XWswjEyzvhI6nRO7Z6FUGlW80OuDmd9wBHeWoxo08U937XTogvljbWp546dZz-EvGc6YKQrlwLIpKHA1Sj7xlWqr4FrXDZJvwWGuxP2q44qpEzw8M8uShNInadKE4GBJcQ3QYkQQRCgJ-kSD01sZJRmxur2mX6xfxdNu9SdedgVwTne0iIK0JYO7BWAeTBYADIHvC-IWKatsmmAD4C_61y829DhLMIVcGD3fb2dqmYUy-eKZvys76gHtKlo0Ko3r1-XnlGxevTruI8GLIZKmf9tITiWu2jFXnCtfiYExT3hgDT-D7F27BYyHIB7bRWuZCTZAbCt0KdASdyKodcuYCVoLdd9lni7hNAJt4gmAkn3Bimz4Pl3QbF8QwJn8Fdg3PSr4MQ4CJAV_kAjrPdUQT8DZ1H4iHxptFkTUfvVnsKktWXcAQsaPbsu3d_0s8GayF1XZAjmzdvq3WrjP3sNXgm-Zq0O3Tu5-yAZxvScYOUq-HP6nJFaeysRYg36Hbao6-LKZxIiNjO3z8cN8OjPXFW6xiwAj2Wyf_yphcF3Il7eEq8EZxZqD8pt86pRybXK7s38rEQBDnXc1X1mnrm1cRjDj-NmPqODDgXijG9z89QqznsQdtHUZJz4JiwAkYUhVFjrvL5SyEd29z89-YAnOv6y4TrxdcdXg73_ohQRVwMij_y9W50wzAwH_aniySuEA06T4j8AvUntA8HT2QWpGhPpJbWYwwXAxrsS8jub8F3naMIDYN0RNjbZmnjTe2j4zPUsz-U8ZCQcarIJlM9gvK6lU33QtVtJOMTP4IIhMte6XjOnAjC63bs2Rf0yWq3qLSRKcDcLYtMhlwxMEupFcXAvWaOL6g428eq4Md-frCiC8pqe1YNdc_MJhV_bU2wSXLg0FyPdyRUWfQcQ1K3-IVetXU63jIjjeOLlwC8fvJAs3QKuk1YOisZiR4vK8L2HKZZZegoK87YYtf7rvlIEYcRmHEhWDMkHk6Z4rTn-ACaB4gRNzmaJTahxetEGR3JtohQ0BmlmyF7huPdT_yGHQ2XPrFHbS6ZfXvclTBKdFcqtNrr6mpLpk0DII5lElgvd_QXYXlsbgPVoPGrkAeoB_T1OS4E_kdRL7El-h6aP6hpIWOi3KXmHBJjoINA94L03gjB02G1zyB3MBpJ7r0tlafDLCjVBLgPCS_XBSDmSTRIX4tlIYTeweoVo0yEmEMHPlDffRLJisQQ7Mp02oaXxY90mgNUI5WM8TRw9ed_jyK1Qd56CiXRuBXjMIEJmsA_0HxqRpXZxLkUy1bUiZkqKOzaInzeNQwzq_EA6JivQP2wOV3XDnKL8C0xLww0lHN_esQCsO1UlVnLlDNPk1_LbiPNZ_YiDSQvWU4qU2rYYDwgHBj7PzvOtX6tH8Uhk4b7PlWfSkKAUW9cEIXvysdiWU8DeLX4SoGRbpxTeiKeb1SMiEXwbnuTboWulU9j73haUmT7joS1IivQXZUjfcXgi-GSKFFSMaYI1QXnRINfkGJ0o2TMNbml9rr-ukvih6jGCsG1yviauDIkcqTHrrHByZ7IAdPhLWE7-9YJeW8rnb4J7goH_mrMTTyjDc9UAoLf4PQj9ucCIzXzad5DtYrMhpW6gzZxuDUOc2RNSD7D5OAkoqdlChmYt5fnbueiCjKZFJUcwzx3k6sLwdAJqXyw_pRlUFK6tEozrObvSUxveXyyFeAfj8oouDiMCgUtjR01MkIFbrVilGnGPJO2om2Cuvp2rdN4Oj-n4z59O7u8PRxXLpb-2LJRDKu64HmqE_BM-e6YK6SJthm-9kw7t788rNR5yDKifQ4cV-LdQhXeL6-2H3jfQ085z91qSm48oZyiw0voQTCvjYNe-RIkvfV2gHXw5RWLeagNPTC4nTQYQ9E09Sc1VqdVwxRg2ecnYdSoP2RI-9uWxrF5-ShJ_NMasW1nwV_tsq-zTZbCBEUcGBKQYKORHIdw1na9eDBdmMJnEhzX34B53TogeGV5xO-JJoNbNTjjPlqhBf5E9V2Pz4EFicvlVVPw1P5KkQjsSNf8hfPel6Hqqm1eNNxsfMfXZa4fZBV8s3MFHruc7D0mXPyhdLRPMs8tgXuGXASuVGsb0HA4AKTcaZCFOgqASnC7NF7diCr7SYOvpmgtzCbeODKM94Z_BfW5nWmvJRlzEppr2l2DOAm3UZSTqqZenqR2bdHHGniJOEQ4U2z0GxoQXEOMpGzi6hQN01iE13_lGXPZ3iELUF6S1eC2VsVXpkNZP7xNCVxWN_gMtFqi4z98tMMf2pz5D0cAJlWTYvJ9Crj44zqBTb30TFJecc7Vwo6oFvrkcPnyWnzzRCh2Y9mCntkYu7bQ9L9qaSuREWlRqjksBW4swjhvrXNGiziQiICdxpMtlGpC_poPGrUE9zpRqVnXbT3xfwEJze9BzUrXh6RJTir-0AmWPo8NGqYwl8O0y7_IAwrl51cuEQANVRQ0wI-2hiJLlbLdzm1S4Bf5mRmkko8QK3mKxQl7NUpjPmE_KlvqUmhw4ubEOpwIoqJm_eRICBNTvCPfh4vZnxjtAcUcBabPs96XKMhapGG4_jP7vzVLW-7dDogOMCIiXIKVDe7X9PqK0ly-bUOdPLqzsWvrk9x7awm0sHstX-LE3jsY-b41WnS6-m9reLFFVeeIDx36-cMR36pSFOfew6FMcMUb8moeIoDNLRuTCeTGvu53e7jLH2nrw-6vMK_0U1JPPb7ESXa5Oh--SfJKy4aqK8XC-07tSisvcgF5ryoknpFxv7PF8SPu0lDEbySpdD0msGjRinpv8zaP6pYqFjLF7f72sAjkIcpJCeCpuwuQK1imxv7Ak3n0q3eqVSBbOZmc0XvEaIEXZ7zVtLqKM_LJbjDcGucVzcvHzsRCee0TYaq-1vgiaSfAD3nsJ0KUDcbmet6RfwqgQicj4norwQjWGOIe3ZIP85JCwn0952Fac3zoTlkzZvwkS2_0MyFf6o-Of68YqqjWoFZfaXEeky6vOELkg2_OlQmfd3ua1NsHYOq9LMZMrtknqqSS2puHFPuZhatUOh9GA76mg8VgxPDoKYSM6x-wyF-wYCqsnvqoxwmhgnObBeERwEK63Whoh-6Ti383SuVEpol1CX4i4hFtRYdhOaIHe3gvn93Y9suhMpEWUIUXTBUrbZ2hXTg6622sIkEjQALSHd9ws_5_Sg9SUuTl5y51dfaPJK4vMTVMzeu6hbI1t7vAAAAAAAAAAAAAAAAAAAAAAAAAgsWHCAl
+```
+
 ### 9.4 Multi-Signature Form
 
 Where more than one signature is required — the hybrid post-quantum profile of §8.2 —
@@ -436,9 +458,16 @@ ATX/ATP `{algorithm, keyId, value}` — expressed in the JOSE-standard container
 declared entry MUST verify; a verifier MUST NOT accept a token on a subset of its
 declared signatures.
 
-Example (generated; the §4.2 CGT claim set under two Ed25519 test keys — a hybrid
-deployment replaces the second entry with an ML-DSA-65 signature once that suite is
-registered):
+A general-form token that declares any `ML-DSA-65` entry is on the hybrid profile of
+§8.2 and MUST carry at least one `EdDSA` entry and at least one `ML-DSA-65` entry; a
+verifier MUST reject a general-form token missing either family (conformance category
+`HYBRID_INCOMPLETE`). Together with the subset rule above, this means a stripped hybrid
+token can never degrade to single-family acceptance. Multiple entries of one suite with
+no `ML-DSA-65` entry remain a legal multi-signature (co-signature) form, published as
+[`examples/tokens/cgt-v1.general.json`](./examples/tokens/cgt-v1.general.json).
+
+Example (generated; the §4.2 CGT claim set under the hybrid profile — one `EdDSA` entry
+and one `ML-DSA-65` entry over the same payload):
 
 ```json
 {
@@ -449,8 +478,8 @@ registered):
       "signature": "7-kf_vmchx-P6zg-CsSIQvYdPHQaObrQSIngnI7HpL1D5l544iGTg8jIOxpNf0g0KoBRNVr2vJ5Gj3fjRwtoAg"
     },
     {
-      "protected": "eyJhbGciOiJFZERTQSIsImtpZCI6ImJyb2tlci1rZXktMiJ9",
-      "signature": "oa5XXSuBDkyj3T9r0ySIKKbYpvko5mODZkxMOqZ-l5lenGjLEb4p5X2rALKAqP-DmS0fkDiex41IzgrUw6guDQ"
+      "protected": "eyJhbGciOiJNTC1EU0EtNjUiLCJraWQiOiJicm9rZXItcHFjLTEifQ",
+      "signature": "njv38RRBZbBspeTyiXRwJrLVtflKX4_nViYaJLMNhZN00omEy763sbXTbgZK8cTkFlyyfh7Io4o0kf-LzPeSufxepcCUuDGxdTa62xZ94A1IRrmCUuT1Gggh_z5k0TbMDJo3XcYjbvEmy8nsn_zH5vbm7En8bDQRKPC0Sws0q6M4572KUJiKuMvjmkLWBm5zgYnQalBtfSAjcURECSGOsai0TlVYGXNzJ6RCDsNlMjrqKhKHNEKZLknwvB6fDISbEKoRS2tG5mKACbKOw-SrZuKcVOeGXpZa3bKriNfibppqj1SRbR-KKiTyXfm4BLRWUKAkYPffUCy6pZ7xxh0psjPLpGGIA1dkYQnHwaoKIiBnoEzjY1blT1UrV2k-hbd5YPB-nVIq-6SN9zkct0FmgXUxwIwMOXcE_FM3kYaGIuTNPxVppKmdfqW6H1V4iIHoYyMVaPr0z1elR8c6kbVIswnhFL7-YyHfJMr9mJYK7SzI_C2bSznlvn3OtoWn0evbkiajtmXPdzClZE7RsRMFBs2ecDTj09b9HGloPuOucCKJHtAnSHjVC7wPBteq94adnkxnGmp5zLQQPXzs6wiyZMnwPVOZ06Bv-pTVJmosutWWZp9aActNW1LBb6qcvvAVPuheFMrW4mWpy63vMrUbtbD-hNGExtywAlsGTMXsJdNH2u7XYabHhkduArKJaNh4HD8jZtbORPuQTJuJ-3ju6pl8cbeUQXAllIAQSjWg2QZtyMHef-wKcbYJeGV8cnrjdAExvv4QnVtJdUlxszu2OwDUErzjqDQunwKgJgs76SIDfSoTF4hLEIAmYRaJSFRhDH0FmMb-sBp71p5B5qGMSRfjauahOMNmYDECmJ4KLkLm4UMYZCW-4eSWZFdd5WkzJXcNmr3L6jpxLuIbmqytSJnGi6BFLDajdH5XkY6bfJhhBLqzkDirukktJzIZxJU9PSRMPkjWcmvhHIHAZGyeAfmaQXcTKNd4LCLo-2YyVfHhdK_ywZKRSG2i8jJ3Mgphirgev3aKp1R1Z7DjaRojH8F2cYqUH_lJ_yREJ6kqex5nspWXVLO4FYlbeeZAiuokk8GOs3MLGCb-mI4hkP_11KZKgBEmY1IIVvW-c8T7r4bKuFVL2jz5khINxeLqxvwn6zgSbZZgeg-5Oh85sH275MXoUIlBWmAeHPd2tS-EEcI9E_IX4_YbMaizH91gZv7ut-5lYtthrdSDW6UGJy-e6yqc5leRs6lqKT77chLSJgquPJj56WC-l8uFgTn7njoUzge5dNeXwJGd6H2CnRmOG_wmycepaanANLV58sWVNhAo4RwoMjlD2v7hFeO9UL15D7WtAs4pCytI5wnbaK2tDt3riTMVLQAeujEJ6YRn-5r7wK5Owz8Esyqh1e87khaxil0p6yNzcun5hVuyX7yGI8hFZ4iqKPD9txRhn8qn6YFeFerSaLpyQvTVDi6oQMr9yh9011zdqrAJH4R3fvy8zo-Oha_1ky8AYR-becD8lc5pcKg1NbCJ15hTWs3bDQpK_TYu5G4sN-UTO2CbEFEs_WFkxhviAQDkamKWS5u2kQDAoTWyLABIZlznS0_i7i1pRuLLO3nssAXxAJWO1iC3vvKwjb1Q6n_vEpC4EUeXbkFGaj8Eo3mtxZUTPve0cHeYVV6waCRSngxTW29X9bEzSDUv15mGrwlbWRhi-DvbeN7FqYqhMpV-4uAMwoVwehCyzvWXTD3mv-i57OmqymcYTjLmO4pZr6JGDRhhFYbrV4wF4_SfZRcwJ93ZblFaum6cPdmlg2BKmxZsDhtio8M88K945Qi-BlcJrd6dlf1ZUd9CUWIozP0o_UrFk34n15DWeJjK4BMV8bH7Mjfg5kEJfPmF58TifkxkZiyER5m1meNYiSBNKfPhJNCZDWC-MuGKGBF5Yc9alSOGtk20-703d6c8vyns2DDEnu4G7kPsqfoAJeX_qj3jRoDzCfS8oeOAltkO_FVTK_igsEt4i8NhIkhyZv4E47Cfdkn4dR9XWJEueT8_kyThpYH0imc-79ITJPqz4dSKqUGkYRg_ADUGq6IzmR0b0QZSK406LZUYw_NDA8txGTDZhOWwTvX8A37ywlWOWNXgoQ3mG9UJB54lYqma0g0MVKh23WgcOhQ0cVPDd4jThu__teN2NJN3-Ae6bfFQT5BnXksJazmDXd0B7rEMSWJXnnG63cGr6ghMrk19uLrSxbyTAbIfuBmxghBSZeO05nknK2S6pPQfelx6gRIqYrZT-LID9nhGEigb5P-9bNPY9Jrf13-s-VXWYEsD7nGTQ0arh0rLBGD2l6g7N32SMyDvOFlUIXsUOWO7ZMhlE0LuI5WB0ElC_tGwydSrBKNZfQRD5D1IWjnTV2GdB-9R_p1QlIKz0mUYkQh-dve3nJcZ3BcKtsffniIcGkmeh040M8K4a51GKYyrP_IVQeHHhKK62RMAO0-7Pm4lUkLxWf-wmVLc4UUizDDfEYUw5VR2OJn3E01PSp5gXHyntBiArrbzlG7WGuQydAmTwSN15NSU21wQrwR3xzPiOLmY4rx0pqWD8BtZ2F9Td5pbN6QUZE3tyJrH670RNeMRU42_FpHYiaQ7-fOt9t14wZ-dZGx8N7Ac7FA3sMzf_bheahzHYGS2YVAUCX8mC8nW7iXEEybMVXb9KgJRqu9Q72g1rwEul276h4pgkGh46OmNRK3Z6lPKj8JGeoocvkBG6UTwrtqsKgNP7PhWb4P4C3ZTSyUthDWdk8o0IL7R2IPjRnd5m1GLnkrWqW4JgSyhJLhQAPxeqrmy20M1lLg_5t_1BpQykjzI44UZ7qlZLgPlywfjtsXmAhkknMe2FnLHs2Edd7IxM_tYFlptHB1UYWrnJP9StsNJ6a4I53Y-jhMW3mim4gMqWNqkpq1xDRF8v2HMLubyzhE9XtIwaNnXgzWL9zXvjE5w3EX7Q8vmmSFhobxFigX1XobJaE4L6_4IYn64SpqLQYACHPutdvV_03LSOss3VdYMlkJ1cryifzfvC9bxiGF0x5MJH0GZ0JGewjlLNQPWuix2xsh464Eeuz3vfbaFxRhfAzhotoF2IIFSJRFT2FAz1yvecIofjpNExNrm8g0ZconEfzr7g6wAcR80oMLBSSD4FiAFBdeGHGa308I2pbtkG4Tl6u-UPPa3QU0U2nWkBmrExNN2hHarkMYTXrNoStqgX7xS4Hivd-zjz4tDuzlcYkN7jee2fQByqJb9AG1UMAQG5U8hBwZW6FG0hK3h6i0NHsZF8_DkXTVCH-2Af8-weLl0nF_ZImYlLSQUoacUm3zQhXbmfw5r2INL5sUJNfq3fkdvwax94XDOv-bGOV5oP7YCFliUlbQJJzzaJa5yIJUa2vLwVts6iXE5dt7WR7M93yzXGJAaOzpFekUdAdT8Ey20xhrv_j_efNlUjC_biySOC748WJ7R98HnKiqenu-wSv_-sBckra7_U2ua_pdI028lekqfUWFsX4ZEB9FNnjqO3O0sQoxPfgaVnskAoMzBfRbtchFafzgAY_31y_3hMsYsSF3eeyRz4rqnfgo-k8mJjCn8bV7rlxxBxpHV1Nkc_e-CDaHkH3ndf2zksv2ZbjRWcUuL4Aq8s7bqukYDsGkv0pzeO7xClMDHP-7JB6FbPytWb8NhjFazEjOBAmD0PpUr3BTbNdFPzMEhK1rexiA2fNUymtpliRgaDYFhr2JVVoIM3x2nu60RTOWJcT4Rwfda1cHnnfpERTShO30QZ5aDtPDBKn6xZIgYBQulg7zIbWYRVLsQaM1J8mZXs4F83v26rksO6FuVlRUgAnt116w9ZAziLRXamHIU9OidtcoSmFI6RKPIF9Ehd3epcEuYW5m8PpOeKIWQVEYdxT5IB5PvyKcvwR-08kD6cE0iW3VwBm7V_sQOmdpIKCXh1B0liCE3xgtyCkmgfk2NyWvV7qIEiUyyVBMEmeXDr3z0QC9Glh3Z0W4zemZKg3OVEmxeKewIX4bmPt40JYsqOirnHxVPbr5eNKeihXVC7Rt6j_VOagCPt8BazlNjt194DGf6e9QIl1El-GOcAQaa97pezSMLddMOw9qlVSuA6ZijA5F-lzZDNzIHJmI9OHJFg2m2gkMl04DE0gnCZAUJpcH933nkFRfAZZl5DbsYKytP68gqOczmBjY758vfGDLl6AB1za_I-Xsaq0O5BOmCRjS82CBL8uR8aGJhR6QTW-7Pt4mtwc8BB1ew8wgH6etx7FOrl2CkLvR08h4e3utquF2RAdPybCxj4yKUkCy-C3PoPz9kqcMDWT6KuChidMWAP4Yjar_MZvgB4rD9Ad4CWn-gqvSQtd7rMmyVqrvD2ug6O1mr1OQNH3LC0AYILWlrgO77AAAAAAAAAAAAAAAAAAAAAAAABgoSGB0l"
     }
   ]
 }
@@ -460,8 +489,13 @@ registered):
 
 | `alg` | Algorithm | Status |
 |---|---|---|
-| `EdDSA` | Ed25519 (RFC 8032 / RFC 8037) | Active. The only suite the v1 reference mints. |
-| `ML-DSA-65` | FIPS 204 | Reserved. Adopted on IETF registration of ML-DSA for JOSE; until then no AAP token declares it. |
+| `EdDSA` | Ed25519 (RFC 8032 / RFC 8037) | Active. The v1 interoperability baseline. |
+| `ML-DSA-65` | FIPS 204 (JOSE registration: RFC 9964) | Active since 2026-07-16 ([decision note](./decisions/2026-07-16-mldsa65-serialization-profile.md)). Hybrid with `EdDSA` per §8.2/§9.4; PQ-interop compact per §9.3. |
+
+ML-DSA-65 verification keys publish as RFC 9964 `AKP` JWKs (`pub` per FIPS 204 §5.3;
+a private JWK, where one exists at all, carries the 32-byte seed as `priv`). `ML-DSA-44`
+and `ML-DSA-87`, though registered for JOSE by RFC 9964, are NOT in the AAP registry;
+a verifier rejects them as unknown suites (§8.2).
 
 Adding or retiring a suite is a row change here plus version negotiation (broker profile
 §8.1) — never a format change.
@@ -488,7 +522,13 @@ seeds ([`examples/tokens/test-keys.json`](./examples/tokens/test-keys.json)), fi
 timestamps, and fixed `jti` values — deterministic and reproducible byte-for-byte, and
 verified in-process before being written. CI regenerates and byte-compares
 (`--check`), and fails if any embedded token in this document drifts from the generated
-fixture. Hand-authored example bytes are prohibited.
+fixture. Hand-authored example bytes are prohibited. ML-DSA-65 fixtures use the FIPS 204
+deterministic signing variant with the empty context string — hedged signing would break
+byte-reproducibility; production minting MAY hedge (§8.2), verification is identical
+either way. The ML-DSA-65 test key derives from a published 32-byte seed
+(`mlDsa65SeedHex` in `test-keys.json`), the same seed form RFC 9964 pins for the AKP
+`priv` parameter; fixture bytes are cross-verified by three independent FIPS 204
+implementations (dilithium-py, @noble/post-quantum, OpenSSL via Node ≥ 25).
 
 ## 10. IANA Considerations
 
@@ -507,6 +547,7 @@ managed in this specification.
 - [RFC 7519], JSON Web Token (JWT).
 - [RFC 8037], CFRG Elliptic Curve Signatures in JOSE (`EdDSA`).
 - [RFC 8693], OAuth 2.0 Token Exchange.
+- [RFC 9964], ML-DSA for JOSE and COSE (the `ML-DSA-65` `alg` and `AKP` key type).
 - [RFC 6962], Certificate Transparency.
 - [FIPS 203], Module-Lattice-Based Key-Encapsulation Mechanism Standard.
 - [FIPS 204], Module-Lattice-Based Digital Signature Standard.
