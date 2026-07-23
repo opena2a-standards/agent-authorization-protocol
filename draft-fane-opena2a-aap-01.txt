@@ -4,12 +4,12 @@
 
 Individual Submission                                            A. Fane
 Internet-Draft                                                   OpenA2A
-Intended status: Standards Track                             6 July 2026
-Expires: 7 January 2027
+Intended status: Standards Track                            22 July 2026
+Expires: 23 January 2027
 
 
                OpenA2A Agent Authorization Protocol (AAP)
-                       draft-fane-opena2a-aap-00
+                       draft-fane-opena2a-aap-01
 
 Abstract
 
@@ -46,14 +46,14 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 7 January 2027.
+   This Internet-Draft will expire on 23 January 2027.
 
 
 
 
 
 
-Fane                     Expires 7 January 2027                 [Page 1]
+Fane                     Expires 23 January 2027                [Page 1]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -109,7 +109,7 @@ Table of Contents
 
 
 
-Fane                     Expires 7 January 2027                 [Page 2]
+Fane                     Expires 23 January 2027                [Page 2]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -165,7 +165,7 @@ Internet-Draft                     AAP                         July 2026
 
 
 
-Fane                     Expires 7 January 2027                 [Page 3]
+Fane                     Expires 23 January 2027                [Page 3]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -221,7 +221,7 @@ Internet-Draft                     AAP                         July 2026
 
 
 
-Fane                     Expires 7 January 2027                 [Page 4]
+Fane                     Expires 23 January 2027                [Page 4]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -277,7 +277,7 @@ Internet-Draft                     AAP                         July 2026
 
 
 
-Fane                     Expires 7 January 2027                 [Page 5]
+Fane                     Expires 23 January 2027                [Page 5]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -333,7 +333,7 @@ Internet-Draft                     AAP                         July 2026
 
 
 
-Fane                     Expires 7 January 2027                 [Page 6]
+Fane                     Expires 23 January 2027                [Page 6]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -389,7 +389,7 @@ Internet-Draft                     AAP                         July 2026
 
 
 
-Fane                     Expires 7 January 2027                 [Page 7]
+Fane                     Expires 23 January 2027                [Page 7]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -445,7 +445,7 @@ Internet-Draft                     AAP                         July 2026
 
 
 
-Fane                     Expires 7 January 2027                 [Page 8]
+Fane                     Expires 23 January 2027                [Page 8]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -501,7 +501,7 @@ Internet-Draft                     AAP                         July 2026
 
 
 
-Fane                     Expires 7 January 2027                 [Page 9]
+Fane                     Expires 23 January 2027                [Page 9]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -557,7 +557,7 @@ Internet-Draft                     AAP                         July 2026
 
 
 
-Fane                     Expires 7 January 2027                [Page 10]
+Fane                     Expires 23 January 2027               [Page 10]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -613,7 +613,7 @@ Internet-Draft                     AAP                         July 2026
 
 
 
-Fane                     Expires 7 January 2027                [Page 11]
+Fane                     Expires 23 January 2027               [Page 11]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -669,7 +669,7 @@ Internet-Draft                     AAP                         July 2026
 
 
 
-Fane                     Expires 7 January 2027                [Page 12]
+Fane                     Expires 23 January 2027               [Page 12]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -725,7 +725,7 @@ Internet-Draft                     AAP                         July 2026
 
 
 
-Fane                     Expires 7 January 2027                [Page 13]
+Fane                     Expires 23 January 2027               [Page 13]
 
 Internet-Draft                     AAP                         July 2026
 
@@ -781,4 +781,4 @@ Author's Address
 
 
 
-Fane                     Expires 7 January 2027                [Page 14]
+Fane                     Expires 23 January 2027               [Page 14]
