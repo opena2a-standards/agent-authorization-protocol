@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <rfc xmlns:xi="http://www.w3.org/2001/XInclude"
-     docName="draft-fane-opena2a-aap-00"
+     docName="draft-fane-opena2a-aap-01"
      ipr="trust200902"
      category="std"
      submissionType="IETF"
@@ -11,7 +11,7 @@
 
   <front>
     <title abbrev="AAP">OpenA2A Agent Authorization Protocol (AAP)</title>
-    <seriesInfo name="Internet-Draft" value="draft-fane-opena2a-aap-00"/>
+    <seriesInfo name="Internet-Draft" value="draft-fane-opena2a-aap-01"/>
 
     <author fullname="Abdel Fane" initials="A." surname="Fane">
       <organization>OpenA2A</organization>
@@ -23,7 +23,7 @@
       </address>
     </author>
 
-    <date year="2026" month="July" day="6"/>
+    <date year="2026" month="July" day="22"/>
 
     <area>Security</area>
     <workgroup>Individual Submission</workgroup>
