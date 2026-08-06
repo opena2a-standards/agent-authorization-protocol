@@ -12,6 +12,10 @@ one of three credential-provider modes, performs the operation, and returns only
 secret, temporary credential, backend address, or vendor name ever reaches the agent, or the model
 behind it.
 
+## Contributing
+
+This specification is early and authored in the open. We are looking for co-authors, an independent second implementation, and review of the authorization and delegation model before it goes to an external standards body. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## The one principle
 
 OpenA2A owns the protocol and the vocabulary. It owns no one's trust. Nothing in AAP requires a
