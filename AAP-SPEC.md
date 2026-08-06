@@ -34,7 +34,7 @@ AAP has two layers:
    component that mints and exchanges the tokens defined here.
 
 **Reference implementation.** The AAP broker reference implementation is
-[Secretless](https://github.com/opena2a-org/secretless) (`src/broker/`, `src/grant/`): the
+[Secretless](https://github.com/opena2a-org/secretless-ai) (`src/broker/`, `src/grant/`): the
 `grant://` scheme, the resolution flow of §6 of the broker profile, the Credential Provider
 Interface with the Exchange mode (RFC 8693) implemented, credential confinement behind an
 ephemeral worker, and an in-repo end-to-end broker conformance test
