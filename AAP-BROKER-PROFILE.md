@@ -550,15 +550,19 @@ structural slots for Levels 2–3 in place.
 
 ## 14. Reference Implementation (Informative)
 
-The OpenA2A reference implementation lives in Secretless AI. It extends the existing Secretless
-broker (a local daemon reachable over a Unix socket) with:
+The OpenA2A reference implementation lives in Secretless AI, as a library within the existing
+Secretless broker (a local daemon reachable over a Unix socket). The daemon does not yet construct
+the grant resolver from operator configuration, so `POST /grant` returns 404 on a shipped build;
+what follows describes the implemented library surface and its in-repo conformance test, not an
+operator-reachable endpoint. It provides:
 
 - the `grant://` scheme;
 - the CPI abstraction with all three modes declared and **Exchange** implemented;
 - an ATX verification step before resolution, reusing the AIM/ATP verification + CRL path;
 - an RFC 8693 Exchange provider in which the broker mints a broker assertion from ATX claims and
-  exchanges it for a scoped downstream token, with **Okta as the first conformance test** behind a
-  thin provider adapter (no vendor name in the broker core);
+  exchanges it for a scoped downstream token, behind a thin provider adapter that keeps the vendor
+  name out of the broker core. The conformance test drives that adapter through an injected fake
+  transport; the provider has not been exercised against a live identity-provider tenant;
 - an ephemeral worker that performs the downstream operation and returns only the result.
 
 The developer surface is the existing AIM `@agent.perform_action` decorator: an agent references a
