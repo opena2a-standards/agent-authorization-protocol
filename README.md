@@ -59,13 +59,20 @@ AAP is defined in two documents:
 
 ## Status
 
-`0.2.0-draft`. Authored in the open; intended for submission as an IETF Internet-Draft. The
-0.2.0 reconciliation merges the March 2026 AAP token-model draft with the broker/resolution layer
-into one coherent protocol (ATC → ATX, `did:atp:` → `did:opena2a:`).
+`AAP-SPEC.md` is at `0.4.0-draft`; the companion `AAP-BROKER-PROFILE.md` is at `0.3.0-draft`.
+Authored in the open; intended for submission as an IETF Internet-Draft. Each document carries its
+own version at the top; `CHANGELOG.md` records what moved between drafts.
 
 ## Reference implementation
 
-A v1 **Exchange** broker extends the existing Secretless broker, validated against Okta (RFC 8693).
+A v1 **Exchange** broker (RFC 8693) is implemented in the Secretless broker library, with an
+end-to-end conformance test proving the §4 invariant over the broker's Unix socket. Two limits are
+worth stating plainly rather than discovering later. The exchange is exercised against a fake
+transport injected into the provider adapter, not against a live identity-provider tenant. And the
+shipped `secretless broker` daemon does not yet construct the grant resolver, so `POST /grant`
+returns 404 until an operator-facing grant-binding configuration lands
+([opena2a-standards/agent-authorization-protocol#1](https://github.com/opena2a-standards/agent-authorization-protocol/issues/1)).
+
 The developer surface is the AIM `@agent.perform_action` decorator. See
 [`examples/orders-db-exchange.md`](./examples/orders-db-exchange.md) and
 [`AAP-BROKER-PROFILE.md` §14](./AAP-BROKER-PROFILE.md#14-reference-implementation-informative).
