@@ -70,6 +70,15 @@ PQC_KEYS = {
     "broker-pqc-1": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
 }
 
+# Presenter (agent) test key: the key the section 4.6 `cnf` claim binds a CGT
+# or DA to. Kept in its own published file (examples/tokens/presenter-keys.json)
+# so test-keys.json, which the aap-conformance pin check compares byte for
+# byte, is unchanged by the 0.5 fixtures. Published deliberately. NEVER use
+# outside fixtures.
+PRESENTER_KEYS = {
+    "agent-key-1": "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f",
+}
+
 REGISTRY_ISSUER = "did:opena2a:authority:opena2a.org"
 BROKER_ISSUER = "https://broker.acme.example"
 AGENT_DID = "did:opena2a:agent:acme/orders-reader"
@@ -89,6 +98,11 @@ JTI = {
     # The PQ-interop compact CGT is a distinct minted token, so it carries its
     # own jti (section 8.1: receivers track jti; two live tokens never share one).
     "cgt_pq": "b1c2d3e4f5a60718293a4b5c6d7e8f90",
+    # 0.5 fixtures (AAP-SPEC section 4.4 to 4.6, 5.4, 6.4): distinct minted
+    # tokens, so each carries its own jti.
+    "cgt_fgc": "c3d4e5f6a7b8091a2b3c4d5e6f708192",
+    "da_fgc": "d4e5f6a7b8c9012b3c4d5e6f70819203",
+    "bac_session": "e5f6a7b8c9d0123c4d5e6f7081920314",
 }
 
 # --- JWS primitives (mirror assertion.ts exactly) -----------------------------
@@ -110,6 +124,25 @@ def private_key(kid: str) -> Ed25519PrivateKey:
 def public_jwk(kid: str) -> dict:
     pub = private_key(kid).public_key().public_bytes_raw()
     return {"kty": "OKP", "crv": "Ed25519", "x": b64url(pub), "kid": kid, "use": "sig", "alg": "EdDSA"}
+
+
+def presenter_public_jwk(kid: str) -> dict:
+    priv = Ed25519PrivateKey.from_private_bytes(bytes.fromhex(PRESENTER_KEYS[kid]))
+    pub = priv.public_key().public_bytes_raw()
+    return {"kty": "OKP", "crv": "Ed25519", "x": b64url(pub), "kid": kid, "use": "sig", "alg": "EdDSA"}
+
+
+def jwk_thumbprint(jwk: dict) -> str:
+    """RFC 7638 JWK thumbprint (SHA-256). For an OKP key the required members
+    are crv, kty, x, serialized in lexicographic order with no whitespace."""
+    required = {"crv": jwk["crv"], "kty": jwk["kty"], "x": jwk["x"]}
+    canonical = json.dumps(required, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    return b64url(hashlib.sha256(canonical).digest())
+
+
+def cnf_claim(kid: str) -> dict:
+    """RFC 7800 `cnf` bound to the presenter key by JWK thumbprint (`jkt`)."""
+    return {"jkt": jwk_thumbprint(presenter_public_jwk(kid))}
 
 
 def pqc_keypair(kid: str) -> tuple[bytes, bytes]:
@@ -253,6 +286,102 @@ def da_claims() -> dict:
     }
 
 
+def cgt_authorization_details() -> list[dict]:
+    # The section 4.4 type registry, exercised by one `data` entry and one
+    # `budget` entry. Member names inside an entry are camelCase (section 9.6);
+    # `type`, `locations`, `actions` are the RFC 9396 common members.
+    return [
+        {
+            "type": "data",
+            "locations": ["https://api.orders.internal/orders"],
+            "actions": ["read"],
+            "fieldsAllowed": ["id", "status", "total"],
+            "fieldsDenied": ["customer.email"],
+            "labelCeiling": ["internal"],
+        },
+        {
+            "type": "budget",
+            "maxUses": 100,
+            "rate": {"max": 60, "windowSeconds": 60},
+        },
+    ]
+
+
+def da_authorization_details() -> list[dict]:
+    # Every entry is narrower than or equal to a delegator entry of the same
+    # type (section 5.4): fewer fields allowed, a smaller budget.
+    return [
+        {
+            "type": "data",
+            "locations": ["https://api.orders.internal/orders"],
+            "actions": ["read"],
+            "fieldsAllowed": ["id", "status"],
+            "fieldsDenied": ["customer.email"],
+            "labelCeiling": ["internal"],
+        },
+        {
+            "type": "budget",
+            "maxUses": 10,
+            "rate": {"max": 10, "windowSeconds": 60},
+        },
+    ]
+
+
+def cgt_fgc_claims() -> dict:
+    # The section 4.2 claim set plus the 0.5 members: `authorization_details`
+    # (RFC 9396), `aap_crit` (section 4.5), `cnf` (RFC 7800, section 4.6). The
+    # new members sit before the validity window so the reference order of
+    # the baseline members is unchanged.
+    return {
+        "iss": BROKER_ISSUER,
+        "sub": AGENT_DID,
+        "aud": "https://api.orders.internal",
+        "scope": "orders.read",
+        "trust_class": "orders:read",
+        "issuer_chain": [REGISTRY_ISSUER],
+        "trust_level": 4,
+        "authorization_details": cgt_authorization_details(),
+        "aap_crit": ["authorization_details", "cnf"],
+        "cnf": cnf_claim("agent-key-1"),
+        "iat": IAT,
+        "exp": IAT + 300,
+        "jti": JTI["cgt_fgc"],
+    }
+
+
+def da_fgc_claims() -> dict:
+    return {
+        "iss": BROKER_ISSUER,
+        "sub": DELEGATEE_DID,
+        "aud": "https://api.orders.internal",
+        "scope": "orders.read",
+        "trust_class": "orders:read",
+        "issuer_chain": [REGISTRY_ISSUER],
+        "trust_level": 4,
+        "authorization_details": da_authorization_details(),
+        "aap_crit": ["authorization_details", "cnf"],
+        "cnf": cnf_claim("agent-key-1"),
+        "act": {"sub": AGENT_DID},
+        "max_depth": 1,
+        "delegator_atx": ATX_REFERENCE,
+        "iat": IAT,
+        "exp": IAT + 300,
+        "jti": JTI["da_fgc"],
+    }
+
+
+def bac_session_claims() -> dict:
+    # An L3 claim set carrying `session_label` (section 6.4): the set of labels
+    # admitted into the session so far, as maintained by the broker.
+    claims = bac_claims()
+    claims = {k: v for k, v in claims.items() if k not in ("iat", "exp", "jti")}
+    claims["session_label"] = ["internal"]
+    claims["iat"] = IAT
+    claims["exp"] = IAT + 60
+    claims["jti"] = JTI["bac_session"]
+    return claims
+
+
 def bac_claims() -> dict:
     # An L3 claim set; it includes the L1/L2 members to show the cumulative shape.
     return {
@@ -310,6 +439,9 @@ def check_spec_blocks(spec: str) -> int:
         "### 9.4 Multi-Signature Form": mint_general(
             [("broker-key-1", "EdDSA"), ("broker-pqc-1", "ML-DSA-65")], cgt_claims()
         ),
+        "### 4.7 Example with authorization details": cgt_fgc_claims(),
+        "### 5.5 Example of an attenuated delegation": da_fgc_claims(),
+        "### 6.5 Example with a session label": bac_session_claims(),
     }
     failures = 0
     for heading, want in expected.items():
@@ -331,6 +463,9 @@ def check_header_shapes() -> int:
         "da-v1.jwt": {"alg": "EdDSA", "typ": "JWT", "kid": "broker-key-1"},
         "bac-v1.jwt": {"alg": "EdDSA", "typ": "JWT", "kid": "registry-key-1"},
         "cgt-v1.mldsa65.jwt": {"alg": "ML-DSA-65", "typ": "JWT", "kid": "broker-pqc-1"},
+        "cgt-v1.fgc.jwt": {"alg": "EdDSA", "typ": "JWT", "kid": "broker-key-1"},
+        "da-v1.fgc.jwt": {"alg": "EdDSA", "typ": "JWT", "kid": "broker-key-1"},
+        "bac-v1.session.jwt": {"alg": "EdDSA", "typ": "JWT", "kid": "registry-key-1"},
     }
     for name, want in compact_headers.items():
         token = (OUT / name).read_text(encoding="utf-8").strip()
@@ -395,6 +530,38 @@ def build_files() -> dict[str, str]:
         [("broker-key-1", "EdDSA"), ("broker-pqc-1", "ML-DSA-65")], cgt_claims()
     )
     files["cgt-v1.hybrid.general.json"] = json.dumps(hybrid, indent=2) + "\n"
+
+    # 0.5 fixtures: authorization_details + aap_crit + cnf on a CGT and on an
+    # attenuated DA (sections 4.4 to 4.6, 5.4), and an L3 BAC carrying
+    # session_label (section 6.4). Additive: every earlier fixture is
+    # byte-identical to its 0.4 form.
+    fgc_tokens = {
+        "cgt-v1.fgc": ("broker-key-1", cgt_fgc_claims()),
+        "da-v1.fgc": ("broker-key-1", da_fgc_claims()),
+        "bac-v1.session": ("registry-key-1", bac_session_claims()),
+    }
+    for name, (kid, claims) in fgc_tokens.items():
+        files[f"{name}.jwt"] = mint_compact(kid, claims) + "\n"
+        files[f"{name}.claims.json"] = json.dumps(claims, indent=2) + "\n"
+
+    files["presenter-keys.json"] = (
+        json.dumps(
+            {
+                "warning": "TEST KEYS with published seeds, fixture reproduction only, never production use",
+                "keys": [
+                    {
+                        "kid": kid,
+                        "ed25519SeedHex": seed,
+                        "publicJwk": presenter_public_jwk(kid),
+                        "jkt": jwk_thumbprint(presenter_public_jwk(kid)),
+                    }
+                    for kid, seed in PRESENTER_KEYS.items()
+                ],
+            },
+            indent=2,
+        )
+        + "\n"
+    )
 
     files["test-keys.json"] = (
         json.dumps(
