@@ -1,4 +1,4 @@
-# [CHIEF-CA + CHIEF-CSR] DECISION: ML-DSA-65 activation and hybrid serialization profile
+# Decision: ML-DSA-65 activation and hybrid serialization profile
 
 **Date:** 2026-07-16
 **Status:** Decided. The one escalated knob (see ESCALATION) proceeded on the chiefs'
