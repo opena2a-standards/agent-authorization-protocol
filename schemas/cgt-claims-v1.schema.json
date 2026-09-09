@@ -67,7 +67,7 @@
     "fga_constraints": {
       "type": "string",
       "deprecated": true,
-      "description": "DEPRECATED in AAP-SPEC 0.5 (section 4.2); replacedBy `authorization_details`. JSON-encoded FGA policy from the 0.3/0.4 text. Optional-to-ignore: a verifier ignores it. No implementation minted it (FGC program audit, 2026-09-08). Kept so -00/-01 tokens and the reference verifiers keep validating; removal is a later draft's decision."
+      "description": "DEPRECATED in AAP-SPEC 0.5 (section 4.2); replacedBy `authorization_details`. JSON-encoded FGA policy from the 0.3/0.4 text. Optional-to-ignore: a verifier ignores it. No implementation minted it as of 2026-09-08. Kept so -00/-01 tokens and the reference verifiers keep validating; removal is a later draft's decision."
     },
     "intent_verified": {
       "type": "boolean"

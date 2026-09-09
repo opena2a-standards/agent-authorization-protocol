@@ -390,8 +390,8 @@ NOTE: '\' line wrapping per RFC 8792
         method by <xref target="RFC9449"/>). The bound key is the key the
         presentation binding step of the broker profile
         <xref target="AAP-BROKER-PROFILE"/> verified: the ATX subject key where
-        the credential carries one (a later revision of the ATX format, work
-        in progress), otherwise the key
+        the credential carries one (a later revision of the ATX format; the
+        current ATX 1.1 format carries no subject key), otherwise the key
         registered for the agent's decentralized identifier. The presentation
         proof formats per binding are defined in the broker profile: operating
         system peer credentials on a local socket, an HTTP message signature
@@ -1171,8 +1171,8 @@ ASCII( BASE64URL(UTF8(protected header)) || "." ||
 
       <reference anchor="MISHRA-DAAP" target="https://datatracker.ietf.org/doc/draft-mishra-oauth-agent-grants/">
         <front>
-          <title>Delegated Agent Authorization Protocol (DAAP)</title>
-          <author surname="Mishra"/>
+          <title>OAuth Profile for Delegated AI Agent Authorization (DAAP)</title>
+          <author surname="Kumar"/>
           <date year="2026"/>
         </front>
       </reference>
@@ -1191,21 +1191,32 @@ ASCII( BASE64URL(UTF8(protected header)) || "." ||
       and a federation and revocation model. These documents are author-namespaced
       and are intended to coexist on the Internet-Drafts record.</t>
 
-      <t>Closest in intent is the "Delegated Agent Authorization Protocol"
-      <xref target="MISHRA-DAAP"/>, which extends OAuth 2.0 with agent grant and
-      delegation semantics. The present document differs in that authorization is
-      exercised through a local broker that confines the credential value away
-      from the agent's reasoning context (<xref target="sec-confinement"/>) and
-      binds to behavioral attestation (<xref target="bac"/>), rather than issuing
-      an OAuth token the agent holds directly. DAAP carries budgets and policy
-      hooks on the OAuth grant; the present document carries the equivalent as
-      the "budget" entry type of "authorization_details"
-      (<xref target="cgt-authz"/>) and the escalation hook of the broker
-      profile, enforced by a local broker rather than by the authorization
-      server that issued the token. Related agent-identity drafts using
-      the "AIP" acronym address identity assertion rather than the
-      scoped-authorization and credential-confinement problems that are the focus
-      of this document.</t>
+      <t>Closest in intent is DAAP, the "OAuth Profile for Delegated AI Agent
+      Authorization" <xref target="MISHRA-DAAP"/>, which profiles OAuth 2.0 for
+      agent client instances: authenticated user consent, resource-bound and
+      sender-constrained access tokens, and attenuation through OAuth Token
+      Exchange. Its revision -01 (March 2026) carried budget controls, a policy
+      engine, cascade revocation, and a credential vault; revision -02 (August
+      2026) moves budgets, policy languages, and credential vaults outside its
+      interoperable core (its abstract and Section 1.1) and retains one policy
+      statement: an automated policy decision may deny, narrow, or require
+      escalation of a request (its Section 2). The present document differs in
+      that authorization is exercised through a local broker that confines the
+      credential value away from the agent's reasoning context (<xref
+      target="sec-confinement"/>) and binds to behavioral attestation (<xref
+      target="bac"/>), rather than issuing an OAuth token the agent holds
+      directly. It carries budgets as the "budget" entry type of
+      "authorization_details" (<xref target="cgt-authz"/>) and escalation as the
+      hook of the broker profile, both enforced by a local broker rather than by
+      the authorization server that issued the token. The two differ in where
+      enforcement sits (broker versus token holder and resource server) and in
+      credential confinement (<xref target="sec-confinement"/>), which DAAP -02
+      lists among the facilities it does not standardize. This document makes no
+      claim about whether DAAP or other agent authorization drafts define a data
+      sensitivity clearance. Related agent-identity drafts using the "AIP"
+      acronym address identity assertion rather than the scoped-authorization
+      and credential-confinement problems that are the focus of this
+      document.</t>
     </section>
 
     <section anchor="ack">

@@ -159,13 +159,14 @@ CGT is what the broker mints from a verified ATX before exchanging it for a down
 
 ### 4.2 Token Structure
 
-The CGT is an AAP token in the form of Section 9. The baseline claim set (the first ten
-rows below) is **ratified byte-for-byte from the reference implementation**: it is exactly
-what the Secretless broker's `mintBrokerAssertion` (`src/broker/cpi/assertion.ts`) signs.
-The 0.5 members (`authorization_details`, `aap_crit`, `cnf`; Sections 4.4 to 4.6) are
-specified here and pinned by generated fixtures; no implementation mints them as of
-2026-09-08 (FGC program audit, section 2, "CGT claims minted: exactly 10, no cnf" and
-"authorization_details / aap_crit / cnf: 0 in repo"). The claim set is pinned by
+The CGT is an AAP token in the form of Section 9. The baseline claim set (the first nine
+rows below, ten claims from `iss` to `jti`) is **ratified byte-for-byte from the reference
+implementation**: it is exactly what the Secretless broker's `mintBrokerAssertion`
+(`src/broker/cpi/assertion.ts`) signs. The 0.5 members (`authorization_details`,
+`aap_crit`, `cnf`; Sections 4.4 to 4.6) are specified here and pinned by generated
+fixtures; no implementation mints them as of 2026-09-08 (`mintBrokerAssertion` signs the
+ten baseline claims and nothing else, and none of the three names occurs in the reference
+broker's source). The claim set is pinned by
 [`schemas/cgt-claims-v1.schema.json`](./schemas/cgt-claims-v1.schema.json).
 
 | Claim | Req | Type | Meaning |
@@ -180,10 +181,10 @@ specified here and pinned by generated fixtures; no implementation mints them as
 | `iat` / `exp` | MUST | NumericDate | Validity window; `exp - iat` is the policy TTL (§4.3). |
 | `jti` | MUST | 32 hex chars | Unique token id, 16 random bytes hex (Section 8.1). |
 | `aap_ver` | MAY (v1) | integer | Claim-schema version (Section 9.6). |
-| `authorization_details` | MAY | array | RFC 9396 structured grant entries, typed by the registry of Section 4.4. Mandatory to understand: MUST be listed in `aap_crit` when present. Narrows within `scope` and `trust_class`, never widens them (Section 4.4). Not minted by any implementation as of 2026-09-08 (audit, section 2). |
+| `authorization_details` | MAY | array | RFC 9396 structured grant entries, typed by the registry of Section 4.4. Mandatory to understand: MUST be listed in `aap_crit` when present. Narrows within `scope` and `trust_class`, never widens them (Section 4.4). Not minted by any implementation as of 2026-09-08 (Section 4.2, preamble). |
 | `aap_crit` | MAY | string array | The claim names a verifier MUST understand or reject the token (Section 4.5). |
 | `cnf` | MAY | object | RFC 7800 confirmation: binds the token to the presenter's key (Section 4.6). Mandatory to understand: MUST be listed in `aap_crit` when present. |
-| `fga_constraints` | MAY, **deprecated** | string | JSON-encoded FGA policy from the 0.3 and 0.4 text. Deprecated in 0.5, replacedBy `authorization_details`. Still optional-to-ignore (broker profile §8.3): a verifier ignores it. No implementation minted it (audit, section 2: 0 occurrences in the reference broker); it stays defined because the -00 and -01 Internet-Draft text and both reference verifiers carry it. |
+| `fga_constraints` | MAY, **deprecated** | string | JSON-encoded FGA policy from the 0.3 and 0.4 text. Deprecated in 0.5, replacedBy `authorization_details`. Still optional-to-ignore (broker profile §8.3): a verifier ignores it. No implementation minted it (the name does not occur in the reference broker's source); it stays defined because the -00 and -01 Internet-Draft text and both aap-conformance verifiers (`verifiers/python/verify.py`, `verifiers/node/verify.mjs`) carry it. |
 | `intent_verified` | MAY | boolean | NanoMind intent verification result. Optional-to-ignore; not minted by the v1 reference. |
 | `max_uses` | MAY, **deprecated** | integer | Use-count bound from the 0.3 and 0.4 text. Deprecated in 0.5, replacedBy `budget.maxUses` (§4.4.1). Still optional-to-ignore; not minted by the v1 reference. When both are present, `budget.maxUses` MUST NOT exceed `max_uses` (the §4.4 narrowing rule applied to one bound). |
 | `context_required` | MAY | boolean | Whether exercise requires conversational context review. Optional-to-ignore; not minted by the v1 reference. |
@@ -226,8 +227,8 @@ objects, each with a REQUIRED `type` member naming an entry type from the regist
 Section 4.4.1, plus the members that type defines. It is the structured, fine grained form
 of the grant. Where the 0.3 and 0.4 text reserved `fga_constraints` (a JSON encoded string
 a verifier could ignore), 0.5 carries the same intent in a registered, structured claim
-that a verifier cannot ignore: `authorization_details` is mandatory to understand and
-MUST be named in `aap_crit` (Section 4.5) whenever it is present.
+that a conforming verifier must understand or reject: `authorization_details` is mandatory
+to understand and MUST be named in `aap_crit` (Section 4.5) whenever it is present.
 
 **Narrowing rule.** `scope` and `trust_class` stay REQUIRED so that foreign RFC 8693 and
 OIDC style verifiers, which understand only the scope string, keep working. Within one
@@ -245,24 +246,25 @@ unconstrained baseline token. The advertisement is the **set of entry types** th
 counterparty understands, with the semantics of RFC 9396 §10
 `authorization_details_types_supported`, not a boolean; it is carried in the broker
 discovery document (broker profile §8.5), whose own schema names the member, and selected
-by the negotiation of broker profile §8.1. As of 2026-09-08 neither reference verifier
-implements `aap_crit` (audit, section 2: 0 occurrences in `aap-conformance`).
+by the negotiation of broker profile §8.1. As of 2026-09-08 neither aap-conformance
+verifier (`verifiers/python/verify.py`, `verifiers/node/verify.mjs`) implements
+`aap_crit`.
 
 #### 4.4.1 Entry type registry
 
 The initial registry has seven types. The wire value of `type` is a URI the family
 controls, `https://specs.opena2a.org/aap/types/<name>`, where `<name>` is the short name
-in the first column; the short name is the registry key and the name this document uses
-in prose. Member names inside an entry are camelCase (Section 9.6); `type`, `locations`,
-`actions`, `datatypes`, `identifier`, and `privileges` are the RFC 9396 common members and
-keep their registered spelling. Every type that can carry data out of the session
-(`mcp_tool`, `peer_agent`, `model`, `network`, and `data` with a write action) carries an
-`egressCeiling` member: a set of labels (Section 4.4.2); when absent it is the empty set,
-which is default deny for any session that has admitted a labeled field. Every type MAY
-carry `requiresApproval` (boolean): when `true`, the broker admits the entry only through
-the escalation hook of broker profile §6.10 and denies it where no hook exists. Unless a
-member says otherwise, an absent set member means "unbounded" and an absent identity
-member is not permitted.
+in the first column; the short name is the registry key and the name this document uses in
+prose. The URI is an identifier and is not required to resolve. Member names inside an
+entry are camelCase (Section 9.6); `type`, `locations`, `actions`, `datatypes`,
+`identifier`, and `privileges` are the RFC 9396 common members and keep their registered
+spelling. Every type that can carry data out of the session (`mcp_tool`, `peer_agent`,
+`model`, `network`, and `data` with a write action) carries an `egressCeiling` member: a
+set of labels (Section 4.4.2); when absent it is the empty set, which is default deny for
+any session that has admitted a labeled field. Every type MAY carry `requiresApproval`
+(boolean): when `true`, the broker admits the entry only through the escalation hook of
+broker profile §6.10 and denies it where no hook exists. Unless a member says otherwise,
+an absent set member means "unbounded" and an absent identity member is not permitted.
 
 | `type` | Members (MUST unless marked MAY) | Meaning |
 |---|---|---|
@@ -281,8 +283,8 @@ added to this registry by a revision of this document; until an IANA registry ex
 
 #### 4.4.2 Label semantics
 
-These definitions are normative here; the family harness generates the label vocabulary
-registry from this subsection when it lands.
+These definitions are normative here. A label vocabulary registry, if one is published, is
+derived from this subsection and changes no rule.
 
 - A **label** is an opaque string naming a sensitivity class (for example `internal`, a
   contact identifier class, or a residency class such as `residency:eu`). Labels are
@@ -322,26 +324,26 @@ exists to prevent. Every other claim is optional to ignore per broker profile §
 
 ### 4.6 Proof of possession
 
-The `cnf` claim (RFC 7800) binds a CGT or DA to the presenter's key, so that a token
-seen in transit is not a credential. `cnf` carries exactly one of `jwk` (RFC 7800 §3.2,
-the public key itself) or `jkt` (the base64url SHA-256 JWK thumbprint of RFC 7638, as
+The `cnf` claim (RFC 7800) binds a CGT or DA to the presenter's key, so that a token seen
+in transit is not a credential. `cnf` carries exactly one of `jwk` (RFC 7800 §3.2, the
+public key itself) or `jkt` (the base64url SHA-256 JWK thumbprint of RFC 7638, as
 registered for `cnf` by RFC 9449 §6.1). The bound key is the key the presentation binding
 step of the broker profile (§6, step 3) verified: the ATX subject key where the ATX
-carries one (a later revision of ATX, work in progress), or the key registered for the
-agent DID under AIP. The presentation proof formats per binding are defined in the broker
-profile §6.8. The presenter is the agent that presents the token to a broker: the `sub`
-of a CGT, the delegatee of a DA. A CGT the minting broker uses as its own assertion
-toward a downstream (Assume, Exchange) is not presented in this sense; `cnf` on such a
-token is not verified by the downstream.
+carries one (a later revision of ATX; the current ATX 1.1 format carries no subject key),
+or the key registered for the agent DID under AIP. The presentation proof formats per
+binding are defined in the broker profile §6.8. The presenter is the agent that presents
+the token to a broker: the `sub` of a CGT, the delegatee of a DA. A CGT the minting broker
+uses as its own assertion toward a downstream (Assume, Exchange) is not presented in this
+sense; `cnf` on such a token is not verified by the downstream.
 
-`cnf` is REQUIRED on every CGT or DA that is presented by an agent to any party other
-than the broker that minted it (a network binding, a peer broker, a delegatee). On the
-local unix socket binding, where the CGT never leaves the minting broker and the
-presenter is bound by OS peer credentials, `cnf` MAY be omitted. A verifier that receives
-a token with `cnf` MUST verify the presenter's proof against the bound key and MUST reject
-the token otherwise. As of 2026-09-08 no implementation mints `cnf` and the reference
-broker binds no presentation (audit, section 2: "CGT claims minted: exactly 10, no cnf";
-broker profile 0.3 §6 verified the ATX and nothing about the presenter).
+`cnf` is REQUIRED on every CGT or DA that is presented by an agent to any party other than
+the broker that minted it (a network binding, a peer broker, a delegatee). On the local
+unix socket binding, where the agent never holds the CGT and the presenter is bound by OS
+peer credentials, `cnf` MAY be omitted. A verifier that receives a token with `cnf` MUST
+verify the presenter's proof against the bound key and MUST reject the token otherwise. As
+of 2026-09-08 no implementation mints `cnf` and the reference broker binds no presentation
+(`mintBrokerAssertion` signs no `cnf`; broker profile 0.3 §6 verified the ATX and nothing
+about the presenter).
 
 ### 4.7 Example with authorization details
 
@@ -671,12 +673,13 @@ revoked even when its own `jti` is not.
 The list MUST be checked at **every** resolution (broker profile §6, step 5), after the
 ATX and CRL checks and before policy evaluation, and a listed token MUST produce the
 opaque denial of broker profile §6.6. The list is local: it never leaves the operator, is
-never fetched from a hosted service, and needs no federation transport. That is what
-keeps it inside Zero Failures. An entry MAY carry an expiry no earlier than the revoked
-token's `exp` (a `jti` entry is useless after that) and a subject entry has no implicit
-expiry. As of 2026-09-08 no implementation maintains a grant revocation list: the
-broker profile 0.3 §6 step 2 bound revocation "entirely" to the ATX CRL, and the audit's
-reference broker rows (audit, section 2) record no grant revocation surface.
+never fetched from a hosted service, and needs no federation transport. That is what keeps
+it inside Zero Failures (broker profile §11). An entry MAY carry an expiry no earlier than
+the revoked token's `exp` (a `jti` entry is useless after that) and a subject entry has no
+implicit expiry. As of 2026-09-08 no implementation maintains a grant revocation list: the
+broker profile 0.3 §6 step 2 bound revocation "entirely" to the ATX CRL, and the reference
+broker exposes no grant revocation surface (nothing in `src/broker` or `src/grant` revokes
+by `jti` or `sub`).
 
 ## 8. Security Considerations
 

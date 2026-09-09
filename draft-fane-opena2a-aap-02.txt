@@ -115,8 +115,8 @@ Internet-Draft                     AAP                    September 2026
 
 
    Appendix A.  Related Work . . . . . . . . . . . . . . . . . . . .  22
-   Appendix B.  Acknowledgments  . . . . . . . . . . . . . . . . . .  22
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  22
+   Appendix B.  Acknowledgments  . . . . . . . . . . . . . . . . . .  23
+   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  23
 
 1.  Introduction
 
@@ -486,17 +486,17 @@ Internet-Draft                     AAP                    September 2026
    a confirmation method by [RFC9449]).  The bound key is the key the
    presentation binding step of the broker profile [AAP-BROKER-PROFILE]
    verified: the ATX subject key where the credential carries one (a
-   later revision of the ATX format, work in progress), otherwise the
-   key registered for the agent's decentralized identifier.  The
-   presentation proof formats per binding are defined in the broker
-   profile: operating system peer credentials on a local socket, an HTTP
-   message signature [RFC9421] on HTTP, and a signed challenge on the
-   A2A and MCP bindings.  The presenter is the agent that presents the
-   token to a broker: the "sub" of a CGT, the delegatee of a DA.  A CGT
-   the minting broker uses as its own assertion toward a downstream (the
-   Assume and Exchange modes of the broker profile) is not presented in
-   this sense; "cnf" on such a token is not verified by the downstream.
-
+   later revision of the ATX format; the current ATX 1.1 format carries
+   no subject key), otherwise the key registered for the agent's
+   decentralized identifier.  The presentation proof formats per binding
+   are defined in the broker profile: operating system peer credentials
+   on a local socket, an HTTP message signature [RFC9421] on HTTP, and a
+   signed challenge on the A2A and MCP bindings.  The presenter is the
+   agent that presents the token to a broker: the "sub" of a CGT, the
+   delegatee of a DA.  A CGT the minting broker uses as its own
+   assertion toward a downstream (the Assume and Exchange modes of the
+   broker profile) is not presented in this sense; "cnf" on such a token
+   is not verified by the downstream.
 
 
 
@@ -1162,9 +1162,9 @@ Internet-Draft                     AAP                    September 2026
               Specification", 2026, <https://modelcontextprotocol.io/>.
 
    [MISHRA-DAAP]
-              "Delegated Agent Authorization Protocol (DAAP)", 2026,
-              <https://datatracker.ietf.org/doc/draft-mishra-oauth-
-              agent-grants/>.
+              "OAuth Profile for Delegated AI Agent Authorization
+              (DAAP)", 2026, <https://datatracker.ietf.org/doc/draft-
+              mishra-oauth-agent-grants/>.
 
    [RFC8792]  Watsen, K., Auerswald, E., Farrel, A., and Q. Wu,
               "Handling Long Lines in Content of Internet-Drafts and
@@ -1200,21 +1200,39 @@ Appendix A.  Related Work
    These documents are author-namespaced and are intended to coexist on
    the Internet-Drafts record.
 
-   Closest in intent is the "Delegated Agent Authorization Protocol"
-   [MISHRA-DAAP], which extends OAuth 2.0 with agent grant and
-   delegation semantics.  The present document differs in that
-   authorization is exercised through a local broker that confines the
-   credential value away from the agent's reasoning context
-   (Section 8.1) and binds to behavioral attestation (Section 6), rather
-   than issuing an OAuth token the agent holds directly.  DAAP carries
-   budgets and policy hooks on the OAuth grant; the present document
-   carries the equivalent as the "budget" entry type of
-   "authorization_details" (Section 4.1) and the escalation hook of the
-   broker profile, enforced by a local broker rather than by the
-   authorization server that issued the token.  Related agent-identity
-   drafts using the "AIP" acronym address identity assertion rather than
-   the scoped-authorization and credential-confinement problems that are
-   the focus of this document.
+   Closest in intent is DAAP, the "OAuth Profile for Delegated AI Agent
+   Authorization" [MISHRA-DAAP], which profiles OAuth 2.0 for agent
+   client instances: authenticated user consent, resource-bound and
+   sender-constrained access tokens, and attenuation through OAuth Token
+   Exchange.  Its revision -01 (March 2026) carried budget controls, a
+   policy engine, cascade revocation, and a credential vault; revision
+   -02 (August 2026) moves budgets, policy languages, and credential
+   vaults outside its interoperable core (its abstract and Section 1.1)
+   and retains one policy statement: an automated policy decision may
+   deny, narrow, or require escalation of a request (its Section 2).
+   The present document differs in that authorization is exercised
+   through a local broker that confines the credential value away from
+   the agent's reasoning context (Section 8.1) and binds to behavioral
+   attestation (Section 6), rather than issuing an OAuth token the agent
+   holds directly.  It carries budgets as the "budget" entry type of
+   "authorization_details" (Section 4.1) and escalation as the hook of
+   the broker profile, both enforced by a local broker rather than by
+   the authorization server that issued the token.  The two differ in
+   where enforcement sits (broker versus token holder and resource
+   server) and in credential confinement (Section 8.1), which DAAP -02
+   lists among the facilities it does not standardize.  This document
+   makes no claim about whether DAAP or other agent authorization drafts
+   define a data sensitivity clearance.  Related agent-identity drafts
+   using the "AIP" acronym address identity assertion rather than the
+   scoped-authorization and credential-confinement problems that are the
+   focus of this document.
+
+
+
+Fane                      Expires 12 March 2027                [Page 22]
+
+Internet-Draft                     AAP                    September 2026
+
 
 Appendix B.  Acknowledgments
 
@@ -1226,25 +1244,7 @@ Author's Address
    Abdel Fane
    OpenA2A
    United States of America
-
-
-
-Fane                      Expires 12 March 2027                [Page 22]
-
-Internet-Draft                     AAP                    September 2026
-
-
    Email: info@opena2a.org
-
-
-
-
-
-
-
-
-
-
 
 
 

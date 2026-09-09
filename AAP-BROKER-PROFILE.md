@@ -346,16 +346,16 @@ per binding:
 | HTTP | An **RFC 9421 HTTP Message Signature** over the request, covering at least `@method`, `@target-uri`, `content-digest`, a `created` parameter inside the clock skew bound, and a `nonce` parameter the broker has not seen within the skew bound. The grant reference is covered through `content-digest` when it is in the body, or as a named covered header otherwise. | The signature verifies under the verification key below; `keyid` names that key; `created` is fresh; `nonce` is unseen. When the ATX presentation object is published, an HTTP presentation satisfying its RFC 9421 profile satisfies this row; this list is the broker's minimum. |
 | A2A and MCP | A **signed challenge**: the broker issues a fresh random challenge (at least 16 bytes) bound to the channel; the presenter returns the challenge signed under its key. | The signature verifies under the verification key below; the challenge is the one issued on this channel and has not been answered before. |
 
-The **verification key** for a network binding is the ATX subject key where the ATX carries one
-(a later revision of ATX, work in progress), otherwise the key registered for the agent DID under
-AIP. A broker that can obtain neither MUST NOT accept a network presentation. The
-bound key is the key the minted CGT or DA carries in `cnf` (AAP-SPEC §4.6); on the local socket
-binding `cnf` MAY be omitted because the token never leaves the broker.
+The **verification key** for a network binding is the ATX subject key where the ATX carries one (a
+later revision of ATX; the current ATX 1.1 format carries no subject key), otherwise the key
+registered for the agent DID under AIP. A broker that can obtain neither MUST NOT accept a network
+presentation. The bound key is the key the minted CGT or DA carries in `cnf` (AAP-SPEC §4.6); on the
+local socket binding `cnf` MAY be omitted because the agent never holds the token.
 
 A presentation that fails to bind produces the opaque denial of Section 6.6 and an audit record
-naming the binding and the failure. As of 2026-09-08 the reference broker binds no presentation:
-the 0.3 flow had no binding step, and the audit found no `cnf` in the minted claim set (FGC program
-audit, section 2, "CGT claims minted: exactly 10, no cnf").
+naming the binding and the failure. As of 2026-09-08 the reference broker binds no presentation: the
+0.3 flow had no binding step, and the minted claim set (`mintBrokerAssertion`,
+`src/broker/cpi/assertion.ts`) carries no `cnf`.
 
 ### 6.9 Grant revocation list
 
@@ -364,13 +364,14 @@ A broker MUST maintain a local grant revocation list as defined in AAP-SPEC §7.
 future). A listed delegator `jti` revokes every DA delegated from it, transitively (cascade through
 the `act` chain). The list MUST be consulted at every resolution (step 5), after the ATX and CRL
 checks and before policy evaluation. The list is operator local: it is never fetched from a hosted
-service and never leaves the operator, which is what keeps grant revocation inside Zero Failures. A
-listed token produces the opaque denial of Section 6.6; the reason goes to the audit log.
+service and never leaves the operator, which is what keeps grant revocation inside Zero Failures
+(Section 11). A listed token produces the opaque denial of Section 6.6; the reason goes to the audit
+log.
 
-An operator adds an entry when a grant is believed compromised, a delegation has leaked, or a
-policy change makes an outstanding grant wrong; the ATX CRL stays the mechanism for revoking the
-agent itself. As of 2026-09-08 no implementation maintains this list (the 0.3 text bound revocation
-"entirely" to the CRL; the audit's reference broker rows record no grant revocation surface).
+An operator adds an entry when a grant is believed compromised, a delegation has leaked, or a policy
+change makes an outstanding grant wrong; the ATX CRL stays the mechanism for revoking the agent
+itself. As of 2026-09-08 no implementation maintains this list (the 0.3 text bound revocation
+"entirely" to the CRL; the reference broker exposes no grant revocation surface).
 
 ### 6.10 Data clearance rules
 
@@ -509,11 +510,11 @@ rule:
 | `notify` | Not compiled: notification is an identity provider side effect, not a constraint on the grant. |
 
 **The grant, not the policy, is what the broker enforces.** A policy that cannot be expressed as
-`authorization_details` cannot be enforced by the broker and MUST NOT be described as enforced.
-The compile step happens at policy evaluation (Section 6, step 6), and the compiled grant is what
-the audit record carries. As of 2026-09-08 no implementation compiles policies to grants: the
-audit records governance as enforced nowhere (FGC program audit, section 3, SW-13: neither the
-broker nor the FGA engine reads it).
+`authorization_details` cannot be enforced by the broker and MUST NOT be described as enforced. The
+compile step happens at policy evaluation (Section 6, step 6), and the compiled grant is what the
+audit record carries. As of 2026-09-08 no implementation compiles policies to grants: the reference
+broker mints no `authorization_details` (Section 14) and reads none of the AIP-SPEC §7.2 policy
+actions.
 
 ---
 
@@ -731,11 +732,12 @@ operator-reachable endpoint. It provides:
   transport; the provider has not been exercised against a live identity-provider tenant;
 - an ephemeral worker that performs the downstream operation and returns only the result.
 
-It does not yet provide, as of 2026-09-08 (FGC program audit, section 2, AAP reference broker
-rows, and section 2, "Data labels: ABSENT"): the presentation binding step of Section 6.8 (the
-minted claim set has no `cnf`); the grant revocation list of Section 6.9; the data clearance rules
-of Section 6.10 (no label is read and no result is masked anywhere); `authorization_details` or
-`aap_crit` in the minted claim set; or the policy compile step of Section 7.3.
+It does not yet provide, as of 2026-09-08: the presentation binding step of Section 6.8 (the minted
+claim set has no `cnf`); the grant revocation list of Section 6.9; the data clearance rules of
+Section 6.10 (no data sensitivity label is read and no result is projected or masked by label);
+`authorization_details` or `aap_crit` in the minted claim set; or the policy compile step of Section
+7.3. Each absence is checkable in the reference implementation's `src/broker` and `src/grant`
+directories.
 
 The developer surface is the existing AIM `@agent.perform_action` decorator: an agent references a
 grant, the SDK talks to the broker daemon, the broker does the rest.
@@ -777,20 +779,26 @@ Until then, identifiers are managed in this specification.
 - **W3C DID Core 1.0** and the `did:opena2a` method.
 - **AI Agent Threat Matrix**, https://threats.opena2a.org (techniques T-3002, T-3003, T-3006, T-8002).
 - **OASB**, Open Agent Security Benchmark (levels L1–L3).
-- **AIP**, Agent Identity Protocol (OpenA2A), section 9 governance policy shapes, and the registered
+- **AIP**, Agent Identity Protocol (OpenA2A), §7.2 policy actions, and the registered
   agent key used as a verification key in Section 6.8.
-- **DAAP**, Delegated Agent Authorization Protocol, draft-mishra-oauth-agent-grants (IETF
-  Internet-Draft).
+- **DAAP**, OAuth Profile for Delegated AI Agent Authorization, draft-mishra-oauth-agent-grants-02
+  (IETF Internet-Draft, 30 August 2026).
 
 ---
 
 ## 17. Related work (informative)
 
-The closest work is the Delegated Agent Authorization Protocol (DAAP), which extends OAuth 2.0 with
-agent grant and delegation semantics. DAAP carries budgets and policy hooks on the OAuth grant; this
-profile carries the equivalent as the `budget` entry type of `authorization_details` (AAP-SPEC
-§4.4.1) and the escalation hook of Section 6.10, enforced by a local broker rather than by the
-authorization server that issued the token. The two differ in where enforcement sits (broker versus
-token holder and resource server) and in credential confinement (Section 4), which DAAP does not
-address. This document makes no claim about whether DAAP or the other agent authorization drafts
-define a data sensitivity clearance; that comparison is pending a reading of their full text.
+The closest work is DAAP, the OAuth Profile for Delegated AI Agent Authorization
+(draft-mishra-oauth-agent-grants), which profiles OAuth 2.0 for agent client instances:
+authenticated user consent, resource-bound and sender-constrained access tokens, and attenuation
+through OAuth Token Exchange. Its revision -01 (March 2026) carried budget controls, a policy
+engine, cascade revocation, and a credential vault; revision -02 (August 2026) moves budgets, policy
+languages, and credential vaults outside its interoperable core (its abstract and section 1.1) and
+retains one policy statement: an automated policy decision may deny, narrow, or require escalation
+of a request (its section 2). This profile carries budgets as the `budget` entry type of
+`authorization_details` (AAP-SPEC §4.4.1) and escalation as the hook of Section 6.10, both enforced
+by a local broker rather than by the authorization server that issued the token. The two differ in
+where enforcement sits (broker versus token holder and resource server) and in credential
+confinement (Section 4), which DAAP -02 lists among the facilities it does not standardize. This
+document makes no claim about whether DAAP or other agent authorization drafts define a data
+sensitivity clearance.

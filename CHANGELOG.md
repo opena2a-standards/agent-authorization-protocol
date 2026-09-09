@@ -11,8 +11,9 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 Internet-Draft pairing: `draft-fane-opena2a-aap-00` carried the 0.3.0-draft text
 (2026-07-06, refreshed to the 0.4.0 content in #9), `draft-fane-opena2a-aap-01`
 carries 0.4.0-draft (2026-07-22), and `draft-fane-opena2a-aap-02` carries this
-0.5.0-draft. The broker profile moves to 0.4.0-draft in lockstep. Neither
-document is submitted to the datatracker by this release.
+0.5.0-draft. The broker profile moves to 0.4.0-draft in lockstep.
+`draft-fane-opena2a-aap-02` is not submitted to the datatracker by this release;
+`-01` remains the current revision there.
 
 ### Added
 
@@ -25,11 +26,10 @@ document is submitted to the datatracker by this release.
   out carries an `egressCeiling` whose default is the empty set; every type MAY
   carry `requiresApproval`. Producer rule: never emit
   toward a verifier that has not advertised support.
-- **Label semantics (§4.4.2)**, normative here; the family harness generates
-  the label vocabulary registry from this subsection when it lands: label, label
-  set, ceiling, session (the agent's context at this broker, keyed by `sub` in
-  ASC, reset only by a recorded context reset), session label, egress ceiling,
-  residency as a label family. Sets, not levels, with the reason.
+- **Label semantics (§4.4.2)**, normative here: label, label set, ceiling,
+  session (the agent's context at this broker, keyed by `sub` in ASC, reset only
+  by a recorded context reset), session label, egress ceiling, residency as a
+  label family. Sets, not levels, with the reason.
 - **`aap_crit` (§4.5).** The claims a verifier must understand or reject;
   `authorization_details` and `cnf` always listed when present.
 - **`cnf` (§4.6).** RFC 7800 proof of possession (`jwk` or RFC 7638 `jkt`),
@@ -65,8 +65,8 @@ document is submitted to the datatracker by this release.
   "deprecated" with a `replacedBy` target, `deprecated: true` plus a
   description in the schema, and a CHANGELOG entry under "Deprecated". The
   claim is not deleted: it is published in the -00 and -01 Internet-Draft text
-  and both reference verifiers accept it; no implementation minted it (FGC
-  program audit, 2026-09-08). A verifier still ignores it (broker profile §8.3).
+  and both reference verifiers accept it; no implementation minted it as of
+  2026-09-08. A verifier still ignores it (broker profile §8.3).
 - **`max_uses` (§4.2)**, replacedBy `budget.maxUses` under the same convention.
   When both are present `budget.maxUses` MUST NOT exceed `max_uses`.
 
@@ -97,10 +97,11 @@ document is submitted to the datatracker by this release.
   §7.3 governance policies compile to
   `authorization_details`; the grant, not the policy, is what the broker
   enforces. §9 jurisdiction slot retained, the ATX side out of scope, the
-  enforcement side the residency label family. §13 Level 1 names the new requirements. §14 states what the
-  reference does not yet provide, each item traced to the audit. §17 related
-  work (DAAP: budgets and policy hooks there, the `budget` type and the
-  escalation hook here; no claim about sensitivity clearance in other drafts).
+  enforcement side the residency label family. §13 Level 1 names the new
+  requirements. §14 states what the reference does not yet provide as of
+  2026-09-08. §17 related work (DAAP -02: budgets and policy languages outside
+  its core, the `budget` type and the escalation hook here; no claim about
+  sensitivity clearance in other drafts).
 
 ## [0.4.0-draft] - 2026-07-16
 
