@@ -6,6 +6,15 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ## [Unreleased]
 
+### Changed
+
+- Section 9.4 is marked as the one home of the family signature gate (every declared
+  entry verifies; an ML-DSA-65 entry requires a verifying EdDSA entry; otherwise
+  `HYBRID_INCOMPLETE`), which ATX, ATP and AIP now cite. The broker profile's validity
+  window cites the family clock-skew bound in ATP Section 10.2.
+- The `trust_class` example uses a domain-prefixed namespace (`acme.com/orders:read`), the
+  AIP Section 4.1 grammar; a bare unreserved namespace is not a valid capability.
+
 ## [0.5.0-draft] - 2026-09-08
 
 Internet-Draft pairing: `draft-fane-opena2a-aap-00` carried the 0.3.0-draft text

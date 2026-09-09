@@ -286,10 +286,11 @@ produces a typed, opaque denial (Section 6.6).
 1. **Receive** the request on the broker-facing channel: the presented ATX plus a grant reference,
    plus the presentation proof the binding requires (Section 6.8).
 2. **Verify the ATX locally**, reusing the ATP/ATX verification path: signature(s), suite, validity
-   window (issuedAt/expiresAt with bounded clock skew), and the cached, federated CRL, under the
-   freshness bound of Section 6.12 for the grant's tier. Revoking an agent's ATX MUST remove its
-   access within the existing CRL propagation window. Agent revocation rides on the ATX and the
-   federated CRL; grant revocation is the local list of step 5.
+   window (issuedAt/expiresAt within the family clock-skew bound of ATP Section 10.2), and the
+   cached, federated CRL, under the freshness bound of Section 6.12 for the grant's tier.
+   Revoking an agent's ATX MUST remove its access within the existing CRL propagation window.
+   Agent revocation rides on the ATX and the federated CRL; grant revocation is the local list
+   of step 5.
 3. **Bind the presentation** (Section 6.8): prove that the presenter is the agent the ATX names,
    through the proof format of the binding in use. A presentation that fails to bind MUST be
    denied before any policy is evaluated. Where a CGT or DA is being presented rather than an ATX,

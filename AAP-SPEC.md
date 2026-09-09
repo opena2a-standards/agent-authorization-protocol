@@ -175,7 +175,7 @@ broker's source). The claim set is pinned by
 | `sub` | MUST | DID | Agent DID, taken from the **verified** ATX — never from agent input. |
 | `aud` | MUST | string | Downstream audience / resource. |
 | `scope` | MUST | string | Downstream OAuth scope requested (e.g. `orders.read`). |
-| `trust_class` | MUST | `class:action` | The ATX capability (abstract trust class, e.g. `orders:read`) exercised for this grant. Distinct from `scope`: the trust class is the portable, abstract capability; the scope is the local downstream binding. |
+| `trust_class` | MUST | `class:action` | The ATX capability (abstract trust class, e.g. `acme.com/orders:read`, a domain-prefixed namespace per AIP Section 4.1) exercised for this grant. Distinct from `scope`: the trust class is the portable, abstract capability; the scope is the local downstream binding. |
 | `issuer_chain` | MUST | DID array | ATX issuer chain, carried for v2 cross-broker verification (broker profile §7, §11). |
 | `trust_level` | MUST | integer 0–4 | ATX trust level. |
 | `iat` / `exp` | MUST | NumericDate | Validity window; `exp - iat` is the policy TTL (§4.3). |
@@ -808,6 +808,12 @@ eyJhbGciOiJNTC1EU0EtNjUiLCJ0eXAiOiJKV1QiLCJraWQiOiJicm9rZXItcHFjLTEifQ.eyJpc3MiO
 ```
 
 ### 9.4 Multi-Signature Form
+
+<!-- opena2a-definition: signature-family-gate -->
+This section is the one home of the family signature gate: every declared signature entry
+MUST verify, and an artifact that declares an ML-DSA-65 entry MUST also carry a verifying
+Ed25519 (EdDSA) entry, otherwise it is rejected as `HYBRID_INCOMPLETE`. ATX, ATP and AIP
+cite this rule for their own signature arrays rather than restate it.
 
 Where more than one signature is required — the hybrid post-quantum profile of §8.2 —
 the token is carried as JWS General JSON Serialization (RFC 7515 §7.2.1), pinned by
