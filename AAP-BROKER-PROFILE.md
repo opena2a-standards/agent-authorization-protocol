@@ -280,7 +280,8 @@ produces a typed, opaque denial (Section 6.6).
 
 1. **Receive** the request on the broker-facing channel: the presented ATX plus a grant reference.
 2. **Verify the ATX locally**, reusing the ATP/ATX verification path: signature(s), suite, validity
-   window (issuedAt/expiresAt with bounded clock skew), and the cached, federated CRL. Revocation
+   window (issuedAt/expiresAt within the family clock-skew bound of ATP Section 10.2), and the
+   cached, federated CRL. Revocation
    rides entirely on the ATX and the federated CRL, AAP defines no separate revocation system.
    Revoking an agent's ATX MUST remove its access within the existing CRL propagation window.
 3. **Negotiate version** (Section 8.1) if not already established for the channel.
