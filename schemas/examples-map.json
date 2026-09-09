@@ -23,5 +23,20 @@
     "file": "AAP-SPEC.md",
     "heading": "### 9.4 Multi-Signature Form",
     "schema": "schemas/jws-general-v1.schema.json"
+  },
+  {
+    "file": "AAP-SPEC.md",
+    "heading": "### 4.7 Example with authorization details",
+    "schema": "schemas/cgt-claims-v1.schema.json"
+  },
+  {
+    "file": "AAP-SPEC.md",
+    "heading": "### 5.5 Example of an attenuated delegation",
+    "schema": "schemas/da-claims-v1.schema.json"
+  },
+  {
+    "file": "AAP-SPEC.md",
+    "heading": "### 6.5 Example with a session label",
+    "schema": "schemas/bac-claims-v1.schema.json"
   }
 ]

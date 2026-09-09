@@ -2,9 +2,9 @@
 
 ## Resolving Agent Trust Into Resource Access Without Exposing Credentials
 
-**Version:** 0.3.0-draft
+**Version:** 0.4.0-draft
 **Authors:** OpenA2A
-**Date:** July 2026
+**Date:** September 2026
 **Status:** Draft companion to [`AAP-SPEC.md`](./AAP-SPEC.md). Intended for the IETF Internet-Draft.
 
 > **This is the resolution/enforcement layer of AAP.** The AAP token model, Agent Identity
@@ -26,6 +26,10 @@ This profile introduces no parallel credential format; it consumes the AAP token
 | The **broker assertion** the broker mints from the ATX | a **Capability Grant Token (CGT)** / **Delegation Assertion (DA)** |
 | **Exchange** mode (RFC 8693 token exchange) | a realization of the **Delegation Assertion (DA)** ("analogous to RFC 8693") |
 | Revocation via the cached, federated CRL | the **Revocation Propagation Protocol** (AAP-SPEC §7.2) |
+| The local **grant revocation list** (Section 6.9) | AAP-SPEC §7.3, keyed by `jti` and `sub`, cascading through DA chains |
+| The **presentation binding** step (Section 6.8) | the `cnf` claim of the CGT/DA (AAP-SPEC §4.6) |
+| The **effective grant** the broker enforces | the `authorization_details` claim (AAP-SPEC §4.4) |
+| The **session label** the broker maintains (Section 6.10) | the `session_label` claim of the L3 BAC (AAP-SPEC §6.4) |
 | Trust level / scan summary / issuer chain used in policy | claims carried by the AIT/ATX |
 
 Where this document says "broker assertion," read "the CGT/DA the broker mints." Where it says
@@ -53,8 +57,9 @@ credential, no backend address, and no vendor name is ever placed where the agen
 can read it.
 
 This specification defines the grant reference, the Credential Provider Interface (CPI) and its
-three modes (Retrieve, Assume, Exchange), the resolution flow, the federation-aware policy grammar,
-and the future-proofing rules (version negotiation, cryptographic agility, extensible claims,
+three modes (Retrieve, Assume, Exchange), the resolution flow (including, from 0.4, the presentation
+binding step, the local grant revocation list, and the three data clearance rules), the
+federation-aware policy grammar, and the future-proofing rules (version negotiation, cryptographic agility, extensible claims,
 abstract identifiers, layer separation, and pluggable transport) that let AAP evolve for decades
 without a credential redesign.
 
@@ -278,24 +283,35 @@ the grant reference in a form it can echo back to the agent.
 A broker MUST perform the following steps, in order, for every grant resolution. Any failure
 produces a typed, opaque denial (Section 6.6).
 
-1. **Receive** the request on the broker-facing channel: the presented ATX plus a grant reference.
+1. **Receive** the request on the broker-facing channel: the presented ATX plus a grant reference,
+   plus the presentation proof the binding requires (Section 6.8).
 2. **Verify the ATX locally**, reusing the ATP/ATX verification path: signature(s), suite, validity
    window (issuedAt/expiresAt within the family clock-skew bound of ATP Section 10.2), and the
-   cached, federated CRL. Revocation
-   rides entirely on the ATX and the federated CRL, AAP defines no separate revocation system.
+   cached, federated CRL, under the freshness bound of Section 6.12 for the grant's tier.
    Revoking an agent's ATX MUST remove its access within the existing CRL propagation window.
-3. **Negotiate version** (Section 8.1) if not already established for the channel.
-4. **Evaluate policy**: match the grant reference and the verified ATX's trust class against local
-   broker policy, selecting a concrete CPI provider, mode, and downstream scope. Default-deny.
-5. **Resolve** through the selected CPI provider:
+   Agent revocation rides on the ATX and the federated CRL; grant revocation is the local list
+   of step 5.
+3. **Bind the presentation** (Section 6.8): prove that the presenter is the agent the ATX names,
+   through the proof format of the binding in use. A presentation that fails to bind MUST be
+   denied before any policy is evaluated. Where a CGT or DA is being presented rather than an ATX,
+   the proof is verified against the token's `cnf` key (AAP-SPEC §4.6).
+4. **Negotiate version** (Section 8.1) if not already established for the channel, including
+   whether the counterparty understands `authorization_details` and `aap_crit`.
+5. **Check the grant revocation list** (Section 6.9): a listed `jti`, a listed subject, or a
+   delegator `jti` anywhere in the chain MUST produce the opaque denial of Section 6.6.
+6. **Evaluate policy**: match the grant reference and the verified ATX's trust class against local
+   broker policy, selecting a concrete CPI provider, mode, and downstream scope, and compile the
+   effective grant into `authorization_details` (Section 7.3). Default-deny.
+7. **Resolve** through the selected CPI provider:
    - **Retrieve**, proxy the operation in the broker, or inject the value into an ephemeral worker.
    - **Assume**, mint a broker assertion from ATX claims; obtain short-lived role-scoped credentials.
    - **Exchange**, mint a broker assertion; perform the RFC 8693 token exchange; obtain a scoped
      downstream token.
-6. **Act** inside an ephemeral worker (Section 6.5) using the scoped credential, and return **only
-   the result** of the operation to the agent.
-7. **Audit** the verification, decision, resolution, and result (success or denial) through the
-   signed audit path (Section 6.7).
+8. **Act** inside an ephemeral worker (Section 6.5) using the scoped credential, apply the data
+   clearance rules of Section 6.10 to the result and to any egress, and return **only the result**
+   of the operation to the agent.
+9. **Audit** the verification, binding, decision, resolution, and result (success or denial)
+   through the signed audit path (Section 6.7).
 
 ### 6.5 The ephemeral worker
 
@@ -316,6 +332,117 @@ ATX is untrusted, or the provider fails. Diagnostic detail goes to the audit log
 Every verification, decision, resolution, and denial MUST be written to a signed audit log. The
 audit record MUST NOT contain any credential value or downstream token. Implementations SHOULD reuse
 the existing AIM signed-audit path rather than build a new one.
+
+### 6.8 Presentation binding
+
+Presenting an ATX proves what was attested about a build, not that the presenter is that agent.
+Before 0.4 the resolution flow verified the ATX and nothing about the presenter, so any party that
+had seen an ATX (and the A2A agent card publishes it) could present it. From 0.4 a broker MUST bind
+every presentation to the presenter before policy evaluation (step 3). The proof format is defined
+per binding:
+
+| Binding | Proof of presenter identity | What the broker checks |
+|---|---|---|
+| Local unix socket | **OS peer credentials** of the connecting process (`SO_PEERCRED` on Linux, `LOCAL_PEERCRED` or `getpeereid` on BSD derived systems). Mandatory: a broker MUST NOT accept a local socket presentation without them. | The peer uid and gid MUST match the process identity the operator registered for that agent DID in broker configuration; the pid MAY be checked where the deployment registers it. No key is involved; the operating system is the proof. |
+| HTTP | An **RFC 9421 HTTP Message Signature** over the request, covering at least `@method`, `@target-uri`, `content-digest`, a `created` parameter inside the clock skew bound, and a `nonce` parameter the broker has not seen within the skew bound. The grant reference is covered through `content-digest` when it is in the body, or as a named covered header otherwise. | The signature verifies under the verification key below; `keyid` names that key; `created` is fresh; `nonce` is unseen. When the ATX presentation object is published, an HTTP presentation satisfying its RFC 9421 profile satisfies this row; this list is the broker's minimum. |
+| A2A and MCP | A **signed challenge**: the broker issues a fresh random challenge (at least 16 bytes) bound to the channel; the presenter returns the challenge signed under its key. | The signature verifies under the verification key below; the challenge is the one issued on this channel and has not been answered before. |
+
+The **verification key** for a network binding is the ATX subject key where the ATX carries one (a
+later revision of ATX; the current ATX 1.1 format carries no subject key), otherwise the key
+registered for the agent DID under AIP. A broker that can obtain neither MUST NOT accept a network
+presentation. The bound key is the key the minted CGT or DA carries in `cnf` (AAP-SPEC §4.6); on the
+local socket binding `cnf` MAY be omitted because the agent never holds the token.
+
+A presentation that fails to bind produces the opaque denial of Section 6.6 and an audit record
+naming the binding and the failure. As of 2026-09-08 the reference broker binds no presentation: the
+0.3 flow had no binding step, and the minted claim set (`mintBrokerAssertion`,
+`src/broker/cpi/assertion.ts`) carries no `cnf`.
+
+### 6.9 Grant revocation list
+
+A broker MUST maintain a local grant revocation list as defined in AAP-SPEC §7.3: entries keyed by
+`jti` (one CGT or DA) and by `sub` (every grant minted for an agent DID by this broker, current and
+future). A listed delegator `jti` revokes every DA delegated from it, transitively (cascade through
+the `act` chain). The list MUST be consulted at every resolution (step 5), after the ATX and CRL
+checks and before policy evaluation. The list is operator local: it is never fetched from a hosted
+service and never leaves the operator, which is what keeps grant revocation inside Zero Failures
+(Section 11). A listed token produces the opaque denial of Section 6.6; the reason goes to the audit
+log.
+
+An operator adds an entry when a grant is believed compromised, a delegation has leaked, or a policy
+change makes an outstanding grant wrong; the ATX CRL stays the mechanism for revoking the agent
+itself. As of 2026-09-08 no implementation maintains this list (the 0.3 text bound revocation
+"entirely" to the CRL; the reference broker exposes no grant revocation surface).
+
+### 6.10 Data clearance rules
+
+Where the effective grant carries a `data` entry with a `labelCeiling`, or any entry with an
+`egressCeiling` (AAP-SPEC §4.4.1), the broker is the enforcement point for data sensitivity. The
+label terms (label, label set, ceiling, session label, egress ceiling) are defined in AAP-SPEC
+§4.4.2. Three rules are normative:
+
+**Rule 1, no read above ceiling.** A field whose label set is not a subset of the entry's
+`labelCeiling` MUST NOT be returned to the agent. The broker applies **projection** (the field is
+removed from the result) or **masking** (the field is replaced by a fixed mask value that carries
+none of the original bytes) inside the broker, before the result crosses into the agent context
+(Section 4.1). `fieldsAllowed` and `fieldsDenied` are applied the same way, and a field that is
+both above ceiling and denied is simply absent. A result MUST NOT reach the agent and then be
+redacted: the ephemeral worker (Section 6.5) returns the projected result only.
+
+**Rule 2, session high water mark.** The broker MUST maintain, per session, the union of the label
+sets of every field it has admitted into the agent context: the **session label**. It only grows
+within a session. The broker MUST write it to the Agent Security Context (ASC) on every change and
+MUST expose it as the `session_label` claim of any L3 BAC issued for the subject (AAP-SPEC §6.4).
+The session is the agent's context at this broker (AAP-SPEC §4.4.2): the session label is keyed by
+`sub` in ASC, carries across every CGT and DA minted for that `sub`, and is reset only by a
+deployment defined context reset recorded in ASC. A deployment that issues data grants MUST define
+that reset. A CGT lifetime is the minimum session, not its bound.
+
+**Rule 3, no write down.** Data MUST NOT leave the session through an entry whose `egressCeiling`
+does not contain the session label as a subset. Every entry that can carry data out (`mcp_tool`,
+`peer_agent`, `model`, `network`, and `data` with a write action) is checked against the session
+label at the moment of egress, per entry, and the default ceiling is the empty set: **deny by
+default**. A denied egress produces the opaque denial of Section 6.6. A broker MAY expose an
+**escalation hook**: a deployment defined callback that receives the denied egress (entry, session
+label, ceiling) and MAY return an approval from a mechanism the deployment operates. The hook is
+optional, this profile assumes no approval mechanism exists, and in the absence of a hook, or when
+the hook does not return an approval, the egress stays denied. An approval MUST be recorded in the
+audit log with the approving principal.
+
+The three rules together give the confinement of Section 4 a general form: credential confinement
+is the case where the label is "secret" and the ceiling of every entry is empty.
+
+### 6.11 Unlabeled field policy
+
+A field that carries no label is outside the rules of Section 6.10 unless the deployment says
+otherwise. How unlabeled fields are treated is a **deployment setting** with this default, so
+existing deployments keep working:
+
+- **No label manifest configured** for the location: unlabeled fields are **allowed** (returned
+  and eligible for egress; they add nothing to the session label).
+- **A label manifest configured** for the location: unlabeled fields are **denied** (projected
+  out under Rule 1), because a manifest that omits a field is a labeling gap, not a clearance.
+
+A deployment MAY set the policy to deny in both cases. The setting MUST be recorded in the audit
+log of every resolution it affects. The manifest format is the label registry's, out of scope for
+this profile.
+
+### 6.12 CRL freshness by tier
+
+The ATX verification path allows a request to proceed on a cached CRL that is stale by up to a
+bounded interval (the stale CRL allowance of the ATX specification, `core.md` §1.3 step 6 and §13
+"Revocation staleness"; its value is defined there and not restated here). That allowance is fail
+open for every decision. From 0.4 the broker MUST apply a
+**CRL freshness policy hook by tier** (AAP-SPEC §4.3):
+
+| Grant tier | CRL freshness requirement |
+|---|---|
+| STANDARD | The ATX default allowance applies. |
+| PRIVILEGED | The cached CRL MUST be no older than a configured bound, which MUST NOT exceed the ATX default allowance; a CRL older than the bound fails **closed** (opaque denial). |
+| SUPER_PRIVILEGED | As PRIVILEGED, with a separately configured bound that MUST NOT exceed the PRIVILEGED bound; a broker SHOULD refresh the CRL synchronously before resolving. |
+
+The bounds are deployment settings; this profile fixes only the ordering (SUPER_PRIVILEGED at most
+as old as PRIVILEGED, at most as old as the default) and the fail closed behavior.
 
 ---
 
@@ -365,6 +492,31 @@ verification on the **same broker assertion** a broker already mints for its own
 v3 adds sovereign Root Authorities and jurisdiction *enforcement*. Both are governance and peering
 plumbing, not a credential redesign.
 
+### 7.3 Governance policies compile to grants
+
+Two authorization models existed side by side: governance policies (the AIP-SPEC §7.2 Policy
+Actions `allow`, `deny`, `require_approval`, `rate_limit`, `audit`, `notify`, and the machine
+readable governance block of the agent governance standard) enforced by an identity provider, and grants
+that the broker enforces. From 0.4 there is one enforcement semantics. A policy is the operator's
+input; the broker **compiles** it into the `authorization_details` of the grant it mints, under this
+rule:
+
+| Policy action | Compiles to |
+|---|---|
+| `allow` | An entry of the matching type (Section 4.4.1 of AAP-SPEC), narrowed to what the clause allows. |
+| `deny` | No entry (default deny), or a `fieldsDenied` member or a removed destination inside an otherwise allowed entry. |
+| `require_approval` | The matching entry with `requiresApproval: true` (AAP-SPEC §4.4.1); the broker admits such an entry only through the escalation hook of Section 6.10 and denies it where no hook exists. |
+| `rate_limit` | A `budget` entry (`rate`, `maxUses`, `concurrency`). |
+| `audit` | Not compiled: it sets the broker's audit detail for the resolution, a deployment setting recorded in the audit log (Section 6.7 already records every resolution). |
+| `notify` | Not compiled: notification is an identity provider side effect, not a constraint on the grant. |
+
+**The grant, not the policy, is what the broker enforces.** A policy that cannot be expressed as
+`authorization_details` is outside what the broker enforces and MUST NOT be described as enforced. The
+compile step happens at policy evaluation (Section 6, step 6), and the compiled grant is what the
+audit record carries. As of 2026-09-08 no implementation compiles policies to grants: the reference
+broker mints no `authorization_details` (Section 14) and reads none of the AIP-SPEC §7.2 policy
+actions.
+
 ---
 
 ## 8. Future-Proofing (Normative)
@@ -409,7 +561,10 @@ Each claim is marked **mandatory-to-understand** or **optional-to-ignore**. A ve
 encounters an unknown *optional* claim MUST ignore it safely and still accept the credential. A
 verifier that encounters an unknown *mandatory-to-understand* claim MUST reject. This lets new claim
 types, attributes, jurisdictions, and vendor-specific fields be added indefinitely without
-invalidating agents already in the field.
+invalidating agents already in the field. In an AAP token the marking is carried by the `aap_crit`
+claim (AAP-SPEC §4.5): a claim named there is mandatory-to-understand, every other claim is
+optional-to-ignore. `authorization_details` and `cnf` are always named when present. The deprecated
+`fga_constraints` claim stays optional-to-ignore.
 
 ### 8.4 Abstract identifiers
 
@@ -429,9 +584,14 @@ initial bindings are:
 - **A2A agent card**, ATX embedded under the `atp` object of `/.well-known/agent.json`.
 - **MCP manifest**, ATX referenced from the server manifest.
 
-A broker publishes a discovery document (supported AAP versions, supported suites, and static public
+A broker publishes a discovery document (supported AAP versions, supported suites, the set of
+`authorization_details` entry types it understands, with the semantics of RFC 9396 §10
+`authorization_details_types_supported`, the presentation bindings it accepts, and static public
 key material for its broker-assertion signing key) at a well-known location on the **operator's own
-domain**. OpenA2A is never in the hot path of a resolution.
+domain**. The member that carries the entry type set is named by the discovery document's own
+schema. A producer MUST NOT emit `authorization_details` toward a counterparty whose discovery
+document does not advertise every entry type the token carries (AAP-SPEC §4.4, producer rule). OpenA2A is never in
+the hot path of a resolution.
 
 ---
 
@@ -448,6 +608,13 @@ grammar slot now so cross-country enforcement in a later version needs no redesi
 
 A v1 broker MUST parse the `jurisdiction` predicate but is **not** required to enforce it.
 Enforcement is a v3 concern under sovereign Root Authorities.
+
+The claim slot is retained in 0.4 with two cross references. The ATX side is out of scope here.
+The enforcement side is the **residency label family** (`residency:<region>`,
+AAP-SPEC §4.4.2): a field labeled `residency:eu` is governed by the three rules of Section 6.10
+exactly as a health record class is, so data that may not leave a region needs no second mechanism.
+When an ATX revision carries a jurisdiction claim, a `jurisdiction` predicate compiles
+(Section 7.3) to a `labelCeiling` and an `egressCeiling` over the residency family.
 
 ---
 
@@ -540,7 +707,7 @@ or policy by probing grant references. The audit log retains full diagnostic det
 
 | Level | Name | Requirements |
 |-------|------|--------------|
-| **1** | Context Hygiene | Grant-reference syntax; the context-hygiene invariant (Section 4); decision/enforcement split with default-deny (Section 3); ATX verification + CRL before resolution (Section 6); ephemeral-worker confinement; opaque denials; signed audit. At least one CPI mode implemented. |
+| **1** | Context Hygiene | Grant-reference syntax; the context-hygiene invariant (Section 4); decision/enforcement split with default-deny (Section 3); ATX verification + CRL before resolution (Section 6); presentation binding (Section 6.8); the grant revocation list (Section 6.9); the data clearance rules where a data grant is in effect (Section 6.10); ephemeral-worker confinement; opaque denials; signed audit. At least one CPI mode implemented. |
 | **2** | Agile + Negotiated | Level 1 + version negotiation (8.1) + cryptographic agility under the AAP-SPEC §9.5 suite registry (8.2) + safe-ignore claim handling (8.3) + the published discovery document (8.5). |
 | **3** | Federated | Level 2 + full federation-aware policy evaluation (issuer chain, trust level, scan summary) + cross-broker verification of peer broker assertions + jurisdiction enforcement (Section 9). |
 
@@ -566,6 +733,13 @@ operator-reachable endpoint. It provides:
   transport; the provider has not been exercised against a live identity-provider tenant;
 - an ephemeral worker that performs the downstream operation and returns only the result.
 
+It does not yet provide, as of 2026-09-08: the presentation binding step of Section 6.8 (the minted
+claim set has no `cnf`); the grant revocation list of Section 6.9; the data clearance rules of
+Section 6.10 (no data sensitivity label is read and no result is projected or masked by label);
+`authorization_details` or `aap_crit` in the minted claim set; or the policy compile step of Section
+7.3. Each absence is checkable in the reference implementation's `src/broker` and `src/grant`
+directories.
+
 The developer surface is the existing AIM `@agent.perform_action` decorator: an agent references a
 grant, the SDK talks to the broker daemon, the broker does the rest.
 
@@ -590,6 +764,9 @@ Until then, identifiers are managed in this specification.
 - **RFC 2119 / RFC 8174**, Key words for requirement levels.
 - **RFC 3986**, Uniform Resource Identifier (URI): Generic Syntax.
 - **RFC 8693**, OAuth 2.0 Token Exchange.
+- **RFC 9396**, OAuth 2.0 Rich Authorization Requests (the `authorization_details` claim).
+- **RFC 7800**, Proof-of-Possession Key Semantics for JSON Web Tokens (the `cnf` claim).
+- **RFC 9421**, HTTP Message Signatures (the HTTP presentation proof, Section 6.8).
 - **ATP**, Agent Trust Protocol specification (OpenA2A).
 - **ATX**, Agent Trust eXtension credential format (OpenA2A; see `atx-spec/core.md`).
 - **FIPS 204**, Module-Lattice-Based Digital Signature Standard (ML-DSA).
@@ -603,3 +780,26 @@ Until then, identifiers are managed in this specification.
 - **W3C DID Core 1.0** and the `did:opena2a` method.
 - **AI Agent Threat Matrix**, https://threats.opena2a.org (techniques T-3002, T-3003, T-3006, T-8002).
 - **OASB**, Open Agent Security Benchmark (levels L1–L3).
+- **AIP**, Agent Identity Protocol (OpenA2A), §7.2 policy actions, and the registered
+  agent key used as a verification key in Section 6.8.
+- **DAAP**, OAuth Profile for Delegated AI Agent Authorization, draft-mishra-oauth-agent-grants-02
+  (IETF Internet-Draft, 30 August 2026).
+
+---
+
+## 17. Related work (informative)
+
+The closest work is DAAP, the OAuth Profile for Delegated AI Agent Authorization
+(draft-mishra-oauth-agent-grants), which profiles OAuth 2.0 for agent client instances:
+authenticated user consent, resource-bound and sender-constrained access tokens, and attenuation
+through OAuth Token Exchange. Its revision -01 (March 2026) carried budget controls, a policy
+engine, cascade revocation, and a credential vault; revision -02 (August 2026) moves budgets, policy
+languages, and credential vaults outside its interoperable core (its abstract and section 1.1) and
+retains one policy statement: an automated policy decision may deny, narrow, or require escalation
+of a request (its section 2). This profile carries budgets as the `budget` entry type of
+`authorization_details` (AAP-SPEC §4.4.1) and escalation as the hook of Section 6.10, both enforced
+by a local broker rather than by the authorization server that issued the token. The two differ in
+where enforcement sits (broker versus token holder and resource server) and in credential
+confinement (Section 4), which DAAP -02 lists among the facilities it does not standardize. This
+document makes no claim about whether DAAP or other agent authorization drafts define a data
+sensitivity clearance.

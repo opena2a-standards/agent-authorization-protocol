@@ -59,9 +59,13 @@ AAP is defined in two documents:
 
 ## Status
 
-`AAP-SPEC.md` is at `0.4.0-draft`; the companion `AAP-BROKER-PROFILE.md` is at `0.3.0-draft`.
-Authored in the open; intended for submission as an IETF Internet-Draft. Each document carries its
-own version at the top; `CHANGELOG.md` records what moved between drafts.
+`AAP-SPEC.md` is at `0.5.0-draft`; the companion `AAP-BROKER-PROFILE.md` is at `0.4.0-draft`.
+Authored in the open as an IETF Internet-Draft: `draft-fane-opena2a-aap-01` (the 0.4.0-draft text)
+is the current revision on the
+[datatracker](https://datatracker.ietf.org/doc/draft-fane-opena2a-aap/);
+`draft-fane-opena2a-aap-02`, which carries the `0.5.0-draft` text, is in this repository (source and
+rendered text) and not yet submitted. Each document carries its own version at the top;
+`CHANGELOG.md` records what moved between drafts and which draft revision pairs with which version.
 
 ## Reference implementation
 
