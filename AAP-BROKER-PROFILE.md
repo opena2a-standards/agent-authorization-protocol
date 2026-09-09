@@ -496,7 +496,7 @@ plumbing, not a credential redesign.
 Two authorization models existed side by side: governance policies (the AIP-SPEC §7.2 Policy
 Actions `allow`, `deny`, `require_approval`, `rate_limit`, `audit`, `notify`, and the machine
 readable governance block of the agent governance standard) enforced by an identity provider, and grants
-enforced by the broker. From 0.4 there is one enforcement semantics. A policy is the operator's
+that the broker enforces. From 0.4 there is one enforcement semantics. A policy is the operator's
 input; the broker **compiles** it into the `authorization_details` of the grant it mints, under this
 rule:
 
@@ -510,7 +510,7 @@ rule:
 | `notify` | Not compiled: notification is an identity provider side effect, not a constraint on the grant. |
 
 **The grant, not the policy, is what the broker enforces.** A policy that cannot be expressed as
-`authorization_details` cannot be enforced by the broker and MUST NOT be described as enforced. The
+`authorization_details` is outside what the broker enforces and MUST NOT be described as enforced. The
 compile step happens at policy evaluation (Section 6, step 6), and the compiled grant is what the
 audit record carries. As of 2026-09-08 no implementation compiles policies to grants: the reference
 broker mints no `authorization_details` (Section 14) and reads none of the AIP-SPEC §7.2 policy
