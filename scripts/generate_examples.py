@@ -70,14 +70,19 @@ PQC_KEYS = {
     "broker-pqc-1": "404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f",
 }
 
-# Presenter (agent) test key: the key the section 4.6 `cnf` claim binds a CGT
-# or DA to. Kept in its own published file (examples/tokens/presenter-keys.json)
-# so test-keys.json, which the aap-conformance pin check compares byte for
-# byte, is unchanged by the 0.5 fixtures. Published deliberately. NEVER use
-# outside fixtures.
+# Presenter (agent) test keys: the keys the section 4.6 `cnf` claim binds a
+# CGT (agent-key-1, the CGT subject) or a DA (agent-key-2, the delegatee) to.
+# Published in test-keys.json with role "presenter", appended after the
+# signing keys so every earlier entry is byte-unchanged. NEVER use outside
+# fixtures.
 PRESENTER_KEYS = {
     "agent-key-1": "606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f",
+    "agent-key-2": "808182838485868788898a8b8c8d8e8f909192939495969798999a9b9c9d9e9f",
 }
+
+# Section 4.4.1 entry type registry: the wire value of `type` is a URI the
+# family controls; the short name is the registry key and the prose name.
+TYPE_URI = "https://specs.opena2a.org/aap/types/"
 
 REGISTRY_ISSUER = "did:opena2a:authority:opena2a.org"
 BROKER_ISSUER = "https://broker.acme.example"
@@ -292,7 +297,7 @@ def cgt_authorization_details() -> list[dict]:
     # `type`, `locations`, `actions` are the RFC 9396 common members.
     return [
         {
-            "type": "data",
+            "type": TYPE_URI + "data",
             "locations": ["https://api.orders.internal/orders"],
             "actions": ["read"],
             "fieldsAllowed": ["id", "status", "total"],
@@ -300,7 +305,7 @@ def cgt_authorization_details() -> list[dict]:
             "labelCeiling": ["internal"],
         },
         {
-            "type": "budget",
+            "type": TYPE_URI + "budget",
             "maxUses": 100,
             "rate": {"max": 60, "windowSeconds": 60},
         },
@@ -312,7 +317,7 @@ def da_authorization_details() -> list[dict]:
     # type (section 5.4): fewer fields allowed, a smaller budget.
     return [
         {
-            "type": "data",
+            "type": TYPE_URI + "data",
             "locations": ["https://api.orders.internal/orders"],
             "actions": ["read"],
             "fieldsAllowed": ["id", "status"],
@@ -320,7 +325,7 @@ def da_authorization_details() -> list[dict]:
             "labelCeiling": ["internal"],
         },
         {
-            "type": "budget",
+            "type": TYPE_URI + "budget",
             "maxUses": 10,
             "rate": {"max": 10, "windowSeconds": 60},
         },
@@ -360,7 +365,7 @@ def da_fgc_claims() -> dict:
         "trust_level": 4,
         "authorization_details": da_authorization_details(),
         "aap_crit": ["authorization_details", "cnf"],
-        "cnf": cnf_claim("agent-key-1"),
+        "cnf": cnf_claim("agent-key-2"),
         "act": {"sub": AGENT_DID},
         "max_depth": 1,
         "delegator_atx": ATX_REFERENCE,
@@ -544,25 +549,6 @@ def build_files() -> dict[str, str]:
         files[f"{name}.jwt"] = mint_compact(kid, claims) + "\n"
         files[f"{name}.claims.json"] = json.dumps(claims, indent=2) + "\n"
 
-    files["presenter-keys.json"] = (
-        json.dumps(
-            {
-                "warning": "TEST KEYS with published seeds, fixture reproduction only, never production use",
-                "keys": [
-                    {
-                        "kid": kid,
-                        "ed25519SeedHex": seed,
-                        "publicJwk": presenter_public_jwk(kid),
-                        "jkt": jwk_thumbprint(presenter_public_jwk(kid)),
-                    }
-                    for kid, seed in PRESENTER_KEYS.items()
-                ],
-            },
-            indent=2,
-        )
-        + "\n"
-    )
-
     files["test-keys.json"] = (
         json.dumps(
             {
@@ -574,6 +560,18 @@ def build_files() -> dict[str, str]:
                 + [
                     {"kid": kid, "mlDsa65SeedHex": seed, "publicJwk": public_akp_jwk(kid)}
                     for kid, seed in PQC_KEYS.items()
+                ]
+                + [
+                    # Presenter keys (section 4.6 cnf): appended so the entries
+                    # above are byte-unchanged from 0.4.
+                    {
+                        "kid": kid,
+                        "role": "presenter",
+                        "ed25519SeedHex": seed,
+                        "publicJwk": presenter_public_jwk(kid),
+                        "jkt": jwk_thumbprint(presenter_public_jwk(kid)),
+                    }
+                    for kid, seed in PRESENTER_KEYS.items()
                 ],
             },
             indent=2,

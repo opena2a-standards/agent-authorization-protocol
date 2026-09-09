@@ -276,19 +276,27 @@ NOTE: '\' line wrapping per RFC 8792
         enforces the intersection; a verifier that understands only "scope"
         enforces "scope"; neither ever grants more than "scope" alone would. A
         producer MUST NOT emit "authorization_details" toward a verifier that
-        has not advertised support for it, because a verifier without
-        "aap_crit" support would treat the token as an unconstrained baseline
-        token.</t>
+        has not advertised support for every entry type the token carries,
+        because a verifier without "aap_crit" support would treat the token as
+        an unconstrained baseline token. The advertisement is the set of entry
+        types the counterparty understands, with the semantics of the
+        "authorization_details_types_supported" metadata of
+        <xref target="RFC9396"/>, not a boolean.</t>
 
-        <t>The initial entry type registry has seven types. Member names inside
-        an entry are camelCase; "type", "locations", "actions", "datatypes",
-        "identifier", and "privileges" are the common members of
-        <xref target="RFC9396"/> and keep their registered spelling. Every type
-        that can carry data out of a session ("mcp_tool", "peer_agent",
-        "model", "network", and "data" with a write action) carries an
-        "egressCeiling" member, a set of labels; when absent it is the empty
-        set. Unless a member says otherwise, an absent set member means
-        unbounded and an absent identity member is not permitted.</t>
+        <t>The initial entry type registry has seven types. The wire value of
+        "type" is a URI, "https://specs.opena2a.org/aap/types/" followed by the
+        short name below; the short name is the registry key and the name used
+        in prose. Member names inside an entry are camelCase; "type",
+        "locations", "actions", "datatypes", "identifier", and "privileges" are
+        the common members of <xref target="RFC9396"/> and keep their
+        registered spelling. Every type that can carry data out of a session
+        ("mcp_tool", "peer_agent", "model", "network", and "data" with a write
+        action) carries an "egressCeiling" member, a set of labels; when absent
+        it is the empty set. Every type MAY carry "requiresApproval", a boolean;
+        when true, the broker admits the entry only through its escalation hook
+        and denies it where no hook exists. Unless a member says otherwise, an
+        absent set member means unbounded and an absent identity member is not
+        permitted.</t>
 
         <dl spacing="normal">
           <dt>mcp_tool</dt>
@@ -338,16 +346,20 @@ NOTE: '\' line wrapping per RFC 8792
         reject the token. New types are added by a revision of this document
         until the registry of <xref target="iana"/> exists.</t>
 
-        <t>The label terms used by this document are defined here provisionally,
-        pending a label registry and definitions document that a later revision
-        will cite instead. A label is an opaque string naming a sensitivity
-        class. A label set is a set of labels; labels are sets, not levels,
+        <t>The label terms used by this document are defined here; these
+        definitions are normative. A label is an opaque string naming a
+        sensitivity class. A label set is a set of labels; labels are sets, not levels,
         because two fields can carry incomparable labels and a session that has
         read both must be treated as carrying both. A field with label set L
         is admissible under a ceiling C only if L is a subset of C. The session
-        label is the union of the label sets of every field admitted into the
-        session so far; it only grows within a session, and one CGT lifetime is
-        one session. An entry with an egress ceiling E admits the session's
+        is the agent's context at a broker. The session label is the union of
+        the label sets of every field admitted into that context so far; it
+        only grows within a session, is keyed by the subject in the agent
+        security context, carries across every CGT and DA minted for that
+        subject, and is reset only by a deployment-defined context reset that
+        is recorded there; a deployment that issues data grants MUST define
+        that reset. A CGT lifetime is the minimum session, not its bound. An
+        entry with an egress ceiling E admits the session's
         data out only if the session label is a subset of E; the default E is
         the empty set. Residency is a label family, so the rules that govern a
         health record class also govern data that may not leave a region.</t>
@@ -378,13 +390,17 @@ NOTE: '\' line wrapping per RFC 8792
         method by <xref target="RFC9449"/>). The bound key is the key the
         presentation binding step of the broker profile
         <xref target="AAP-BROKER-PROFILE"/> verified: the ATX subject key where
-        the credential carries one (a revision of the ATX format that carries
-        the subject's public key is in preparation), otherwise the key
+        the credential carries one (a later revision of the ATX format, work
+        in progress), otherwise the key
         registered for the agent's decentralized identifier. The presentation
         proof formats per binding are defined in the broker profile: operating
         system peer credentials on a local socket, an HTTP message signature
         <xref target="RFC9421"/> on HTTP, and a signed challenge on the A2A and
-        MCP bindings.</t>
+        MCP bindings. The presenter is the agent that presents the token to a
+        broker: the "sub" of a CGT, the delegatee of a DA. A CGT the minting
+        broker uses as its own assertion toward a downstream (the Assume and
+        Exchange modes of the broker profile) is not presented in this sense;
+        "cnf" on such a token is not verified by the downstream.</t>
 
         <t>"cnf" is REQUIRED on every CGT or DA that is presented by an agent to
         any party other than the broker that minted it. On a local socket
@@ -413,7 +429,7 @@ NOTE: '\' line wrapping per RFC 8792
   "trust_level": 4,
   "authorization_details": [
     {
-      "type": "data",
+      "type": "https://specs.opena2a.org/aap/types/data",
       "locations": ["https://api.orders.internal/orders"],
       "actions": ["read"],
       "fieldsAllowed": ["id", "status", "total"],
@@ -421,7 +437,7 @@ NOTE: '\' line wrapping per RFC 8792
       "labelCeiling": ["internal"]
     },
     {
-      "type": "budget",
+      "type": "https://specs.opena2a.org/aap/types/budget",
       "maxUses": 100,
       "rate": {"max": 60, "windowSeconds": 60}
     }
@@ -504,16 +520,23 @@ NOTE: '\' line wrapping per RFC 8792
         absent allow set in the delegator means unbounded except for
         "labelCeiling" and "egressCeiling", where absent means the empty set,
         and an absent allow set in the delegatee inherits the delegator's
-        value; deny-set members ("fieldsDenied") are a superset; bound members
-        ("subDelegationDepth", "maxUses", "concurrency", the "max" of "rate",
-        the "amount" of "spend" in the same currency, and the members of
-        "tokenCap") are less than or equal, with the "windowSeconds" of "rate"
-        greater than or equal for the same or a smaller "max", and with
-        "subDelegationDepth" strictly less because the delegatee is one
-        delegation deeper; restriction flags ("tlsRequired") stay true when the
-        delegator's is true; and constraint objects ("argumentConstraints")
-        keep every constraint the delegator states with an equal or more
-        restrictive value and MAY add constraints.</t>
+        value, and where the subset of "destinations" is evaluated by pattern
+        coverage (each delegatee element equals a delegator element or matches
+        a delegator "*." pattern, and a delegatee pattern is covered only by an
+        equal or broader delegator pattern); deny-set members ("fieldsDenied")
+        are a superset; bound members ("subDelegationDepth", "maxUses",
+        "concurrency", the "max" of "rate", the "amount" of "spend" in the same
+        currency, and the members of "tokenCap") are less than or equal, with
+        the "windowSeconds" of "rate" greater than or equal for the same or a
+        smaller "max", with "subDelegationDepth" strictly less because the
+        delegatee is one delegation deeper, and with a "spend" in a currency
+        the delegator does not carry not comparable, which makes the entry an
+        orphan; restriction flags ("tlsRequired", "requiresApproval") stay true
+        when the delegator's is true; and constraint objects
+        ("argumentConstraints") carry every constraint the delegator states,
+        JSON-equal, and MAY add constraints for arguments the delegator leaves
+        unconstrained (the constraint grammar is deferred to the revision that
+        lands broker enforcement).</t>
 
         <t>A DA is valid only if every entry in its "authorization_details" is
         narrower than or equal to some entry of the same type in the
@@ -523,7 +546,10 @@ NOTE: '\' line wrapping per RFC 8792
         relation is checked link by link. The minting broker MUST check the
         relation at mint time; a verifier that can resolve the delegator's
         grant MUST re-check it; a verifier that cannot MUST NOT treat the DA as
-        carrying more than its own entries state. The "cnf" claim of a DA is
+        carrying more than its own entries state. A DA's "max_depth" MUST NOT
+        exceed the "subDelegationDepth" of the delegator's "peer_agent" entry
+        whose "peerDid" is the DA's "sub", when such an entry exists; a
+        "max_depth" of 0 is a terminal delegation. The "cnf" claim of a DA is
         bound to the delegatee's key, since the delegatee is the presenter.</t>
 
         <t>The following generated claim set delegates the grant of
@@ -542,7 +568,7 @@ NOTE: '\' line wrapping per RFC 8792
   "trust_level": 4,
   "authorization_details": [
     {
-      "type": "data",
+      "type": "https://specs.opena2a.org/aap/types/data",
       "locations": ["https://api.orders.internal/orders"],
       "actions": ["read"],
       "fieldsAllowed": ["id", "status"],
@@ -550,13 +576,13 @@ NOTE: '\' line wrapping per RFC 8792
       "labelCeiling": ["internal"]
     },
     {
-      "type": "budget",
+      "type": "https://specs.opena2a.org/aap/types/budget",
       "maxUses": 10,
       "rate": {"max": 10, "windowSeconds": 60}
     }
   ],
   "aap_crit": ["authorization_details", "cnf"],
-  "cnf": {"jkt": "HlHgCcjrhbeyw80VMef51yPwhyRqjiwLdwSLRqo7hSI"},
+  "cnf": {"jkt": "qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8"},
   "act": { "sub": "did:opena2a:agent:acme/orders-reader" },
   "max_depth": 1,
   "delegator_atx":
@@ -593,7 +619,10 @@ NOTE: '\' line wrapping per RFC 8792
       field returned to the agent, as maintained by the broker). It MUST
       appear in an L3 claim issued while the issuer holds a session high water
       mark for the subject, and MUST NOT appear at level 1 or at level 2. It is a set,
-      not a level. The 60-second validity window is unchanged.</t>
+      not a level. An empty array means the session has admitted no labeled
+      field; absence means the issuer holds no high water mark for the
+      subject. The two are distinct. The 60-second validity window is
+      unchanged.</t>
 
       <sourcecode type="json"><![CDATA[
 NOTE: '\' line wrapping per RFC 8792

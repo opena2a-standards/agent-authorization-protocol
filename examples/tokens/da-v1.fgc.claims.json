@@ -10,7 +10,7 @@
   "trust_level": 4,
   "authorization_details": [
     {
-      "type": "data",
+      "type": "https://specs.opena2a.org/aap/types/data",
       "locations": [
         "https://api.orders.internal/orders"
       ],
@@ -29,7 +29,7 @@
       ]
     },
     {
-      "type": "budget",
+      "type": "https://specs.opena2a.org/aap/types/budget",
       "maxUses": 10,
       "rate": {
         "max": 10,
@@ -42,7 +42,7 @@
     "cnf"
   ],
   "cnf": {
-    "jkt": "HlHgCcjrhbeyw80VMef51yPwhyRqjiwLdwSLRqo7hSI"
+    "jkt": "qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8"
   },
   "act": {
     "sub": "did:opena2a:agent:acme/orders-reader"

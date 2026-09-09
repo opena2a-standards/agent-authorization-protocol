@@ -88,17 +88,17 @@ Table of Contents
      4.1.  Authorization Details . . . . . . . . . . . . . . . . . .   7
      4.2.  Mandatory-to-Understand Claims  . . . . . . . . . . . . .   9
      4.3.  Proof of Possession . . . . . . . . . . . . . . . . . . .   9
-     4.4.  Example With Authorization Details  . . . . . . . . . . .   9
-   5.  Delegation Assertion (DA) . . . . . . . . . . . . . . . . . .  10
-     5.1.  Attenuation . . . . . . . . . . . . . . . . . . . . . . .  11
-   6.  Behavioral Attestation Claim (BAC)  . . . . . . . . . . . . .  13
+     4.4.  Example With Authorization Details  . . . . . . . . . . .  10
+   5.  Delegation Assertion (DA) . . . . . . . . . . . . . . . . . .  11
+     5.1.  Attenuation . . . . . . . . . . . . . . . . . . . . . . .  12
+   6.  Behavioral Attestation Claim (BAC)  . . . . . . . . . . . . .  14
    7.  Cross-Organizational Federation . . . . . . . . . . . . . . .  15
      7.1.  Revocation Propagation  . . . . . . . . . . . . . . . . .  15
    8.  Security Considerations . . . . . . . . . . . . . . . . . . .  15
      8.1.  Credential Confinement  . . . . . . . . . . . . . . . . .  15
      8.2.  Replay Prevention . . . . . . . . . . . . . . . . . . . .  16
      8.3.  Cryptographic Agility and Post-Quantum Readiness  . . . .  16
-     8.4.  Intent Verification . . . . . . . . . . . . . . . . . . .  16
+     8.4.  Intent Verification . . . . . . . . . . . . . . . . . . .  17
      8.5.  Trust Is Not Authorization  . . . . . . . . . . . . . . .  17
      8.6.  Presentation Is Not Possession  . . . . . . . . . . . . .  17
      8.7.  A Constraint a Verifier May Ignore Is Not a Constraint  .  17
@@ -359,33 +359,33 @@ Internet-Draft                     AAP                    September 2026
    understands only "scope" enforces "scope"; neither ever grants more
    than "scope" alone would.  A producer MUST NOT emit
    "authorization_details" toward a verifier that has not advertised
-   support for it, because a verifier without "aap_crit" support would
-   treat the token as an unconstrained baseline token.
+   support for every entry type the token carries, because a verifier
+   without "aap_crit" support would treat the token as an unconstrained
+   baseline token.  The advertisement is the set of entry types the
+   counterparty understands, with the semantics of the
+   "authorization_details_types_supported" metadata of [RFC9396], not a
+   boolean.
 
-   The initial entry type registry has seven types.  Member names inside
-   an entry are camelCase; "type", "locations", "actions", "datatypes",
-   "identifier", and "privileges" are the common members of [RFC9396]
-   and keep their registered spelling.  Every type that can carry data
-   out of a session ("mcp_tool", "peer_agent", "model", "network", and
-   "data" with a write action) carries an "egressCeiling" member, a set
-   of labels; when absent it is the empty set.  Unless a member says
-   otherwise, an absent set member means unbounded and an absent
-   identity member is not permitted.
+   The initial entry type registry has seven types.  The wire value of
+   "type" is a URI, "https://specs.opena2a.org/aap/types/" followed by
+   the short name below; the short name is the registry key and the name
+   used in prose.  Member names inside an entry are camelCase; "type",
+   "locations", "actions", "datatypes", "identifier", and "privileges"
+   are the common members of [RFC9396] and keep their registered
+   spelling.  Every type that can carry data out of a session
+   ("mcp_tool", "peer_agent", "model", "network", and "data" with a
+   write action) carries an "egressCeiling" member, a set of labels;
+   when absent it is the empty set.  Every type MAY carry
+   "requiresApproval", a boolean; when true, the broker admits the entry
+   only through its escalation hook and denies it where no hook exists.
+   Unless a member says otherwise, an absent set member means unbounded
+   and an absent identity member is not permitted.
 
    mcp_tool  "serverId" (a decentralized identifier or a "sha256:" key
       fingerprint), OPTIONAL "serverAtx" (a "sha256:" ATX reference),
       "tools" (an array of tool names), OPTIONAL "argumentConstraints"
       (an object keyed by tool name whose values map argument names to
       constraints), OPTIONAL "schemaHash" (a "sha256:" digest of the
-      pinned tool schema), OPTIONAL "egressCeiling".  The tool servers
-      and tools the agent may call; connecting to a server outside the
-      grant is drift.
-
-   skill  "identifier", "version", "contentHash" (a "sha256:" digest).
-      A skill the agent may load, pinned to a version and content.
-
-   peer_agent  "peerDid", "direction" (an array holding one or both of
-
 
 
 
@@ -394,6 +394,14 @@ Fane                      Expires 12 March 2027                 [Page 7]
 Internet-Draft                     AAP                    September 2026
 
 
+      pinned tool schema), OPTIONAL "egressCeiling".  The tool servers
+      and tools the agent may call; connecting to a server outside the
+      grant is drift.
+
+   skill  "identifier", "version", "contentHash" (a "sha256:" digest).
+      A skill the agent may load, pinned to a version and content.
+
+   peer_agent  "peerDid", "direction" (an array holding one or both of
       "outbound" and "inbound"), "subDelegationDepth" (an integer
       greater than or equal to 0), OPTIONAL "egressCeiling".  A peer the
       agent may delegate to or accept delegation from.
@@ -428,20 +436,12 @@ Internet-Draft                     AAP                    September 2026
    reject the token.  New types are added by a revision of this document
    until the registry of Section 10 exists.
 
-   The label terms used by this document are defined here provisionally,
-   pending a label registry and definitions document that a later
-   revision will cite instead.  A label is an opaque string naming a
+   The label terms used by this document are defined here; these
+   definitions are normative.  A label is an opaque string naming a
    sensitivity class.  A label set is a set of labels; labels are sets,
    not levels, because two fields can carry incomparable labels and a
    session that has read both must be treated as carrying both.  A field
    with label set L is admissible under a ceiling C only if L is a
-   subset of C.  The session label is the union of the label sets of
-   every field admitted into the session so far; it only grows within a
-   session, and one CGT lifetime is one session.  An entry with an
-   egress ceiling E admits the session's data out only if the session
-   label is a subset of E; the default E is the empty set.  Residency is
-   a label family, so the rules that govern a health record class also
-   govern data that may not leave a region.
 
 
 
@@ -449,6 +449,19 @@ Fane                      Expires 12 March 2027                 [Page 8]
 
 Internet-Draft                     AAP                    September 2026
 
+
+   subset of C.  The session is the agent's context at a broker.  The
+   session label is the union of the label sets of every field admitted
+   into that context so far; it only grows within a session, is keyed by
+   the subject in the agent security context, carries across every CGT
+   and DA minted for that subject, and is reset only by a deployment-
+   defined context reset that is recorded there; a deployment that
+   issues data grants MUST define that reset.  A CGT lifetime is the
+   minimum session, not its bound.  An entry with an egress ceiling E
+   admits the session's data out only if the session label is a subset
+   of E; the default E is the empty set.  Residency is a label family,
+   so the rules that govern a health record class also govern data that
+   may not leave a region.
 
 4.2.  Mandatory-to-Understand Claims
 
@@ -473,12 +486,25 @@ Internet-Draft                     AAP                    September 2026
    a confirmation method by [RFC9449]).  The bound key is the key the
    presentation binding step of the broker profile [AAP-BROKER-PROFILE]
    verified: the ATX subject key where the credential carries one (a
-   revision of the ATX format that carries the subject's public key is
-   in preparation), otherwise the key registered for the agent's
-   decentralized identifier.  The presentation proof formats per binding
-   are defined in the broker profile: operating system peer credentials
-   on a local socket, an HTTP message signature [RFC9421] on HTTP, and a
-   signed challenge on the A2A and MCP bindings.
+   later revision of the ATX format, work in progress), otherwise the
+   key registered for the agent's decentralized identifier.  The
+   presentation proof formats per binding are defined in the broker
+   profile: operating system peer credentials on a local socket, an HTTP
+   message signature [RFC9421] on HTTP, and a signed challenge on the
+   A2A and MCP bindings.  The presenter is the agent that presents the
+   token to a broker: the "sub" of a CGT, the delegatee of a DA.  A CGT
+   the minting broker uses as its own assertion toward a downstream (the
+   Assume and Exchange modes of the broker profile) is not presented in
+   this sense; "cnf" on such a token is not verified by the downstream.
+
+
+
+
+
+Fane                      Expires 12 March 2027                 [Page 9]
+
+Internet-Draft                     AAP                    September 2026
+
 
    "cnf" is REQUIRED on every CGT or DA that is presented by an agent to
    any party other than the broker that minted it.  On a local socket
@@ -495,17 +521,6 @@ Internet-Draft                     AAP                    September 2026
    "budget" entry, "aap_crit", and "cnf" bound by thumbprint to a
    published presenter test key.
 
-
-
-
-
-
-
-Fane                      Expires 12 March 2027                 [Page 9]
-
-Internet-Draft                     AAP                    September 2026
-
-
    {
      "iss": "https://broker.acme.example",
      "sub": "did:opena2a:agent:acme/orders-reader",
@@ -516,7 +531,7 @@ Internet-Draft                     AAP                    September 2026
      "trust_level": 4,
      "authorization_details": [
        {
-         "type": "data",
+         "type": "https://specs.opena2a.org/aap/types/data",
          "locations": ["https://api.orders.internal/orders"],
          "actions": ["read"],
          "fieldsAllowed": ["id", "status", "total"],
@@ -524,7 +539,7 @@ Internet-Draft                     AAP                    September 2026
          "labelCeiling": ["internal"]
        },
        {
-         "type": "budget",
+         "type": "https://specs.opena2a.org/aap/types/budget",
          "maxUses": 100,
          "rate": {"max": 60, "windowSeconds": 60}
        }
@@ -535,6 +550,17 @@ Internet-Draft                     AAP                    September 2026
      "exp": 1780315500,
      "jti": "c3d4e5f6a7b8091a2b3c4d5e6f708192"
    }
+
+
+
+
+
+
+
+Fane                      Expires 12 March 2027                [Page 10]
+
+Internet-Draft                     AAP                    September 2026
+
 
 5.  Delegation Assertion (DA)
 
@@ -552,15 +578,6 @@ Internet-Draft                     AAP                    September 2026
 
    *  Scope is cryptographically bounded and MUST NOT be broadened by a
       delegatee.
-
-
-
-
-
-Fane                      Expires 12 March 2027                [Page 10]
-
-Internet-Draft                     AAP                    September 2026
-
 
    A DA is an AAP token in the form of Section 9: the CGT claim set plus
    the delegation members of [RFC8693].  Here "sub" is the delegatee;
@@ -590,6 +607,17 @@ Internet-Draft                     AAP                    September 2026
      "jti": "4a3b2c1d0e9f8a7b6c5d4e3f2a1b0c9d"
    }
 
+
+
+
+
+
+
+Fane                      Expires 12 March 2027                [Page 11]
+
+Internet-Draft                     AAP                    September 2026
+
+
    The v1 reference realizes delegation through the broker profile's
    Exchange mode, where the broker assertion is the subject token of the
    [RFC8693] exchange; it does not yet mint standalone DAs with an "act"
@@ -610,26 +638,25 @@ Internet-Draft                     AAP                    September 2026
    "privileges", "tools", "models", "destinations", "direction",
    "fieldsAllowed", "labelCeiling", "egressCeiling") are a subset, where
    an absent allow set in the delegator means unbounded except for
-
-
-
-Fane                      Expires 12 March 2027                [Page 11]
-
-Internet-Draft                     AAP                    September 2026
-
-
    "labelCeiling" and "egressCeiling", where absent means the empty set,
    and an absent allow set in the delegatee inherits the delegator's
-   value; deny-set members ("fieldsDenied") are a superset; bound
-   members ("subDelegationDepth", "maxUses", "concurrency", the "max" of
-   "rate", the "amount" of "spend" in the same currency, and the members
-   of "tokenCap") are less than or equal, with the "windowSeconds" of
-   "rate" greater than or equal for the same or a smaller "max", and
-   with "subDelegationDepth" strictly less because the delegatee is one
-   delegation deeper; restriction flags ("tlsRequired") stay true when
-   the delegator's is true; and constraint objects
-   ("argumentConstraints") keep every constraint the delegator states
-   with an equal or more restrictive value and MAY add constraints.
+   value, and where the subset of "destinations" is evaluated by pattern
+   coverage (each delegatee element equals a delegator element or
+   matches a delegator "*." pattern, and a delegatee pattern is covered
+   only by an equal or broader delegator pattern); deny-set members
+   ("fieldsDenied") are a superset; bound members ("subDelegationDepth",
+   "maxUses", "concurrency", the "max" of "rate", the "amount" of
+   "spend" in the same currency, and the members of "tokenCap") are less
+   than or equal, with the "windowSeconds" of "rate" greater than or
+   equal for the same or a smaller "max", with "subDelegationDepth"
+   strictly less because the delegatee is one delegation deeper, and
+   with a "spend" in a currency the delegator does not carry not
+   comparable, which makes the entry an orphan; restriction flags
+   ("tlsRequired", "requiresApproval") stay true when the delegator's is
+   true; and constraint objects ("argumentConstraints") carry every
+   constraint the delegator states, JSON-equal, and MAY add constraints
+   for arguments the delegator leaves unconstrained (the constraint
+   grammar is deferred to the revision that lands broker enforcement).
 
    A DA is valid only if every entry in its "authorization_details" is
    narrower than or equal to some entry of the same type in the
@@ -639,33 +666,6 @@ Internet-Draft                     AAP                    September 2026
    present, the relation is checked link by link.  The minting broker
    MUST check the relation at mint time; a verifier that can resolve the
    delegator's grant MUST re-check it; a verifier that cannot MUST NOT
-   treat the DA as carrying more than its own entries state.  The "cnf"
-   claim of a DA is bound to the delegatee's key, since the delegatee is
-   the presenter.
-
-   The following generated claim set delegates the grant of Section 4.4
-   with fewer fields and a smaller budget.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -673,6 +673,16 @@ Fane                      Expires 12 March 2027                [Page 12]
 
 Internet-Draft                     AAP                    September 2026
 
+
+   treat the DA as carrying more than its own entries state.  A DA's
+   "max_depth" MUST NOT exceed the "subDelegationDepth" of the
+   delegator's "peer_agent" entry whose "peerDid" is the DA's "sub",
+   when such an entry exists; a "max_depth" of 0 is a terminal
+   delegation.  The "cnf" claim of a DA is bound to the delegatee's key,
+   since the delegatee is the presenter.
+
+   The following generated claim set delegates the grant of Section 4.4
+   with fewer fields and a smaller budget.
 
    NOTE: '\' line wrapping per RFC 8792
 
@@ -686,7 +696,7 @@ Internet-Draft                     AAP                    September 2026
      "trust_level": 4,
      "authorization_details": [
        {
-         "type": "data",
+         "type": "https://specs.opena2a.org/aap/types/data",
          "locations": ["https://api.orders.internal/orders"],
          "actions": ["read"],
          "fieldsAllowed": ["id", "status"],
@@ -694,13 +704,13 @@ Internet-Draft                     AAP                    September 2026
          "labelCeiling": ["internal"]
        },
        {
-         "type": "budget",
+         "type": "https://specs.opena2a.org/aap/types/budget",
          "maxUses": 10,
          "rate": {"max": 10, "windowSeconds": 60}
        }
      ],
      "aap_crit": ["authorization_details", "cnf"],
-     "cnf": {"jkt": "HlHgCcjrhbeyw80VMef51yPwhyRqjiwLdwSLRqo7hSI"},
+     "cnf": {"jkt": "qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8"},
      "act": { "sub": "did:opena2a:agent:acme/orders-reader" },
      "max_depth": 1,
      "delegator_atx":
@@ -710,6 +720,15 @@ Internet-Draft                     AAP                    September 2026
      "exp": 1780315500,
      "jti": "d4e5f6a7b8c9012b3c4d5e6f70819203"
    }
+
+
+
+
+
+Fane                      Expires 12 March 2027                [Page 13]
+
+Internet-Draft                     AAP                    September 2026
+
 
 6.  Behavioral Attestation Claim (BAC)
 
@@ -721,14 +740,6 @@ Internet-Draft                     AAP                    September 2026
    A BAC declares its level in the "bac_level" claim, an integer 1, 2,
    or 3.  The levels are cumulative: an L2 claim carries the L1 members,
    and an L3 claim carries all of them.
-
-
-
-
-Fane                      Expires 12 March 2027                [Page 13]
-
-Internet-Draft                     AAP                    September 2026
-
 
    1  Build-time attestation: the "atx_reference".
    2  Runtime self-attestation: additionally the "binary_hash".
@@ -742,8 +753,10 @@ Internet-Draft                     AAP                    September 2026
    every field returned to the agent, as maintained by the broker).  It
    MUST appear in an L3 claim issued while the issuer holds a session
    high water mark for the subject, and MUST NOT appear at level 1 or at
-   level 2.  It is a set, not a level.  The 60-second validity window is
-   unchanged.
+   level 2.  It is a set, not a level.  An empty array means the session
+   has admitted no labeled field; absence means the issuer holds no high
+   water mark for the subject.  The two are distinct.  The 60-second
+   validity window is unchanged.
 
    NOTE: '\' line wrapping per RFC 8792
 
@@ -765,6 +778,14 @@ Internet-Draft                     AAP                    September 2026
      "jti": "7e6f5a4b3c2d1e0f9a8b7c6d5e4f3a2b"
    }
 
+
+
+
+Fane                      Expires 12 March 2027                [Page 14]
+
+Internet-Draft                     AAP                    September 2026
+
+
    The validity window MUST satisfy "exp" minus "iat" less than or equal
    to 60 seconds.  BAC verification is local: the receiver verifies the
    signature against the issuing Registry instance's published public
@@ -774,17 +795,6 @@ Internet-Draft                     AAP                    September 2026
    broker mints it and the conformance suite carries generated hybrid
    fixtures); for BACs it remains a target: no implementation mints BACs
    yet, and the v1 BAC fixtures carry a single Ed25519 signature.
-
-
-
-
-
-
-
-Fane                      Expires 12 March 2027                [Page 14]
-
-Internet-Draft                     AAP                    September 2026
-
 
 7.  Cross-Organizational Federation
 
@@ -824,16 +834,6 @@ Internet-Draft                     AAP                    September 2026
    [AAP-BROKER-PROFILE] and is the property that defends against the
    credential-harvest and exfiltration attack classes catalogued in
    [THREATMATRIX].  An agent emits an abstract grant reference; the
-   broker verifies the agent's ATX, evaluates resource policy, obtains a
-   scoped credential, performs the operation, and returns only the
-   result.
-
-
-
-
-
-
-
 
 
 
@@ -841,6 +841,10 @@ Fane                      Expires 12 March 2027                [Page 15]
 
 Internet-Draft                     AAP                    September 2026
 
+
+   broker verifies the agent's ATX, evaluates resource policy, obtains a
+   scoped credential, performs the operation, and returns only the
+   result.
 
 8.2.  Replay Prevention
 
@@ -885,11 +889,7 @@ Internet-Draft                     AAP                    September 2026
    no final JOSE registration, so that row remains reserved on the
    adoption path this section previously applied to ML-DSA-65.
 
-8.4.  Intent Verification
 
-   Semantic intent classification can express constraints that static
-   policies cannot.  Intent classification is probabilistic; systems
-   MUST NOT rely on it alone to authorize irreversible actions.
 
 
 
@@ -897,6 +897,12 @@ Fane                      Expires 12 March 2027                [Page 16]
 
 Internet-Draft                     AAP                    September 2026
 
+
+8.4.  Intent Verification
+
+   Semantic intent classification can express constraints that static
+   policies cannot.  Intent classification is probabilistic; systems
+   MUST NOT rely on it alone to authorize irreversible actions.
 
 8.5.  Trust Is Not Authorization
 
@@ -941,12 +947,6 @@ Internet-Draft                     AAP                    September 2026
    ASCII( BASE64URL(UTF8(protected header)) || "." ||
           BASE64URL(payload) )
 
-   AAP defines no other canonical form: serialization is
-   canonicalization.  The producer serializes the header and claim set
-   once, as compact JSON with no insignificant whitespace, and signs
-   those exact bytes; a verifier operates on the transmitted base64url
-   segments and never re-serializes.  There is no separate
-
 
 
 Fane                      Expires 12 March 2027                [Page 17]
@@ -954,6 +954,11 @@ Fane                      Expires 12 March 2027                [Page 17]
 Internet-Draft                     AAP                    September 2026
 
 
+   AAP defines no other canonical form: serialization is
+   canonicalization.  The producer serializes the header and claim set
+   once, as compact JSON with no insignificant whitespace, and signs
+   those exact bytes; a verifier operates on the transmitted base64url
+   segments and never re-serializes.  There is no separate
    canonicalization step and no field projection.  This is a deliberate
    difference from ATX and ATP, and it exists because AAP tokens,
    uniquely in the family, are verified by foreign systems: OAuth 2.0
@@ -995,13 +1000,8 @@ Internet-Draft                     AAP                    September 2026
 
    EdDSA  Ed25519 [RFC8037].  Active; the interoperability baseline.
    ML-DSA-65  FIPS 204 [FIPS204], JOSE registration [RFC9964].  Active.
-      Hybrid with EdDSA via the multi-signature form, or single-suite
-      compact on post-quantum-capable interoperability paths.  ML-DSA-44
-      and ML-DSA-87, though registered for JOSE, are not in this
-      registry and are rejected as unknown suites.
 
-   Adding or retiring a suite is a change to this registry plus version
-   negotiation, never a change of format.
+
 
 
 
@@ -1009,6 +1009,14 @@ Fane                      Expires 12 March 2027                [Page 18]
 
 Internet-Draft                     AAP                    September 2026
 
+
+      Hybrid with EdDSA via the multi-signature form, or single-suite
+      compact on post-quantum-capable interoperability paths.  ML-DSA-44
+      and ML-DSA-87, though registered for JOSE, are not in this
+      registry and are rejected as unknown suites.
+
+   Adding or retiring a suite is a change to this registry plus version
+   negotiation, never a change of format.
 
    Claim names use the JWT registry convention, lowercase with
    snake_case for compound names such as "trust_class" and
@@ -1051,20 +1059,17 @@ Internet-Draft                     AAP                    September 2026
    [ATX]      Fane, A., "Agent Trust eXtension (ATX) Credential Format",
               2026, <https://specs.opena2a.org/atx>.
 
-   [FIPS203]  National Institute of Standards and Technology, "Module-
-              Lattice-Based Key-Encapsulation Mechanism Standard",
-              FIPS 203, August 2024,
-              <https://doi.org/10.6028/NIST.FIPS.203>.
-
-
-
-
 
 
 Fane                      Expires 12 March 2027                [Page 19]
 
 Internet-Draft                     AAP                    September 2026
 
+
+   [FIPS203]  National Institute of Standards and Technology, "Module-
+              Lattice-Based Key-Encapsulation Mechanism Standard",
+              FIPS 203, August 2024,
+              <https://doi.org/10.6028/NIST.FIPS.203>.
 
    [FIPS204]  National Institute of Standards and Technology, "Module-
               Lattice-Based Digital Signature Standard", FIPS 204,
@@ -1108,11 +1113,6 @@ Internet-Draft                     AAP                    September 2026
               and C. Mortimore, "OAuth 2.0 Token Exchange", RFC 8693,
               January 2020, <https://www.rfc-editor.org/info/rfc8693>.
 
-   [RFC9162]  Laurie, B., Messeri, E., and R. Stradling, "Certificate
-              Transparency Version 2.0", RFC 9162, December 2021,
-              <https://www.rfc-editor.org/info/rfc9162>.
-
-
 
 
 
@@ -1121,6 +1121,10 @@ Fane                      Expires 12 March 2027                [Page 20]
 
 Internet-Draft                     AAP                    September 2026
 
+
+   [RFC9162]  Laurie, B., Messeri, E., and R. Stradling, "Certificate
+              Transparency Version 2.0", RFC 9162, December 2021,
+              <https://www.rfc-editor.org/info/rfc9162>.
 
    [RFC9396]  Lodderstedt, T., Richer, J., and B. Campbell, "OAuth 2.0
               Rich Authorization Requests", RFC 9396, May 2023,
@@ -1167,16 +1171,16 @@ Internet-Draft                     AAP                    September 2026
               RFCs", RFC 8792, June 2020,
               <https://www.rfc-editor.org/info/rfc8792>.
 
-   [RFC9421]  Backman, A., Ed., Richer, J., Ed., and M. Sporny, "HTTP
-              Message Signatures", RFC 9421, February 2024,
-              <https://www.rfc-editor.org/info/rfc9421>.
-
 
 
 Fane                      Expires 12 March 2027                [Page 21]
 
 Internet-Draft                     AAP                    September 2026
 
+
+   [RFC9421]  Backman, A., Ed., Richer, J., Ed., and M. Sporny, "HTTP
+              Message Signatures", RFC 9421, February 2024,
+              <https://www.rfc-editor.org/info/rfc9421>.
 
    [THREATMATRIX]
               OpenA2A, "AI Agent Threat Matrix", 2026,
@@ -1222,6 +1226,14 @@ Author's Address
    Abdel Fane
    OpenA2A
    United States of America
+
+
+
+Fane                      Expires 12 March 2027                [Page 22]
+
+Internet-Draft                     AAP                    September 2026
+
+
    Email: info@opena2a.org
 
 
@@ -1229,4 +1241,48 @@ Author's Address
 
 
 
-Fane                      Expires 12 March 2027                [Page 22]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Fane                      Expires 12 March 2027                [Page 23]

@@ -20,12 +20,16 @@ document is submitted to the datatracker by this release.
   an array of typed entries (`type` REQUIRED), mandatory to understand,
   narrowing within `scope` and `trust_class` and never widening them. Initial
   entry type registry (§4.4.1): `mcp_tool`, `skill`, `peer_agent`, `model`,
-  `network`, `data`, `budget`; every type that can carry data out carries an
-  `egressCeiling` whose default is the empty set. Producer rule: never emit
+  `network`, `data`, `budget`, with the wire value of `type` the registry URI
+  `https://specs.opena2a.org/aap/types/<name>`; every type that can carry data
+  out carries an `egressCeiling` whose default is the empty set; every type MAY
+  carry `requiresApproval`. Producer rule: never emit
   toward a verifier that has not advertised support.
-- **Label semantics (§4.4.2)**, written in place under a heading marked "to be
-  replaced by reference": label, label set, ceiling, session label, egress
-  ceiling, residency as a label family. Sets, not levels, with the reason.
+- **Label semantics (§4.4.2)**, normative here; the family harness generates
+  the label vocabulary registry from this subsection when it lands: label, label
+  set, ceiling, session (the agent's context at this broker, keyed by `sub` in
+  ASC, reset only by a recorded context reset), session label, egress ceiling,
+  residency as a label family. Sets, not levels, with the reason.
 - **`aap_crit` (§4.5).** The claims a verifier must understand or reject;
   `authorization_details` and `cnf` always listed when present.
 - **`cnf` (§4.6).** RFC 7800 proof of possession (`jwk` or RFC 7638 `jkt`),
@@ -42,14 +46,15 @@ document is submitted to the datatracker by this release.
 - Security considerations §8.6 (presentation is not possession) and §8.7 (a
   constraint a verifier may ignore is not a constraint).
 - Generated fixtures `cgt-v1.fgc.jwt`, `da-v1.fgc.jwt`, `bac-v1.session.jwt`
-  (embedded in §4.7, §5.5, §6.5) and the presenter test key
-  `examples/tokens/presenter-keys.json` (`agent-key-1`, seed and RFC 7638
-  thumbprint). Every 0.4 fixture and `test-keys.json` are byte identical.
+  (embedded in §4.7, §5.5, §6.5) and the presenter test keys `agent-key-1`
+  (CGT subject) and `agent-key-2` (delegatee), appended to `test-keys.json`
+  with `role` `presenter` and their RFC 7638 thumbprints. Every 0.4 fixture is
+  byte identical and the 0.4 entries of `test-keys.json` are unchanged.
 - Schemas: `cgt-claims-v1` and `da-claims-v1` gain `authorization_details`,
   `aap_crit`, `cnf`; `bac-claims-v1` gains `session_label` (L3 only). The
   claim schema stays at v1 because every new member is optional and a token
-  that omits them is byte identical to its 0.4 form; whether the 0.5 members
-  warrant `aap_ver` 2 and a v2 schema set is an open owner decision.
+  that omits them is byte identical to its 0.4 form. `da-claims-v1` lowers
+  `max_depth` to a minimum of 0 so a terminal delegation is expressible.
 - RFC 9396, RFC 7800, RFC 7638, RFC 9449 added to Normative References;
   RFC 9421 to Informative References.
 
@@ -62,6 +67,8 @@ document is submitted to the datatracker by this release.
   claim is not deleted: it is published in the -00 and -01 Internet-Draft text
   and both reference verifiers accept it; no implementation minted it (FGC
   program audit, 2026-09-08). A verifier still ignores it (broker profile §8.3).
+- **`max_uses` (§4.2)**, replacedBy `budget.maxUses` under the same convention.
+  When both are present `budget.maxUses` MUST NOT exceed `max_uses`.
 
 ### Changed
 
@@ -69,6 +76,8 @@ document is submitted to the datatracker by this release.
   ATX CRL; agent revocation rides on the CRL, grant revocation on §7.3.
 - §9.6 claim conventions: registered claims keep their registered spelling;
   members inside an `authorization_details` entry are camelCase.
+- §5.3 `max_depth` floor lowered from 1 to 0; §5.4 binds a DA's `max_depth` to
+  the delegator's matching `peer_agent` `subDelegationDepth`.
 - §10 anticipates an entry type registry.
 - **Broker profile 0.4.0-draft.** Resolution flow (§6) gains a presentation
   binding step (step 3: OS peer credentials on the local socket, RFC 9421
@@ -82,10 +91,13 @@ document is submitted to the datatracker by this release.
   escalation hook that assumes no approval mechanism exists), §6.11 unlabeled
   field policy as a deployment setting (default: allow with no manifest, deny
   with a manifest), §6.12 CRL freshness by tier (fail closed for PRIVILEGED
-  and SUPER_PRIVILEGED). §7.3 governance policies compile to
+  and SUPER_PRIVILEGED; the stale allowance value is cited from the ATX text,
+  not restated). The session high water mark is keyed by `sub` in ASC and
+  carries across grants; a CGT lifetime is the minimum session, not its bound.
+  §7.3 governance policies compile to
   `authorization_details`; the grant, not the policy, is what the broker
-  enforces. §9 jurisdiction slot cross referenced to ATX 2.0 and the residency
-  label family. §13 Level 1 names the new requirements. §14 states what the
+  enforces. §9 jurisdiction slot retained, the ATX side out of scope, the
+  enforcement side the residency label family. §13 Level 1 names the new requirements. §14 states what the
   reference does not yet provide, each item traced to the audit. §17 related
   work (DAAP: budgets and policy hooks there, the `budget` type and the
   escalation hook here; no claim about sensitivity clearance in other drafts).

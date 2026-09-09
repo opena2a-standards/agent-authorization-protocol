@@ -10,7 +10,7 @@
   "trust_level": 4,
   "authorization_details": [
     {
-      "type": "data",
+      "type": "https://specs.opena2a.org/aap/types/data",
       "locations": [
         "https://api.orders.internal/orders"
       ],
@@ -30,7 +30,7 @@
       ]
     },
     {
-      "type": "budget",
+      "type": "https://specs.opena2a.org/aap/types/budget",
       "maxUses": 100,
       "rate": {
         "max": 60,

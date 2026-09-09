@@ -342,13 +342,13 @@ per binding:
 
 | Binding | Proof of presenter identity | What the broker checks |
 |---|---|---|
-| Local unix socket | **OS peer credentials** of the connecting process (`SO_PEERCRED` on Linux, `LOCAL_PEERCRED` or `getpeereid` on BSD derived systems). Mandatory: a broker MUST NOT accept a local socket presentation without them. | The peer uid, gid, and where available pid match the process identity the operator registered for that agent DID in broker configuration. No key is involved; the operating system is the proof. |
-| HTTP | An **RFC 9421 HTTP Message Signature** over the request, covering at least `@method`, `@target-uri`, `content-digest`, and a `created` parameter inside the clock skew bound. | The signature verifies under the verification key below; `keyid` names that key; `created` is fresh; the covered components include the grant reference. |
+| Local unix socket | **OS peer credentials** of the connecting process (`SO_PEERCRED` on Linux, `LOCAL_PEERCRED` or `getpeereid` on BSD derived systems). Mandatory: a broker MUST NOT accept a local socket presentation without them. | The peer uid and gid MUST match the process identity the operator registered for that agent DID in broker configuration; the pid MAY be checked where the deployment registers it. No key is involved; the operating system is the proof. |
+| HTTP | An **RFC 9421 HTTP Message Signature** over the request, covering at least `@method`, `@target-uri`, `content-digest`, a `created` parameter inside the clock skew bound, and a `nonce` parameter the broker has not seen within the skew bound. The grant reference is covered through `content-digest` when it is in the body, or as a named covered header otherwise. | The signature verifies under the verification key below; `keyid` names that key; `created` is fresh; `nonce` is unseen. When the ATX presentation object is published, an HTTP presentation satisfying its RFC 9421 profile satisfies this row; this list is the broker's minimum. |
 | A2A and MCP | A **signed challenge**: the broker issues a fresh random challenge (at least 16 bytes) bound to the channel; the presenter returns the challenge signed under its key. | The signature verifies under the verification key below; the challenge is the one issued on this channel and has not been answered before. |
 
 The **verification key** for a network binding is the ATX subject key where the ATX carries one
-(ATX 2.0, in preparation; not published as of 2026-09-08), otherwise the key registered for the
-agent DID under AIP. A broker that can obtain neither MUST NOT accept a network presentation. The
+(a later revision of ATX, work in progress), otherwise the key registered for the agent DID under
+AIP. A broker that can obtain neither MUST NOT accept a network presentation. The
 bound key is the key the minted CGT or DA carries in `cnf` (AAP-SPEC §4.6); on the local socket
 binding `cnf` MAY be omitted because the token never leaves the broker.
 
@@ -391,8 +391,10 @@ redacted: the ephemeral worker (Section 6.5) returns the projected result only.
 sets of every field it has admitted into the agent context: the **session label**. It only grows
 within a session. The broker MUST write it to the Agent Security Context (ASC) on every change and
 MUST expose it as the `session_label` claim of any L3 BAC issued for the subject (AAP-SPEC §6.4).
-The session boundary is one CGT lifetime (AAP-SPEC §4.4.2): the session label starts empty at mint
-and is discarded at `exp`; the ASC record of the previous session's label is retained for audit.
+The session is the agent's context at this broker (AAP-SPEC §4.4.2): the session label is keyed by
+`sub` in ASC, carries across every CGT and DA minted for that `sub`, and is reset only by a
+deployment defined context reset recorded in ASC. A deployment that issues data grants MUST define
+that reset. A CGT lifetime is the minimum session, not its bound.
 
 **Rule 3, no write down.** Data MUST NOT leave the session through an entry whose `egressCeiling`
 does not contain the session label as a subset. Every entry that can carry data out (`mcp_tool`,
@@ -426,8 +428,9 @@ this profile.
 ### 6.12 CRL freshness by tier
 
 The ATX verification path allows a request to proceed on a cached CRL that is stale by up to a
-bounded interval (the ATX specification's stale CRL allowance; five minutes in the text the sweep
-recorded). That allowance is fail open for every decision. From 0.4 the broker MUST apply a
+bounded interval (the stale CRL allowance of the ATX specification, `core.md` §1.3 step 6 and §13
+"Revocation staleness"; its value is defined there and not restated here). That allowance is fail
+open for every decision. From 0.4 the broker MUST apply a
 **CRL freshness policy hook by tier** (AAP-SPEC §4.3):
 
 | Grant tier | CRL freshness requirement |
@@ -489,9 +492,9 @@ plumbing, not a credential redesign.
 
 ### 7.3 Governance policies compile to grants
 
-Two authorization models existed side by side: governance policies (the AIP section 9 shapes
-`allow`, `deny`, `require_approval`, `rate_limit`, `audit`, `notify`, and the machine readable
-governance block of the agent governance standard) enforced by an identity provider, and grants
+Two authorization models existed side by side: governance policies (the AIP-SPEC §7.2 Policy
+Actions `allow`, `deny`, `require_approval`, `rate_limit`, `audit`, `notify`, and the machine
+readable governance block of the agent governance standard) enforced by an identity provider, and grants
 enforced by the broker. From 0.4 there is one enforcement semantics. A policy is the operator's
 input; the broker **compiles** it into the `authorization_details` of the grant it mints, under this
 rule:
@@ -500,9 +503,9 @@ rule:
 |---|---|
 | `allow` | An entry of the matching type (Section 4.4.1 of AAP-SPEC), narrowed to what the clause allows. |
 | `deny` | No entry (default deny), or a `fieldsDenied` member or a removed destination inside an otherwise allowed entry. |
-| `require_approval` | An entry condition: the entry is admitted only through the escalation hook of Section 6.10, Rule 3, and is denied where no hook exists. |
+| `require_approval` | The matching entry with `requiresApproval: true` (AAP-SPEC §4.4.1); the broker admits such an entry only through the escalation hook of Section 6.10 and denies it where no hook exists. |
 | `rate_limit` | A `budget` entry (`rate`, `maxUses`, `concurrency`). |
-| `audit` | An audit flag on the entry; the broker's audit path (Section 6.7) already records every resolution, so the flag raises the detail level, never lowers it. |
+| `audit` | Not compiled: it sets the broker's audit detail for the resolution, a deployment setting recorded in the audit log (Section 6.7 already records every resolution). |
 | `notify` | Not compiled: notification is an identity provider side effect, not a constraint on the grant. |
 
 **The grant, not the policy, is what the broker enforces.** A policy that cannot be expressed as
@@ -579,11 +582,13 @@ initial bindings are:
 - **A2A agent card**, ATX embedded under the `atp` object of `/.well-known/agent.json`.
 - **MCP manifest**, ATX referenced from the server manifest.
 
-A broker publishes a discovery document (supported AAP versions, supported suites, whether it
-understands `authorization_details` and `aap_crit`, the presentation bindings it accepts, and static
-public key material for its broker-assertion signing key) at a well-known location on the
-**operator's own domain**. A producer MUST NOT emit `authorization_details` toward a counterparty
-whose discovery document does not advertise it (AAP-SPEC §4.4, producer rule). OpenA2A is never in
+A broker publishes a discovery document (supported AAP versions, supported suites, the set of
+`authorization_details` entry types it understands, with the semantics of RFC 9396 §10
+`authorization_details_types_supported`, the presentation bindings it accepts, and static public
+key material for its broker-assertion signing key) at a well-known location on the **operator's own
+domain**. The member that carries the entry type set is named by the discovery document's own
+schema. A producer MUST NOT emit `authorization_details` toward a counterparty whose discovery
+document does not advertise every entry type the token carries (AAP-SPEC §4.4, producer rule). OpenA2A is never in
 the hot path of a resolution.
 
 ---
@@ -602,13 +607,12 @@ grammar slot now so cross-country enforcement in a later version needs no redesi
 A v1 broker MUST parse the `jurisdiction` predicate but is **not** required to enforce it.
 Enforcement is a v3 concern under sovereign Root Authorities.
 
-The claim slot is retained in 0.4 with two cross references. The ATX side is expected to be defined
-by ATX 2.0 (in preparation; not published as of 2026-09-08) as an optional-to-ignore claim carrying
-ISO 3166 codes. The enforcement side is the **residency label family** (`residency:<region>`,
+The claim slot is retained in 0.4 with two cross references. The ATX side is out of scope here.
+The enforcement side is the **residency label family** (`residency:<region>`,
 AAP-SPEC §4.4.2): a field labeled `residency:eu` is governed by the three rules of Section 6.10
 exactly as a health record class is, so data that may not leave a region needs no second mechanism.
-When ATX 2.0 lands, a `jurisdiction` predicate compiles (Section 7.3) to a `labelCeiling` and an
-`egressCeiling` over the residency family.
+When an ATX revision carries a jurisdiction claim, a `jurisdiction` predicate compiles
+(Section 7.3) to a `labelCeiling` and an `egressCeiling` over the residency family.
 
 ---
 
@@ -775,8 +779,6 @@ Until then, identifiers are managed in this specification.
 - **OASB**, Open Agent Security Benchmark (levels L1–L3).
 - **AIP**, Agent Identity Protocol (OpenA2A), section 9 governance policy shapes, and the registered
   agent key used as a verification key in Section 6.8.
-- **ATX 2.0**, Agent Trust eXtension 2.0 (OpenA2A; in preparation, not published as of 2026-09-08):
-  the subject key and the `jurisdiction` claim.
 - **DAAP**, Delegated Agent Authorization Protocol, draft-mishra-oauth-agent-grants (IETF
   Internet-Draft).
 

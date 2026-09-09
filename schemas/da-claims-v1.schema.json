@@ -44,7 +44,8 @@
     },
     "max_depth": {
       "type": "integer",
-      "minimum": 1
+      "minimum": 0,
+      "description": "Remaining delegation depth; 0 is a terminal delegation (AAP-SPEC 0.5 section 5.3). MUST NOT exceed the delegator's matching peer_agent subDelegationDepth (section 5.4; a verifier check)."
     },
     "delegator_atx": {
       "type": "string",
@@ -85,12 +86,13 @@
     "authorizationDetails": {
       "type": "array",
       "minItems": 1,
-      "description": "RFC 9396 authorization_details typed by the AAP-SPEC section 4.4 registry. In a DA every entry MUST be narrower than or equal to a delegator entry of the same type and no entry may lack a parent (section 5.4); the schema pins presence and form, the attenuation relation is a verifier check. Duplicated from cgt-claims-v1 so the DA schema stays self-contained.",
+      "description": "RFC 9396 authorization_details typed by the AAP-SPEC section 4.4.1 registry; the wire value of `type` is the registry URI `https://specs.opena2a.org/aap/types/<name>`. In a DA every entry MUST be narrower than or equal to a delegator entry of the same type and no entry may lack a parent (section 5.4); the schema pins presence and form, the attenuation relation is a verifier check. Duplicated from cgt-claims-v1 so the DA schema stays self-contained.",
       "items": {
         "type": "object",
         "required": ["type"],
         "properties": {
-          "type": { "type": "string", "minLength": 1 },
+          "type": { "type": "string", "pattern": "^https://specs\\.opena2a\\.org/aap/types/[a-z_]+$" },
+          "requiresApproval": { "type": "boolean" },
           "locations": { "type": "array", "items": { "type": "string", "minLength": 1 } },
           "actions": { "type": "array", "items": { "type": "string", "minLength": 1 } },
           "datatypes": { "type": "array", "items": { "type": "string", "minLength": 1 } },

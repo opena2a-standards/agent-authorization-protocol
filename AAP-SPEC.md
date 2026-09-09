@@ -185,7 +185,7 @@ specified here and pinned by generated fixtures; no implementation mints them as
 | `cnf` | MAY | object | RFC 7800 confirmation: binds the token to the presenter's key (Section 4.6). Mandatory to understand: MUST be listed in `aap_crit` when present. |
 | `fga_constraints` | MAY, **deprecated** | string | JSON-encoded FGA policy from the 0.3 and 0.4 text. Deprecated in 0.5, replacedBy `authorization_details`. Still optional-to-ignore (broker profile §8.3): a verifier ignores it. No implementation minted it (audit, section 2: 0 occurrences in the reference broker); it stays defined because the -00 and -01 Internet-Draft text and both reference verifiers carry it. |
 | `intent_verified` | MAY | boolean | NanoMind intent verification result. Optional-to-ignore; not minted by the v1 reference. |
-| `max_uses` | MAY | integer | Use-count bound. Optional-to-ignore; not minted by the v1 reference. |
+| `max_uses` | MAY, **deprecated** | integer | Use-count bound from the 0.3 and 0.4 text. Deprecated in 0.5, replacedBy `budget.maxUses` (§4.4.1). Still optional-to-ignore; not minted by the v1 reference. When both are present, `budget.maxUses` MUST NOT exceed `max_uses` (the §4.4 narrowing rule applied to one bound). |
 | `context_required` | MAY | boolean | Whether exercise requires conversational context review. Optional-to-ignore; not minted by the v1 reference. |
 
 Example (generated; this is a real, verifiable token under the published test keys):
@@ -239,22 +239,30 @@ entry may name a capability outside the trust class. A verifier that understands
 broker MUST reject a request whose requested entries would widen the scope.
 
 **Producer rule.** A producer MUST NOT emit `authorization_details` (and therefore
-`aap_crit`) toward a verifier that has not advertised support for them, because a
-verifier without `aap_crit` support treats the token as an unconstrained baseline token.
-Support is advertised in the broker discovery document (broker profile §8.5) and selected
+`aap_crit`) toward a verifier that has not advertised support for every entry type the
+token carries, because a verifier without `aap_crit` support treats the token as an
+unconstrained baseline token. The advertisement is the **set of entry types** the
+counterparty understands, with the semantics of RFC 9396 §10
+`authorization_details_types_supported`, not a boolean; it is carried in the broker
+discovery document (broker profile §8.5), whose own schema names the member, and selected
 by the negotiation of broker profile §8.1. As of 2026-09-08 neither reference verifier
 implements `aap_crit` (audit, section 2: 0 occurrences in `aap-conformance`).
 
 #### 4.4.1 Entry type registry
 
-The initial registry has seven types. Member names inside an entry are camelCase
-(Section 9.6); `type`, `locations`, `actions`, `datatypes`, `identifier`, and
-`privileges` are the RFC 9396 common members and keep their registered spelling. Every
-type that can carry data out of the session (`mcp_tool`, `peer_agent`, `model`, `network`,
-and `data` with a write action) carries an `egressCeiling` member: a set of labels
-(Section 4.4.2); when absent it is the empty set, which is default deny for any session
-that has admitted a labeled field. Unless a member says otherwise, an absent set member
-means "unbounded" and an absent identity member is not permitted.
+The initial registry has seven types. The wire value of `type` is a URI the family
+controls, `https://specs.opena2a.org/aap/types/<name>`, where `<name>` is the short name
+in the first column; the short name is the registry key and the name this document uses
+in prose. Member names inside an entry are camelCase (Section 9.6); `type`, `locations`,
+`actions`, `datatypes`, `identifier`, and `privileges` are the RFC 9396 common members and
+keep their registered spelling. Every type that can carry data out of the session
+(`mcp_tool`, `peer_agent`, `model`, `network`, and `data` with a write action) carries an
+`egressCeiling` member: a set of labels (Section 4.4.2); when absent it is the empty set,
+which is default deny for any session that has admitted a labeled field. Every type MAY
+carry `requiresApproval` (boolean): when `true`, the broker admits the entry only through
+the escalation hook of broker profile §6.10 and denies it where no hook exists. Unless a
+member says otherwise, an absent set member means "unbounded" and an absent identity
+member is not permitted.
 
 | `type` | Members (MUST unless marked MAY) | Meaning |
 |---|---|---|
@@ -271,12 +279,10 @@ unknown type inside a mandatory to understand claim is not understood. New types
 added to this registry by a revision of this document; until an IANA registry exists
 (Section 10) the registry is managed here.
 
-#### 4.4.2 Label semantics (to be replaced by reference)
+#### 4.4.2 Label semantics
 
-This subsection defines the label terms this document uses. The definitions are
-placeholders for the label registry and definitions document of the FGC program, which
-is not published as of 2026-09-08; a later revision replaces this subsection with a
-citation and changes no rule.
+These definitions are normative here; the family harness generates the label vocabulary
+registry from this subsection when it lands.
 
 - A **label** is an opaque string naming a sensitivity class (for example `internal`, a
   contact identifier class, or a residency class such as `residency:eu`). Labels are
@@ -286,10 +292,13 @@ citation and changes no rule.
   that has read both must be treated as carrying both. A total order would force one of
   them to be "higher" and would let the other one leak through the comparison.
 - A field with label set L is **admissible under a ceiling** C only if L is a subset of C.
-- The **session label** is the union of the label sets of every field admitted into the
-  session so far. It only grows within a session (the broker profile's session high water
-  mark). Session boundary: one CGT lifetime is one session; the session label starts
-  empty when the CGT is minted and is discarded at `exp`.
+- The **session** is the agent's context at this broker. The **session label** is the
+  union of the label sets of every field admitted into that context so far. It only grows
+  within a session (the broker profile's session high water mark). It is keyed by `sub` in
+  the Agent Security Context (ASC) and carries across every CGT and DA minted for that
+  `sub`; it is reset only by a deployment defined context reset recorded in ASC, and a
+  deployment that issues data grants MUST define that reset. A CGT lifetime is the
+  minimum session, not its bound.
 - An entry with an **egress ceiling** E admits the session's data out only if the session
   label is a subset of E. The default E is the empty set, so a session that has admitted
   any labeled field is denied egress through an entry that carries no ceiling, while a
@@ -318,8 +327,12 @@ seen in transit is not a credential. `cnf` carries exactly one of `jwk` (RFC 780
 the public key itself) or `jkt` (the base64url SHA-256 JWK thumbprint of RFC 7638, as
 registered for `cnf` by RFC 9449 §6.1). The bound key is the key the presentation binding
 step of the broker profile (§6, step 3) verified: the ATX subject key where the ATX
-carries one (ATX 2.0), or the key registered for the agent DID under AIP. The
-presentation proof formats per binding are defined in the broker profile §6.8.
+carries one (a later revision of ATX, work in progress), or the key registered for the
+agent DID under AIP. The presentation proof formats per binding are defined in the broker
+profile §6.8. The presenter is the agent that presents the token to a broker: the `sub`
+of a CGT, the delegatee of a DA. A CGT the minting broker uses as its own assertion
+toward a downstream (Assume, Exchange) is not presented in this sense; `cnf` on such a
+token is not verified by the downstream.
 
 `cnf` is REQUIRED on every CGT or DA that is presented by an agent to any party other
 than the broker that minted it (a network binding, a peer broker, a delegatee). On the
@@ -333,10 +346,11 @@ broker profile 0.3 §6 verified the ATX and nothing about the presenter).
 ### 4.7 Example with authorization details
 
 Example (generated; the Section 4.2 claim set plus one `data` entry, one `budget` entry,
-`aap_crit`, and `cnf` bound to the published presenter test key `agent-key-1`):
+`aap_crit`, and `cnf` bound to the published presenter test key `agent-key-1`; entry
+`type` values are the registry URIs of §4.4.1):
 
 ```text
-eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImJyb2tlci1rZXktMSJ9.eyJpc3MiOiJodHRwczovL2Jyb2tlci5hY21lLmV4YW1wbGUiLCJzdWIiOiJkaWQ6b3BlbmEyYTphZ2VudDphY21lL29yZGVycy1yZWFkZXIiLCJhdWQiOiJodHRwczovL2FwaS5vcmRlcnMuaW50ZXJuYWwiLCJzY29wZSI6Im9yZGVycy5yZWFkIiwidHJ1c3RfY2xhc3MiOiJvcmRlcnM6cmVhZCIsImlzc3Vlcl9jaGFpbiI6WyJkaWQ6b3BlbmEyYTphdXRob3JpdHk6b3BlbmEyYS5vcmciXSwidHJ1c3RfbGV2ZWwiOjQsImF1dGhvcml6YXRpb25fZGV0YWlscyI6W3sidHlwZSI6ImRhdGEiLCJsb2NhdGlvbnMiOlsiaHR0cHM6Ly9hcGkub3JkZXJzLmludGVybmFsL29yZGVycyJdLCJhY3Rpb25zIjpbInJlYWQiXSwiZmllbGRzQWxsb3dlZCI6WyJpZCIsInN0YXR1cyIsInRvdGFsIl0sImZpZWxkc0RlbmllZCI6WyJjdXN0b21lci5lbWFpbCJdLCJsYWJlbENlaWxpbmciOlsiaW50ZXJuYWwiXX0seyJ0eXBlIjoiYnVkZ2V0IiwibWF4VXNlcyI6MTAwLCJyYXRlIjp7Im1heCI6NjAsIndpbmRvd1NlY29uZHMiOjYwfX1dLCJhYXBfY3JpdCI6WyJhdXRob3JpemF0aW9uX2RldGFpbHMiLCJjbmYiXSwiY25mIjp7ImprdCI6IkhsSGdDY2pyaGJleXc4MFZNZWY1MXlQd2h5UnFqaXdMZHdTTFJxbzdoU0kifSwiaWF0IjoxNzgwMzE1MjAwLCJleHAiOjE3ODAzMTU1MDAsImp0aSI6ImMzZDRlNWY2YTdiODA5MWEyYjNjNGQ1ZTZmNzA4MTkyIn0.I26bq7dBZYSYdGA5i0c5w7mgPxjaRXe5RWOw7jWX3P4qWm-fHxDeXa33D_0_PeEggP_Mv8Ky01MMDfEFw3C2DA
+eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImJyb2tlci1rZXktMSJ9.eyJpc3MiOiJodHRwczovL2Jyb2tlci5hY21lLmV4YW1wbGUiLCJzdWIiOiJkaWQ6b3BlbmEyYTphZ2VudDphY21lL29yZGVycy1yZWFkZXIiLCJhdWQiOiJodHRwczovL2FwaS5vcmRlcnMuaW50ZXJuYWwiLCJzY29wZSI6Im9yZGVycy5yZWFkIiwidHJ1c3RfY2xhc3MiOiJvcmRlcnM6cmVhZCIsImlzc3Vlcl9jaGFpbiI6WyJkaWQ6b3BlbmEyYTphdXRob3JpdHk6b3BlbmEyYS5vcmciXSwidHJ1c3RfbGV2ZWwiOjQsImF1dGhvcml6YXRpb25fZGV0YWlscyI6W3sidHlwZSI6Imh0dHBzOi8vc3BlY3Mub3BlbmEyYS5vcmcvYWFwL3R5cGVzL2RhdGEiLCJsb2NhdGlvbnMiOlsiaHR0cHM6Ly9hcGkub3JkZXJzLmludGVybmFsL29yZGVycyJdLCJhY3Rpb25zIjpbInJlYWQiXSwiZmllbGRzQWxsb3dlZCI6WyJpZCIsInN0YXR1cyIsInRvdGFsIl0sImZpZWxkc0RlbmllZCI6WyJjdXN0b21lci5lbWFpbCJdLCJsYWJlbENlaWxpbmciOlsiaW50ZXJuYWwiXX0seyJ0eXBlIjoiaHR0cHM6Ly9zcGVjcy5vcGVuYTJhLm9yZy9hYXAvdHlwZXMvYnVkZ2V0IiwibWF4VXNlcyI6MTAwLCJyYXRlIjp7Im1heCI6NjAsIndpbmRvd1NlY29uZHMiOjYwfX1dLCJhYXBfY3JpdCI6WyJhdXRob3JpemF0aW9uX2RldGFpbHMiLCJjbmYiXSwiY25mIjp7ImprdCI6IkhsSGdDY2pyaGJleXc4MFZNZWY1MXlQd2h5UnFqaXdMZHdTTFJxbzdoU0kifSwiaWF0IjoxNzgwMzE1MjAwLCJleHAiOjE3ODAzMTU1MDAsImp0aSI6ImMzZDRlNWY2YTdiODA5MWEyYjNjNGQ1ZTZmNzA4MTkyIn0.40nuap-KXzbFBQKJH9L05FECRNGBtw2zbAWXbISWekdQ57hEDhHfGn3Vc5ewlbYhKDvZ93uiKDv3ouAHAXhABw
 ```
 
 ```json
@@ -350,7 +364,7 @@ eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImJyb2tlci1rZXktMSJ9.eyJpc3MiOiJodHR
   "trust_level": 4,
   "authorization_details": [
     {
-      "type": "data",
+      "type": "https://specs.opena2a.org/aap/types/data",
       "locations": ["https://api.orders.internal/orders"],
       "actions": ["read"],
       "fieldsAllowed": ["id", "status", "total"],
@@ -358,7 +372,7 @@ eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImJyb2tlci1rZXktMSJ9.eyJpc3MiOiJodHR
       "labelCeiling": ["internal"]
     },
     {
-      "type": "budget",
+      "type": "https://specs.opena2a.org/aap/types/budget",
       "maxUses": 100,
       "rate": {"max": 60, "windowSeconds": 60}
     }
@@ -373,8 +387,9 @@ eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImJyb2tlci1rZXktMSJ9.eyJpc3MiOiJodHR
 
 The 0.5 members sit after the baseline members and before the validity window, so the
 byte order of the baseline members is unchanged from the reference construction. The
-presenter test key and its thumbprint are published in
-[`examples/tokens/presenter-keys.json`](./examples/tokens/presenter-keys.json).
+presenter test keys (`agent-key-1`, `agent-key-2`, `role` `presenter`) and their
+thumbprints are published in
+[`examples/tokens/test-keys.json`](./examples/tokens/test-keys.json).
 
 ## 5. Delegation Assertion (DA)
 
@@ -398,7 +413,7 @@ RFC 8693 delegation members, pinned by
 |---|---|---|---|
 | *(all CGT claims)* | MUST | §4.2 | `sub` is the **delegatee**. |
 | `act` | MUST | object | The delegating agent, `{"sub": <delegator DID>}`. Nesting `act` expresses a chain, innermost actor first (RFC 8693 §4.1). |
-| `max_depth` | MUST | integer ≥ 1 | Remaining delegation depth below this assertion. |
+| `max_depth` | MUST | integer ≥ 0 | Remaining delegation depth below this assertion; 0 is a terminal delegation. MUST NOT exceed the `subDelegationDepth` of the delegator's `peer_agent` entry whose `peerDid` is this DA's `sub`, when such an entry exists (§5.4). |
 | `delegator_atx` | MUST | `sha256:` + 64 hex | Delegator's ATX hash (§5.2 audit trail). |
 | `authorization_details` | MAY | array | As in §4.4, subject to the attenuation rule of §5.4. Mandatory to understand; listed in `aap_crit`. |
 | `aap_crit` | MAY | string array | As in §4.5. |
@@ -449,26 +464,34 @@ equal to the corresponding member of E under the member kind:
   `models`, `destinations`, `direction`, `fieldsAllowed`, `labelCeiling`,
   `egressCeiling`): E' is a subset of E. An absent allow set in E means unbounded, except
   `labelCeiling` and `egressCeiling`, where absent means the empty set, so E' cannot name
-  a label E did not carry. An absent allow set in E' inherits E's value.
+  a label E did not carry. An absent allow set in E' inherits E's value. For
+  `network.destinations` the subset is evaluated by pattern coverage: each E' element
+  equals an E element or matches an E `*.` pattern, and an E' pattern is covered only by
+  an equal or broader E pattern.
 - **deny set members** (`fieldsDenied`): E' is a superset of E. Absent means the empty
   set.
 - **bound members** (`subDelegationDepth`, `maxUses`, `concurrency`, `rate.max`,
   `spend.amount` in the same currency, `tokenCap.input`, `tokenCap.output`): E' is less
-  than or equal to E. `rate.windowSeconds` in E' is greater than or equal to E's for the
+  than or equal to E. A `spend` in a currency E does not carry is not comparable and makes
+  the entry an orphan. `rate.windowSeconds` in E' is greater than or equal to E's for the
   same or a smaller `rate.max`. A bound absent in E means unbounded; a bound absent in
   E' inherits E's value. For `peer_agent`, `subDelegationDepth` in E' MUST additionally
   be strictly less than E's, since E' is one delegation deeper.
-- **restriction flags** (`tlsRequired`): if E is `true`, E' MUST be `true`.
+- **restriction flags** (`tlsRequired`, `requiresApproval`): if E is `true`, E' MUST be
+  `true`.
 - **constraint objects** (`argumentConstraints`): every constraint E states for a tool and
-  argument is present in E' with an equal or more restrictive value; E' MAY add
-  constraints.
+  argument MUST appear in E' JSON equal; E' MAY add constraints for arguments E leaves
+  unconstrained. The constraint grammar is deferred to the revision that lands broker
+  enforcement.
 
 A DA is valid only if **every** entry in its `authorization_details` is narrower than or
 equal to some entry of the same `type` in the delegator's `authorization_details`, and
 **no entry lacks such a parent**. An orphan entry (a type or identity the delegator does
 not hold) makes the DA invalid, whatever the rest of the token says. The delegatee's
-array MAY hold fewer entries than the delegator's. When a DA chain is present (nested
-`act`), the relation is checked link by link, each DA against its immediate delegator.
+array MAY hold fewer entries than the delegator's. A DA's `max_depth` MUST NOT exceed the
+`subDelegationDepth` of the delegator's `peer_agent` entry whose `peerDid` is the DA's
+`sub`, when such an entry exists. When a DA chain is present (nested `act`), the relation
+is checked link by link, each DA against its immediate delegator.
 The minting broker MUST check the relation at mint time; a verifier that can resolve the
 delegator's grant MUST re-check it; a verifier that cannot MUST NOT treat the DA as
 carrying more than its own entries state.
@@ -476,11 +499,11 @@ carrying more than its own entries state.
 ### 5.5 Example of an attenuated delegation
 
 Example (generated; `orders-reader` delegates to `reporting-bot` with fewer fields and a
-smaller budget than the §4.7 grant, `cnf` bound to the delegatee's presenter key, which in
-the fixtures is the same published test key):
+smaller budget than the §4.7 grant, `cnf` bound to the delegatee's published presenter
+test key `agent-key-2`):
 
 ```text
-eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImJyb2tlci1rZXktMSJ9.eyJpc3MiOiJodHRwczovL2Jyb2tlci5hY21lLmV4YW1wbGUiLCJzdWIiOiJkaWQ6b3BlbmEyYTphZ2VudDphY21lL3JlcG9ydGluZy1ib3QiLCJhdWQiOiJodHRwczovL2FwaS5vcmRlcnMuaW50ZXJuYWwiLCJzY29wZSI6Im9yZGVycy5yZWFkIiwidHJ1c3RfY2xhc3MiOiJvcmRlcnM6cmVhZCIsImlzc3Vlcl9jaGFpbiI6WyJkaWQ6b3BlbmEyYTphdXRob3JpdHk6b3BlbmEyYS5vcmciXSwidHJ1c3RfbGV2ZWwiOjQsImF1dGhvcml6YXRpb25fZGV0YWlscyI6W3sidHlwZSI6ImRhdGEiLCJsb2NhdGlvbnMiOlsiaHR0cHM6Ly9hcGkub3JkZXJzLmludGVybmFsL29yZGVycyJdLCJhY3Rpb25zIjpbInJlYWQiXSwiZmllbGRzQWxsb3dlZCI6WyJpZCIsInN0YXR1cyJdLCJmaWVsZHNEZW5pZWQiOlsiY3VzdG9tZXIuZW1haWwiXSwibGFiZWxDZWlsaW5nIjpbImludGVybmFsIl19LHsidHlwZSI6ImJ1ZGdldCIsIm1heFVzZXMiOjEwLCJyYXRlIjp7Im1heCI6MTAsIndpbmRvd1NlY29uZHMiOjYwfX1dLCJhYXBfY3JpdCI6WyJhdXRob3JpemF0aW9uX2RldGFpbHMiLCJjbmYiXSwiY25mIjp7ImprdCI6IkhsSGdDY2pyaGJleXc4MFZNZWY1MXlQd2h5UnFqaXdMZHdTTFJxbzdoU0kifSwiYWN0Ijp7InN1YiI6ImRpZDpvcGVuYTJhOmFnZW50OmFjbWUvb3JkZXJzLXJlYWRlciJ9LCJtYXhfZGVwdGgiOjEsImRlbGVnYXRvcl9hdHgiOiJzaGEyNTY6MjA1Mjg3OWRkYTE1YjFjYTVlNjAzMTllMzQ3N2E0MDA4NDEyYmZmZGFmM2MzNTY2YzY1ODc5NWE0OGNhYjhmZCIsImlhdCI6MTc4MDMxNTIwMCwiZXhwIjoxNzgwMzE1NTAwLCJqdGkiOiJkNGU1ZjZhN2I4YzkwMTJiM2M0ZDVlNmY3MDgxOTIwMyJ9.dITVeSEbF66f47VAt6oFjLHwLsDYpe2jz_7j8rTs0p2DH3wIAYdpEeHAo_qWpeOimjeib4dW3RvYRi77yR3UAQ
+eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImJyb2tlci1rZXktMSJ9.eyJpc3MiOiJodHRwczovL2Jyb2tlci5hY21lLmV4YW1wbGUiLCJzdWIiOiJkaWQ6b3BlbmEyYTphZ2VudDphY21lL3JlcG9ydGluZy1ib3QiLCJhdWQiOiJodHRwczovL2FwaS5vcmRlcnMuaW50ZXJuYWwiLCJzY29wZSI6Im9yZGVycy5yZWFkIiwidHJ1c3RfY2xhc3MiOiJvcmRlcnM6cmVhZCIsImlzc3Vlcl9jaGFpbiI6WyJkaWQ6b3BlbmEyYTphdXRob3JpdHk6b3BlbmEyYS5vcmciXSwidHJ1c3RfbGV2ZWwiOjQsImF1dGhvcml6YXRpb25fZGV0YWlscyI6W3sidHlwZSI6Imh0dHBzOi8vc3BlY3Mub3BlbmEyYS5vcmcvYWFwL3R5cGVzL2RhdGEiLCJsb2NhdGlvbnMiOlsiaHR0cHM6Ly9hcGkub3JkZXJzLmludGVybmFsL29yZGVycyJdLCJhY3Rpb25zIjpbInJlYWQiXSwiZmllbGRzQWxsb3dlZCI6WyJpZCIsInN0YXR1cyJdLCJmaWVsZHNEZW5pZWQiOlsiY3VzdG9tZXIuZW1haWwiXSwibGFiZWxDZWlsaW5nIjpbImludGVybmFsIl19LHsidHlwZSI6Imh0dHBzOi8vc3BlY3Mub3BlbmEyYS5vcmcvYWFwL3R5cGVzL2J1ZGdldCIsIm1heFVzZXMiOjEwLCJyYXRlIjp7Im1heCI6MTAsIndpbmRvd1NlY29uZHMiOjYwfX1dLCJhYXBfY3JpdCI6WyJhdXRob3JpemF0aW9uX2RldGFpbHMiLCJjbmYiXSwiY25mIjp7ImprdCI6InFJX19CT2NjZ0FoaEg5d29iX0c3Z0ZWSExLSWtTNEN1dHZvU3gwYk1DWTgifSwiYWN0Ijp7InN1YiI6ImRpZDpvcGVuYTJhOmFnZW50OmFjbWUvb3JkZXJzLXJlYWRlciJ9LCJtYXhfZGVwdGgiOjEsImRlbGVnYXRvcl9hdHgiOiJzaGEyNTY6MjA1Mjg3OWRkYTE1YjFjYTVlNjAzMTllMzQ3N2E0MDA4NDEyYmZmZGFmM2MzNTY2YzY1ODc5NWE0OGNhYjhmZCIsImlhdCI6MTc4MDMxNTIwMCwiZXhwIjoxNzgwMzE1NTAwLCJqdGkiOiJkNGU1ZjZhN2I4YzkwMTJiM2M0ZDVlNmY3MDgxOTIwMyJ9.ev6VUDi_6jUaaDfbY3SEARDVbpVuhk7Z0ptsGD7Edv3JyPap8mK4faaSDJeNw9yJI2SEaZf0vO588wgV3WekCQ
 ```
 
 ```json
@@ -494,7 +517,7 @@ eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImJyb2tlci1rZXktMSJ9.eyJpc3MiOiJodHR
   "trust_level": 4,
   "authorization_details": [
     {
-      "type": "data",
+      "type": "https://specs.opena2a.org/aap/types/data",
       "locations": ["https://api.orders.internal/orders"],
       "actions": ["read"],
       "fieldsAllowed": ["id", "status"],
@@ -502,13 +525,13 @@ eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6ImJyb2tlci1rZXktMSJ9.eyJpc3MiOiJodHR
       "labelCeiling": ["internal"]
     },
     {
-      "type": "budget",
+      "type": "https://specs.opena2a.org/aap/types/budget",
       "maxUses": 10,
       "rate": {"max": 10, "windowSeconds": 60}
     }
   ],
   "aap_crit": ["authorization_details", "cnf"],
-  "cnf": {"jkt": "HlHgCcjrhbeyw80VMef51yPwhyRqjiwLdwSLRqo7hSI"},
+  "cnf": {"jkt": "qI__BOccgAhhH9wob_G7gFVHLKIkS4CutvoSx0bMCY8"},
   "act": {"sub": "did:opena2a:agent:acme/orders-reader"},
   "max_depth": 1,
   "delegator_atx": "sha256:2052879dda15b1ca5e60319e3477a4008412bffdaf3c3566c658795a48cab8fd",
@@ -562,7 +585,7 @@ cumulative: an L2 BAC carries the L1 members, an L3 BAC carries all.
 | `drift_score` | MUST (L3) | number 0–1 | Behavioral drift measure. |
 | `anomaly_state` | MUST (L3) | string | Current anomaly state (vocabulary implementation-defined in v1). |
 | `intent_verified` | MUST (L3) | boolean | NanoMind intent verification state. |
-| `session_label` | L3 only; MUST when the issuer holds a session high water mark for the subject (broker profile §6.10) | string array (a set) | The union of the label sets of every field admitted into the session so far (§4.4.2). MUST NOT appear at L1 or L2. Labels are a set, not a level. |
+| `session_label` | L3 only; MUST when the issuer holds a session high water mark for the subject (broker profile §6.10) | string array (a set) | The union of the label sets of every field admitted into the session so far (§4.4.2). MUST NOT appear at L1 or L2. Labels are a set, not a level. An empty array means the session has admitted no labeled field; absence means the issuer holds no high water mark for the subject. The two are distinct. |
 | `iat` / `exp` | MUST | NumericDate | `exp - iat` MUST be ≤ 60 (the 60-second TTL, §6.1). |
 | `jti` | MUST | 32 hex chars | Unique token id (§8.1). |
 | `aap_ver` | MAY (v1) | integer | Claim-schema version (Section 9.6). |
@@ -873,11 +896,11 @@ either way. The ML-DSA-65 test key derives from a published 32-byte seed
 implementations (dilithium-py, @noble/post-quantum, OpenSSL via Node ≥ 25).
 
 The 0.5 fixtures (`cgt-v1.fgc.jwt`, `da-v1.fgc.jwt`, `bac-v1.session.jwt`, embedded in
-§4.7, §5.5, and §6.5) are additive: every 0.4 fixture and `test-keys.json` are byte
-identical to their 0.4 form, so a suite that pins them keeps verifying. The presenter
-key the `cnf` fixtures bind to is published separately in
-[`examples/tokens/presenter-keys.json`](./examples/tokens/presenter-keys.json) with its
-RFC 7638 thumbprint.
+§4.7, §5.5, and §6.5) are additive: every 0.4 fixture is byte identical to its 0.4 form,
+and the 0.4 entries of `test-keys.json` are unchanged, so a suite that pins them keeps
+verifying after it accepts the appended entries. The presenter keys the `cnf` fixtures
+bind to (`agent-key-1` for the CGT subject, `agent-key-2` for the delegatee) are appended
+to `test-keys.json` with `role` `presenter` and their RFC 7638 thumbprints.
 
 ## 10. IANA Considerations
 
@@ -916,8 +939,6 @@ type registry of Section 4.4.1 are managed in this specification.
 - [OpenA2A], OpenA2A Platform Architecture.
 - [AAP-BROKER-PROFILE], AAP Broker & Resolution Layer (this repository).
 - [RFC 9421], HTTP Message Signatures (a presentation proof format, broker profile §6.8).
-- [ATX-2.0], Agent Trust eXtension 2.0, the revision that carries the subject key; in
-  preparation, not published as of 2026-09-08.
 - [AI Agent Threat Matrix], https://threats.opena2a.org
 
 ## Authors' Addresses

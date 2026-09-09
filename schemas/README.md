@@ -15,7 +15,7 @@ hand-authored — by `scripts/generate_examples.py`, with a CI drift gate.
 | `grant-reference-v1.schema.json` | AAP-BROKER-PROFILE.md §4.2 ABNF | Pinned, normative |
 | `jose-header-v1.schema.json` | AAP-SPEC §9.2 | Pinned, normative |
 | `ait-claims-v1.schema.json` | AAP-SPEC §3.2 | Pinned, normative (no reference implementation yet) |
-| `cgt-claims-v1.schema.json` | AAP-SPEC §4.2 (ratified from Secretless `src/broker/cpi/assertion.ts`) | Pinned, normative, reference-implemented |
+| `cgt-claims-v1.schema.json` | AAP-SPEC §4.2 (ratified from Secretless `src/broker/cpi/assertion.ts`) | Pinned, normative; baseline rows reference-implemented, 0.5 members not |
 | `da-claims-v1.schema.json` | AAP-SPEC §5.3 | Pinned, normative (reference realizes delegation via Exchange; no standalone `act`-chain minting yet) |
 | `bac-claims-v1.schema.json` | AAP-SPEC §6.4 | Pinned, normative (no reference implementation yet) |
 | `jws-general-v1.schema.json` | AAP-SPEC §9.4 | Pinned, normative (multi-suite container; hybrid Ed25519 + ML-DSA-65 profile active as of 0.4, RFC 9964) |
