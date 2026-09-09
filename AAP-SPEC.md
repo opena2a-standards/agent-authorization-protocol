@@ -246,9 +246,9 @@ unconstrained baseline token. The advertisement is the **set of entry types** th
 counterparty understands, with the semantics of RFC 9396 §10
 `authorization_details_types_supported`, not a boolean; it is carried in the broker
 discovery document (broker profile §8.5), whose own schema names the member, and selected
-by the negotiation of broker profile §8.1. As of 2026-09-08 neither aap-conformance
-verifier (`verifiers/python/verify.py`, `verifiers/node/verify.mjs`) implements
-`aap_crit`.
+by the negotiation of broker profile §8.1. Both aap-conformance reference verifiers
+(`verifiers/python/verify.py`, `verifiers/node/verify.mjs`) implement `aap_crit`; that
+repository's `conformance.json` is the record of what they verify.
 
 #### 4.4.1 Entry type registry
 

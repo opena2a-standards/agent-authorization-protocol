@@ -14,6 +14,9 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   window cites the family clock-skew bound in ATP Section 10.2.
 - The `trust_class` example uses a domain-prefixed namespace (`acme.com/orders:read`), the
   AIP Section 4.1 grammar; a bare unreserved namespace is not a valid capability.
+- Section 4.4 no longer dates the conformance verifiers' `aap_crit` status: both
+  aap-conformance reference verifiers implement it, and that repository's
+  `conformance.json` is the record of what they verify.
 
 ## [0.5.0-draft] - 2026-09-08
 
