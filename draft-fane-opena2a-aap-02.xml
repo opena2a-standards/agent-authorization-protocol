@@ -695,19 +695,6 @@ NOTE: '\' line wrapping per RFC 8792
     <section anchor="security">
       <name>Security Considerations</name>
 
-      <section anchor="sec-confinement">
-        <name>Credential Confinement</name>
-        <t>Where AAP is deployed via a broker, no credential value, temporary
-        token, or backend identifier may enter an agent's reasoning context. This
-        requirement is normative in the broker profile
-        <xref target="AAP-BROKER-PROFILE"/> and is the property that defends
-        against the credential-harvest and exfiltration attack classes catalogued
-        in <xref target="THREATMATRIX"/>. An agent emits an abstract grant
-        reference; the broker verifies the agent's ATX, evaluates resource
-        policy, obtains a scoped credential, performs the operation, and returns
-        only the result.</t>
-      </section>
-
       <section anchor="sec-replay">
         <name>Replay Prevention</name>
         <t>All tokens include a unique identifier ("jti"): 16 random bytes,
@@ -719,8 +706,11 @@ NOTE: '\' line wrapping per RFC 8792
         presentation inside that window rejects, after all other checks
         pass.</t>
 
-        <t>The aap-conformance suite exercises this rule with the fixture
-        cgt&#8209;compact&#8209;replayed.json.</t>
+        <t>The aap-conformance suite <xref target="AAP-CONFORMANCE"/>
+        exercises this rule with the fixture:</t>
+        <ul spacing="compact">
+          <li>cgt-compact-replayed.json</li>
+        </ul>
       </section>
 
       <section anchor="sec-pq">
@@ -756,11 +746,15 @@ NOTE: '\' line wrapping per RFC 8792
         so that row remains reserved on the same adoption path this section
         previously applied to ML-DSA-65.</t>
 
-        <t>The aap-conformance suite exercises the hybrid profile with the
-        fixtures cgt&#8209;hybrid&#8209;general&#8209;valid.json,
-        cgt&#8209;hybrid&#8209;missing&#8209;ed25519.json, cgt&#8209;hybrid&#8209;missing&#8209;mldsa65.json,
-        cgt&#8209;hybrid&#8209;ed25519&#8209;bad&#8209;signature.json and
-        cgt&#8209;hybrid&#8209;mldsa&#8209;bad&#8209;signature.json.</t>
+        <t>The aap-conformance suite <xref target="AAP-CONFORMANCE"/>
+        exercises the hybrid profile with the fixtures:</t>
+        <ul spacing="compact">
+          <li>cgt-hybrid-general-valid.json</li>
+          <li>cgt-hybrid-missing-ed25519.json</li>
+          <li>cgt-hybrid-missing-mldsa65.json</li>
+          <li>cgt-hybrid-ed25519-bad-signature.json</li>
+          <li>cgt-hybrid-mldsa-bad-signature.json</li>
+        </ul>
       </section>
 
       <section anchor="sec-intent">
@@ -776,6 +770,19 @@ NOTE: '\' line wrapping per RFC 8792
         permission to act on a resource, and trust is not transitive.
         Authorization exists only where a local policy grants it. Brokers MUST
         default-deny.</t>
+      </section>
+
+      <section anchor="sec-confinement">
+        <name>Credential Confinement</name>
+        <t>Where AAP is deployed via a broker, no credential value, temporary
+        token, or backend identifier may enter an agent's reasoning context. This
+        requirement is normative in the broker profile
+        <xref target="AAP-BROKER-PROFILE"/> and is the property that defends
+        against the credential-harvest and exfiltration attack classes catalogued
+        in <xref target="THREATMATRIX"/>. An agent emits an abstract grant
+        reference; the broker verifies the agent's ATX, evaluates resource
+        policy, obtains a scoped credential, performs the operation, and returns
+        only the result.</t>
       </section>
 
       <section anchor="sec-possession">
@@ -887,8 +894,12 @@ ASCII( BASE64URL(UTF8(protected header)) || "." ||
         remain a legal multi-signature (co-signature) form, published as
         "examples/tokens/cgt-v1.general.json".</t>
 
-        <t>The aap-conformance suite exercises this rule with the fixtures
-        cgt&#8209;hybrid&#8209;missing&#8209;ed25519.json and cgt&#8209;hybrid&#8209;missing&#8209;mldsa65.json.</t>
+        <t>The aap-conformance suite <xref target="AAP-CONFORMANCE"/>
+        exercises this rule with the fixtures:</t>
+        <ul spacing="compact">
+          <li>cgt-hybrid-missing-ed25519.json</li>
+          <li>cgt-hybrid-missing-mldsa65.json</li>
+        </ul>
       </section>
 
       <section anchor="suite-registry">
@@ -951,6 +962,8 @@ ASCII( BASE64URL(UTF8(protected header)) || "." ||
   </middle>
 
   <back>
+    <references>
+      <name>References</name>
     <references>
       <name>Normative References</name>
 
@@ -1175,6 +1188,16 @@ ASCII( BASE64URL(UTF8(protected header)) || "." ||
         </front>
       </reference>
 
+      <reference anchor="AAP-CONFORMANCE" target="https://github.com/opena2a-standards/aap-conformance">
+        <front>
+          <title>AAP Conformance Suite</title>
+          <author>
+            <organization>OpenA2A</organization>
+          </author>
+          <date year="2026"/>
+        </front>
+      </reference>
+
       <reference anchor="A2A" target="https://a2aproject.github.io/A2A/">
         <front>
           <title>Agent2Agent (A2A) Protocol Specification</title>
@@ -1228,6 +1251,7 @@ ASCII( BASE64URL(UTF8(protected header)) || "." ||
           <date year="2026"/>
         </front>
       </reference>
+    </references>
     </references>
 
     <section anchor="related-work">
