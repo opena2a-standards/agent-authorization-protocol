@@ -6,6 +6,13 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ## [Unreleased]
 
+## [0.5.1-draft] - 2026-09-30
+
+Internet-Draft pairing: `draft-fane-opena2a-aap-02` carries this 0.5.1-draft and is the
+revision to submit next; `draft-fane-opena2a-aap-01` (2026-07-22) remains the current
+datatracker revision until that upload and carries 0.4.0-draft. The broker profile moves
+to 0.4.1-draft in lockstep.
+
 ### Changed
 
 - Section 9.4 is marked as the one home of the family signature gate (every declared
@@ -22,10 +29,10 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 Internet-Draft pairing: `draft-fane-opena2a-aap-00` carried the 0.3.0-draft text
 (2026-07-06, refreshed to the 0.4.0 content in #9), `draft-fane-opena2a-aap-01`
-carries 0.4.0-draft (2026-07-22), and `draft-fane-opena2a-aap-02` carries this
-0.5.0-draft. The broker profile moves to 0.4.0-draft in lockstep.
-`draft-fane-opena2a-aap-02` is not submitted to the datatracker by this release;
-`-01` remains the current revision there.
+carries 0.4.0-draft (2026-07-22), and no datatracker revision carries this
+0.5.0-draft (the -02 render moved to 0.5.1-draft). The broker profile moves to
+0.4.0-draft in lockstep. `draft-fane-opena2a-aap-02` is not submitted to the
+datatracker by this release; `-01` remains the current revision there.
 
 ### Added
 
