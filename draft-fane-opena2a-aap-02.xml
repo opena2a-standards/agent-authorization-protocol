@@ -226,7 +226,11 @@ NOTE: '\' line wrapping per RFC 8792
       "fga_constraints" claim of the previous revisions is deprecated: it is
       replaced by "authorization_details", no known implementation minted it, and it
       remains defined only so that tokens conforming to the previous revisions
-      keep validating; a verifier ignores it.</t>
+      keep validating; a verifier ignores it. Both aap-conformance
+      <xref target="AAP-CONFORMANCE"/> reference verifiers match "trust_class"
+      against "^[a-z0-9_-]+:[a-z0-9_-]+$", a pattern that admits no domain
+      prefix; the JSON examples in this document carry the unprefixed
+      "orders:read".</t>
 
       <sourcecode type="json"><![CDATA[
 {
@@ -1086,17 +1090,6 @@ ASCII( BASE64URL(UTF8(protected header)) || "." ||
         <seriesInfo name="RFC" value="9449"/>
       </reference>
 
-      <reference anchor="RFC9162" target="https://www.rfc-editor.org/info/rfc9162">
-        <front>
-          <title>Certificate Transparency Version 2.0</title>
-          <author initials="B." surname="Laurie" fullname="B. Laurie"/>
-          <author initials="E." surname="Messeri" fullname="E. Messeri"/>
-          <author initials="R." surname="Stradling" fullname="R. Stradling"/>
-          <date year="2021" month="December"/>
-        </front>
-        <seriesInfo name="RFC" value="9162"/>
-      </reference>
-
       <reference anchor="FIPS203" target="https://doi.org/10.6028/NIST.FIPS.203">
         <front>
           <title>Module-Lattice-Based Key-Encapsulation Mechanism Standard</title>
@@ -1155,6 +1148,17 @@ ASCII( BASE64URL(UTF8(protected header)) || "." ||
     <references>
       <name>Informative References</name>
 
+      <reference anchor="RFC9162" target="https://www.rfc-editor.org/info/rfc9162">
+        <front>
+          <title>Certificate Transparency Version 2.0</title>
+          <author initials="B." surname="Laurie" fullname="B. Laurie"/>
+          <author initials="E." surname="Messeri" fullname="E. Messeri"/>
+          <author initials="R." surname="Stradling" fullname="R. Stradling"/>
+          <date year="2021" month="December"/>
+        </front>
+        <seriesInfo name="RFC" value="9162"/>
+      </reference>
+
       <reference anchor="RFC8792" target="https://www.rfc-editor.org/info/rfc8792">
         <front>
           <title>Handling Long Lines in Content of Internet-Drafts and RFCs</title>
@@ -1198,9 +1202,9 @@ ASCII( BASE64URL(UTF8(protected header)) || "." ||
         </front>
       </reference>
 
-      <reference anchor="AIP" target="https://specs.opena2a.org/specs/aip">
+      <reference anchor="AIP" target="https://github.com/opena2a-standards/agent-identity-protocol/blob/main/AIP-SPEC.md">
         <front>
-          <title>OpenA2A Agent Identity Protocol (AIP)</title>
+          <title>OpenA2A Agent Identity Protocol (OpenA2A AIP)</title>
           <author initials="A." surname="Fane" fullname="Abdel Fane">
             <organization>OpenA2A</organization>
           </author>

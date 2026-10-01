@@ -311,7 +311,11 @@ Internet-Draft                     AAP                    September 2026
    "fga_constraints" claim of the previous revisions is deprecated: it
    is replaced by "authorization_details", no known implementation
    minted it, and it remains defined only so that tokens conforming to
-   the previous revisions keep validating; a verifier ignores it.
+   the previous revisions keep validating; a verifier ignores it.  Both
+   aap-conformance [AAP-CONFORMANCE] reference verifiers match
+   "trust_class" against "^[a-z0-9_-]+:[a-z0-9_-]+$", a pattern that
+   admits no domain prefix; the JSON examples in this document carry the
+   unprefixed "orders:read".
 
    {
      "iss": "https://broker.acme.example",
@@ -325,10 +329,6 @@ Internet-Draft                     AAP                    September 2026
      "exp": 1780315500,
      "jti": "9f8e7d6c5b4a39281706f5e4d3c2b1a0"
    }
-
-
-
-
 
 
 
@@ -1234,10 +1234,6 @@ Fane                      Expires 3 April 2027                 [Page 22]
 Internet-Draft                     AAP                    September 2026
 
 
-   [RFC9162]  Laurie, B., Messeri, E., and R. Stradling, "Certificate
-              Transparency Version 2.0", RFC 9162, December 2021,
-              <https://www.rfc-editor.org/info/rfc9162>.
-
    [RFC9396]  Lodderstedt, T., Richer, J., and B. Campbell, "OAuth 2.0
               Rich Authorization Requests", RFC 9396, May 2023,
               <https://www.rfc-editor.org/info/rfc9396>.
@@ -1265,8 +1261,9 @@ Internet-Draft                     AAP                    September 2026
               OpenA2A, "AAP Conformance Suite", 2026,
               <https://github.com/opena2a-standards/aap-conformance>.
 
-   [AIP]      Fane, A., "OpenA2A Agent Identity Protocol (AIP)", 2026,
-              <https://specs.opena2a.org/specs/aip>.
+   [AIP]      Fane, A., "OpenA2A Agent Identity Protocol (OpenA2A AIP)",
+              2026, <https://github.com/opena2a-standards/agent-
+              identity-protocol/blob/main/AIP-SPEC.md>.
 
    [CRUZ-AAP] "Agent Authorization Profile (AAP) for OAuth 2.0", 2026,
               <https://datatracker.ietf.org/doc/draft-aap-oauth-
@@ -1280,7 +1277,10 @@ Internet-Draft                     AAP                    September 2026
    [MCP]      Model Context Protocol, "Model Context Protocol
               Specification", 2026, <https://modelcontextprotocol.io/>.
 
-
+   [MISHRA-DAAP]
+              "OAuth Profile for Delegated AI Agent Authorization
+              (DAAP)", 2026, <https://datatracker.ietf.org/doc/draft-
+              mishra-oauth-agent-grants/>.
 
 
 
@@ -1290,15 +1290,14 @@ Fane                      Expires 3 April 2027                 [Page 23]
 Internet-Draft                     AAP                    September 2026
 
 
-   [MISHRA-DAAP]
-              "OAuth Profile for Delegated AI Agent Authorization
-              (DAAP)", 2026, <https://datatracker.ietf.org/doc/draft-
-              mishra-oauth-agent-grants/>.
-
    [RFC8792]  Watsen, K., Auerswald, E., Farrel, A., and Q. Wu,
               "Handling Long Lines in Content of Internet-Drafts and
               RFCs", RFC 8792, June 2020,
               <https://www.rfc-editor.org/info/rfc8792>.
+
+   [RFC9162]  Laurie, B., Messeri, E., and R. Stradling, "Certificate
+              Transparency Version 2.0", RFC 9162, December 2021,
+              <https://www.rfc-editor.org/info/rfc9162>.
 
    [RFC9421]  Backman, A., Ed., Richer, J., Ed., and M. Sporny, "HTTP
               Message Signatures", RFC 9421, February 2024,
@@ -1338,6 +1337,7 @@ Appendix A.  Related Work
    attestation (Section 6), rather than issuing an OAuth token the agent
    holds directly.  It carries budgets as the "budget" entry type of
    "authorization_details" (Section 4.1) and escalation as the hook of
+   the broker profile, both enforced by a local broker rather than by
 
 
 
@@ -1346,7 +1346,6 @@ Fane                      Expires 3 April 2027                 [Page 24]
 Internet-Draft                     AAP                    September 2026
 
 
-   the broker profile, both enforced by a local broker rather than by
    the authorization server that issued the token.  The two differ in
    where enforcement sits (broker versus token holder and resource
    server) and in credential confinement (Section 8.5), which DAAP -02
@@ -1368,6 +1367,7 @@ Author's Address
    OpenA2A
    United States of America
    Email: info@opena2a.org
+
 
 
 
