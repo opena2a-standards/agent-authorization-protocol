@@ -22,16 +22,16 @@ lockstep.
   window cites the family clock-skew bound in ATP Section 10.2.
 - The `trust_class` example uses a domain-prefixed namespace (`acme.com/orders:read`), the
   AIP Section 4.1 grammar; a bare unreserved namespace is not a valid capability.
-  Section 4.2 states the pattern both aap-conformance reference verifiers and the claim
-  schemas apply to `trust_class`, which admits no domain prefix, and that the JSON examples
-  carry the unprefixed `orders:read`.
+  Section 4.2 states that both aap-conformance reference verifiers match `trust_class`
+  against a pattern that admits no domain prefix, that the claim schemas carry the same
+  pattern, and that the JSON examples carry the unprefixed `orders:read`.
 - Section 4.4 no longer dates the conformance verifiers' `aap_crit` status: both
   aap-conformance reference verifiers implement it, and that repository's
   `conformance.json` is the record of what they verify.
-- RFC 9162 (Certificate Transparency Version 2.0) is an informative reference. It is cited
-  once, at the transparency log in the Registry definition, and no requirement of this
-  specification depends on it. The specification's list named RFC 6962 and the
-  Internet-Draft renders named RFC 9162, both as normative.
+- RFC 9162 (Certificate Transparency Version 2.0) is an informative reference.
+  `draft-fane-opena2a-aap-02` cites it once, at the transparency log in the Registry
+  definition, and no requirement of this specification depends on it. The specification's
+  list named RFC 6962 and the Internet-Draft renders named RFC 9162, both as normative.
 
 ## [0.5.0-draft] - 2026-09-08
 

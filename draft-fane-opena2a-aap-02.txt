@@ -311,11 +311,12 @@ Internet-Draft                     AAP                    September 2026
    "fga_constraints" claim of the previous revisions is deprecated: it
    is replaced by "authorization_details", no known implementation
    minted it, and it remains defined only so that tokens conforming to
-   the previous revisions keep validating; a verifier ignores it.  Both
-   aap-conformance [AAP-CONFORMANCE] reference verifiers match
-   "trust_class" against "^[a-z0-9_-]+:[a-z0-9_-]+$", a pattern that
-   admits no domain prefix; the JSON examples in this document carry the
-   unprefixed "orders:read".
+   the previous revisions keep validating; a verifier ignores it.  As of
+   the date of this revision, both aap-conformance [AAP-CONFORMANCE]
+   reference verifiers match "trust_class" against
+   "^[a-z0-9_-]+:[a-z0-9_-]+$", a pattern that admits no domain prefix;
+   the JSON examples in this document carry the unprefixed
+   "orders:read".
 
    {
      "iss": "https://broker.acme.example",
@@ -329,7 +330,6 @@ Internet-Draft                     AAP                    September 2026
      "exp": 1780315500,
      "jti": "9f8e7d6c5b4a39281706f5e4d3c2b1a0"
    }
-
 
 
 

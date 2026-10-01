@@ -226,11 +226,11 @@ NOTE: '\' line wrapping per RFC 8792
       "fga_constraints" claim of the previous revisions is deprecated: it is
       replaced by "authorization_details", no known implementation minted it, and it
       remains defined only so that tokens conforming to the previous revisions
-      keep validating; a verifier ignores it. Both aap-conformance
-      <xref target="AAP-CONFORMANCE"/> reference verifiers match "trust_class"
-      against "^[a-z0-9_-]+:[a-z0-9_-]+$", a pattern that admits no domain
-      prefix; the JSON examples in this document carry the unprefixed
-      "orders:read".</t>
+      keep validating; a verifier ignores it. As of the date of this revision,
+      both aap-conformance <xref target="AAP-CONFORMANCE"/> reference verifiers
+      match "trust_class" against "^[a-z0-9_-]+:[a-z0-9_-]+$", a pattern that
+      admits no domain prefix; the JSON examples in this document carry the
+      unprefixed "orders:read".</t>
 
       <sourcecode type="json"><![CDATA[
 {
