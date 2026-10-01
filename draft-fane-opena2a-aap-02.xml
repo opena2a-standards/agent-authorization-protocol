@@ -213,18 +213,18 @@ NOTE: '\' line wrapping per RFC 8792
       resource), "scope" (the downstream authorization scope as a string, for
       example "orders.read"), "trust_class" (the abstract ATX capability
       exercised for this grant, in "class:action" form, for example
-      "acme.com/orders:read", a domain-prefixed namespace per AIP Section 4.1),
+      "acme.com/orders:read", a domain-prefixed namespace per AIP Section 4.1 <xref target="AIP"/>),
       "issuer_chain" (the ATX
       issuer chain), "trust_level" (an integer from 0 to 4), "iat" and "exp" (the
       validity window, where "exp" minus "iat" is the policy time-to-live), and
       "jti". The "authorization_details", "aap_crit", and "cnf" claims
       (<xref target="cgt-authz"/>, <xref target="cgt-crit"/>, and
       <xref target="cgt-cnf"/>) are OPTIONAL in form and mandatory to
-      understand when present; no implementation mints them as of the date of
+      understand when present; no known implementation mints them as of the date of
       this revision. The "intent_verified", "max_uses", and "context_required"
       claims are OPTIONAL and are not minted by the v1 reference. The
       "fga_constraints" claim of the previous revisions is deprecated: it is
-      replaced by "authorization_details", no implementation minted it, and it
+      replaced by "authorization_details", no known implementation minted it, and it
       remains defined only so that tokens conforming to the previous revisions
       keep validating; a verifier ignores it.</t>
 
@@ -283,7 +283,7 @@ NOTE: '\' line wrapping per RFC 8792
         an unconstrained baseline token. The advertisement is the set of entry
         types the counterparty understands, with the semantics of the
         "authorization_details_types_supported" metadata of
-        <xref target="RFC9396"/>, not a boolean. Both aap-conformance
+        <xref target="RFC9396"/>, not a boolean. Both aap-conformance <xref target="AAP-CONFORMANCE"/>
         reference verifiers ("verifiers/python/verify.py",
         "verifiers/node/verify.mjs") implement "aap_crit"; that repository's
         "conformance.json" is the record of what they verify.</t>
@@ -413,7 +413,7 @@ NOTE: '\' line wrapping per RFC 8792
         presenter is bound by operating system peer credentials, "cnf" MAY be
         omitted. A verifier that receives a token with "cnf" MUST verify the
         presenter's proof against the bound key and MUST reject the token
-        otherwise. As of the date of this revision no implementation mints
+        otherwise. As of the date of this revision no known implementation mints
         "cnf", and the reference broker binds no presentation.</t>
       </section>
 
@@ -687,7 +687,7 @@ NOTE: '\' line wrapping per RFC 8792
         The list MUST be checked at every resolution, after the ATX and
         revocation list checks and before policy evaluation, and a listed token
         MUST be denied. The list never leaves the operator and is never fetched
-        from a hosted service. As of the date of this revision no implementation
+        from a hosted service. As of the date of this revision no known implementation
         maintains such a list.</t>
       </section>
     </section>
@@ -1192,6 +1192,16 @@ ASCII( BASE64URL(UTF8(protected header)) || "." ||
         <front>
           <title>AAP Conformance Suite</title>
           <author>
+            <organization>OpenA2A</organization>
+          </author>
+          <date year="2026"/>
+        </front>
+      </reference>
+
+      <reference anchor="AIP" target="https://specs.opena2a.org/specs/aip">
+        <front>
+          <title>OpenA2A Agent Identity Protocol (AIP)</title>
+          <author initials="A." surname="Fane" fullname="Abdel Fane">
             <organization>OpenA2A</organization>
           </author>
           <date year="2026"/>

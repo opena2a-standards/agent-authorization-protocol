@@ -299,19 +299,19 @@ Internet-Draft                     AAP                    September 2026
    authorization scope as a string, for example "orders.read"),
    "trust_class" (the abstract ATX capability exercised for this grant,
    in "class:action" form, for example "acme.com/orders:read", a domain-
-   prefixed namespace per AIP Section 4.1), "issuer_chain" (the ATX
-   issuer chain), "trust_level" (an integer from 0 to 4), "iat" and
+   prefixed namespace per AIP Section 4.1 [AIP]), "issuer_chain" (the
+   ATX issuer chain), "trust_level" (an integer from 0 to 4), "iat" and
    "exp" (the validity window, where "exp" minus "iat" is the policy
    time-to-live), and "jti".  The "authorization_details", "aap_crit",
    and "cnf" claims (Section 4.1, Section 4.2, and Section 4.3) are
-   OPTIONAL in form and mandatory to understand when present; no
+   OPTIONAL in form and mandatory to understand when present; no known
    implementation mints them as of the date of this revision.  The
    "intent_verified", "max_uses", and "context_required" claims are
    OPTIONAL and are not minted by the v1 reference.  The
    "fga_constraints" claim of the previous revisions is deprecated: it
-   is replaced by "authorization_details", no implementation minted it,
-   and it remains defined only so that tokens conforming to the previous
-   revisions keep validating; a verifier ignores it.
+   is replaced by "authorization_details", no known implementation
+   minted it, and it remains defined only so that tokens conforming to
+   the previous revisions keep validating; a verifier ignores it.
 
    {
      "iss": "https://broker.acme.example",
@@ -377,7 +377,7 @@ Internet-Draft                     AAP                    September 2026
    baseline token.  The advertisement is the set of entry types the
    counterparty understands, with the semantics of the
    "authorization_details_types_supported" metadata of [RFC9396], not a
-   boolean.  Both aap-conformance reference verifiers
+   boolean.  Both aap-conformance [AAP-CONFORMANCE] reference verifiers
    ("verifiers/python/verify.py", "verifiers/node/verify.mjs") implement
    "aap_crit"; that repository's "conformance.json" is the record of
    what they verify.
@@ -533,8 +533,8 @@ Internet-Draft                     AAP                    September 2026
    presenter is bound by operating system peer credentials, "cnf" MAY be
    omitted.  A verifier that receives a token with "cnf" MUST verify the
    presenter's proof against the bound key and MUST reject the token
-   otherwise.  As of the date of this revision no implementation mints
-   "cnf", and the reference broker binds no presentation.
+   otherwise.  As of the date of this revision no known implementation
+   mints "cnf", and the reference broker binds no presentation.
 
 4.4.  Example With Authorization Details
 
@@ -868,7 +868,8 @@ Internet-Draft                     AAP                    September 2026
    resolution, after the ATX and revocation list checks and before
    policy evaluation, and a listed token MUST be denied.  The list never
    leaves the operator and is never fetched from a hosted service.  As
-   of the date of this revision no implementation maintains such a list.
+   of the date of this revision no known implementation maintains such a
+   list.
 
 8.  Security Considerations
 
@@ -887,7 +888,6 @@ Internet-Draft                     AAP                    September 2026
    the fixture:
 
    *  cgt-compact-replayed.json
-
 
 
 
@@ -1265,6 +1265,9 @@ Internet-Draft                     AAP                    September 2026
               OpenA2A, "AAP Conformance Suite", 2026,
               <https://github.com/opena2a-standards/aap-conformance>.
 
+   [AIP]      Fane, A., "OpenA2A Agent Identity Protocol (AIP)", 2026,
+              <https://specs.opena2a.org/specs/aip>.
+
    [CRUZ-AAP] "Agent Authorization Profile (AAP) for OAuth 2.0", 2026,
               <https://datatracker.ietf.org/doc/draft-aap-oauth-
               profile/>.
@@ -1277,10 +1280,7 @@ Internet-Draft                     AAP                    September 2026
    [MCP]      Model Context Protocol, "Model Context Protocol
               Specification", 2026, <https://modelcontextprotocol.io/>.
 
-   [MISHRA-DAAP]
-              "OAuth Profile for Delegated AI Agent Authorization
-              (DAAP)", 2026, <https://datatracker.ietf.org/doc/draft-
-              mishra-oauth-agent-grants/>.
+
 
 
 
@@ -1289,6 +1289,11 @@ Fane                      Expires 3 April 2027                 [Page 23]
 
 Internet-Draft                     AAP                    September 2026
 
+
+   [MISHRA-DAAP]
+              "OAuth Profile for Delegated AI Agent Authorization
+              (DAAP)", 2026, <https://datatracker.ietf.org/doc/draft-
+              mishra-oauth-agent-grants/>.
 
    [RFC8792]  Watsen, K., Auerswald, E., Farrel, A., and Q. Wu,
               "Handling Long Lines in Content of Internet-Drafts and
@@ -1333,11 +1338,6 @@ Appendix A.  Related Work
    attestation (Section 6), rather than issuing an OAuth token the agent
    holds directly.  It carries budgets as the "budget" entry type of
    "authorization_details" (Section 4.1) and escalation as the hook of
-   the broker profile, both enforced by a local broker rather than by
-   the authorization server that issued the token.  The two differ in
-   where enforcement sits (broker versus token holder and resource
-   server) and in credential confinement (Section 8.5), which DAAP -02
-   lists among the facilities it does not standardize.  This document
 
 
 
@@ -1346,6 +1346,11 @@ Fane                      Expires 3 April 2027                 [Page 24]
 Internet-Draft                     AAP                    September 2026
 
 
+   the broker profile, both enforced by a local broker rather than by
+   the authorization server that issued the token.  The two differ in
+   where enforcement sits (broker versus token holder and resource
+   server) and in credential confinement (Section 8.5), which DAAP -02
+   lists among the facilities it does not standardize.  This document
    makes no claim about whether DAAP or other agent authorization drafts
    define a data sensitivity clearance.  Related agent-identity drafts
    using the "AIP" acronym address identity assertion rather than the
@@ -1363,11 +1368,6 @@ Author's Address
    OpenA2A
    United States of America
    Email: info@opena2a.org
-
-
-
-
-
 
 
 
