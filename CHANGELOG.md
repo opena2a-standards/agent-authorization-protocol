@@ -6,7 +6,7 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ## [Unreleased]
 
-## [0.5.1-draft] - 2026-09-30
+## [0.5.1-draft] - 2026-10-01
 
 Internet-Draft pairing: `draft-fane-opena2a-aap-02` carries this 0.5.1-draft and is in this
 repository (source and rendered text), not submitted to the datatracker by this release;

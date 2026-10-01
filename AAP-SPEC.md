@@ -4,7 +4,7 @@
 
 **Version:** 0.5.1-draft
 **Authors:** OpenA2A
-**Date:** September 2026
+**Date:** October 2026
 **Intended status:** Standards Track (IETF Internet-Draft; named individual authors will be attributed at Internet-Draft submission per IETF convention)
 
 > **Reconciliation note (2026-06-01).** This document supersedes the March 2026 draft

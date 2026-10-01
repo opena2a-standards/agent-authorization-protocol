@@ -4,7 +4,7 @@
 
 **Version:** 0.4.1-draft
 **Authors:** OpenA2A
-**Date:** September 2026
+**Date:** October 2026
 **Status:** Draft companion to [`AAP-SPEC.md`](./AAP-SPEC.md). Intended for the IETF Internet-Draft.
 
 > **This is the resolution/enforcement layer of AAP.** The AAP token model, Agent Identity
