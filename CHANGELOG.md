@@ -6,13 +6,12 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ## [Unreleased]
 
-## [0.5.1-draft] - 2026-10-01
+## [0.5.1-draft] - 2026-10-02
 
-Internet-Draft pairing: `draft-fane-opena2a-aap-02` carries this 0.5.1-draft and is in this
-repository (source and rendered text), not submitted to the datatracker by this release;
-`draft-fane-opena2a-aap-01` (submitted 2026-07-23; document date 2026-07-22) is the current
-datatracker revision and carries 0.4.0-draft. The broker profile moves to 0.4.1-draft in
-lockstep.
+Internet-Draft pairing: `draft-fane-opena2a-aap-02` (submitted 2026-10-02; document date
+2026-09-30) is the current datatracker revision and carries this 0.5.1-draft;
+`draft-fane-opena2a-aap-01` (submitted 2026-07-23; document date 2026-07-22) is the prior
+revision there and carries 0.4.0-draft. The broker profile moves to 0.4.1-draft in lockstep.
 
 ### Changed
 
@@ -39,8 +38,8 @@ Internet-Draft pairing: `draft-fane-opena2a-aap-00` carried the 0.3.0-draft text
 (document date 2026-07-06, refreshed to the 0.4.0 content in #9),
 `draft-fane-opena2a-aap-01` carries 0.4.0-draft (submitted 2026-07-23; document date
 2026-07-22), and no datatracker revision carries this 0.5.0-draft (the -02 render moved
-to 0.5.1-draft). The broker profile moves to 0.4.0-draft in lockstep. `draft-fane-opena2a-aap-02` is not submitted to the
-datatracker by this release; `-01` remains the current revision there.
+to 0.5.1-draft). The broker profile moves to 0.4.0-draft in lockstep. `draft-fane-opena2a-aap-02` was not submitted to the
+datatracker by this release; `-01` remained the current revision there until 2026-10-02.
 
 ### Added
 
