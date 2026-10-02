@@ -2,9 +2,9 @@
 
 ## Scoped, Attested Authorization for AI Agent Systems
 
-**Version:** 0.5.0-draft
+**Version:** 0.5.1-draft
 **Authors:** OpenA2A
-**Date:** September 2026
+**Date:** October 2026
 **Intended status:** Standards Track (IETF Internet-Draft; named individual authors will be attributed at Internet-Draft submission per IETF convention)
 
 > **Reconciliation note (2026-06-01).** This document supersedes the March 2026 draft
@@ -175,7 +175,7 @@ broker's source). The claim set is pinned by
 | `sub` | MUST | DID | Agent DID, taken from the **verified** ATX — never from agent input. |
 | `aud` | MUST | string | Downstream audience / resource. |
 | `scope` | MUST | string | Downstream OAuth scope requested (e.g. `orders.read`). |
-| `trust_class` | MUST | `class:action` | The ATX capability (abstract trust class, e.g. `acme.com/orders:read`, a domain-prefixed namespace per AIP Section 4.1) exercised for this grant. Distinct from `scope`: the trust class is the portable, abstract capability; the scope is the local downstream binding. |
+| `trust_class` | MUST | `class:action` | The ATX capability (abstract trust class, e.g. `acme.com/orders:read`, a domain-prefixed namespace per AIP Section 4.1) exercised for this grant. Distinct from `scope`: the trust class is the portable, abstract capability; the scope is the local downstream binding. As of the date of this revision, both aap-conformance reference verifiers match `trust_class` against `^[a-z0-9_-]+:[a-z0-9_-]+$`, a pattern that admits no domain prefix; the JSON examples in this document carry the unprefixed `orders:read`. The claim schemas (`schemas/cgt-claims-v1.schema.json`, `schemas/da-claims-v1.schema.json`) carry the same pattern. |
 | `issuer_chain` | MUST | DID array | ATX issuer chain, carried for v2 cross-broker verification (broker profile §7, §11). |
 | `trust_level` | MUST | integer 0–4 | ATX trust level. |
 | `iat` / `exp` | MUST | NumericDate | Validity window; `exp - iat` is the policy TTL (§4.3). |
@@ -936,7 +936,6 @@ type registry of Section 4.4.1 are managed in this specification.
 - [RFC 7638], JSON Web Key (JWK) Thumbprint.
 - [RFC 9449], OAuth 2.0 Demonstrating Proof of Possession (the `jkt` confirmation method).
 - [RFC 9964], ML-DSA for JOSE and COSE (the `ML-DSA-65` `alg` and `AKP` key type).
-- [RFC 6962], Certificate Transparency.
 - [FIPS 203], Module-Lattice-Based Key-Encapsulation Mechanism Standard.
 - [FIPS 204], Module-Lattice-Based Digital Signature Standard.
 - [ATX], Agent Trust eXtension credential format (`atx-spec/core.md`).
@@ -948,6 +947,7 @@ type registry of Section 4.4.1 are managed in this specification.
 - [OpenA2A], OpenA2A Platform Architecture.
 - [AAP-BROKER-PROFILE], AAP Broker & Resolution Layer (this repository).
 - [RFC 9421], HTTP Message Signatures (a presentation proof format, broker profile §6.8).
+- [RFC 9162], Certificate Transparency Version 2.0 (the transparency log in the Registry definition, Section 2).
 - [AI Agent Threat Matrix], https://threats.opena2a.org
 
 ## Authors' Addresses

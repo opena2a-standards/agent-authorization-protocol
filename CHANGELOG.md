@@ -6,6 +6,14 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ## [Unreleased]
 
+## [0.5.1-draft] - 2026-10-01
+
+Internet-Draft pairing: `draft-fane-opena2a-aap-02` carries this 0.5.1-draft and is in this
+repository (source and rendered text), not submitted to the datatracker by this release;
+`draft-fane-opena2a-aap-01` (submitted 2026-07-23; document date 2026-07-22) is the current
+datatracker revision and carries 0.4.0-draft. The broker profile moves to 0.4.1-draft in
+lockstep.
+
 ### Changed
 
 - Section 9.4 is marked as the one home of the family signature gate (every declared
@@ -14,18 +22,25 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   window cites the family clock-skew bound in ATP Section 10.2.
 - The `trust_class` example uses a domain-prefixed namespace (`acme.com/orders:read`), the
   AIP Section 4.1 grammar; a bare unreserved namespace is not a valid capability.
+  Section 4.2 states that both aap-conformance reference verifiers match `trust_class`
+  against a pattern that admits no domain prefix, that the claim schemas carry the same
+  pattern, and that the JSON examples carry the unprefixed `orders:read`.
 - Section 4.4 no longer dates the conformance verifiers' `aap_crit` status: both
   aap-conformance reference verifiers implement it, and that repository's
   `conformance.json` is the record of what they verify.
+- RFC 9162 (Certificate Transparency Version 2.0) is an informative reference.
+  `draft-fane-opena2a-aap-02` cites it once, at the transparency log in the Registry
+  definition, and no requirement of this specification depends on it. The specification's
+  list named RFC 6962 and the Internet-Draft renders named RFC 9162, both as normative.
 
 ## [0.5.0-draft] - 2026-09-08
 
 Internet-Draft pairing: `draft-fane-opena2a-aap-00` carried the 0.3.0-draft text
-(2026-07-06, refreshed to the 0.4.0 content in #9), `draft-fane-opena2a-aap-01`
-carries 0.4.0-draft (2026-07-22), and `draft-fane-opena2a-aap-02` carries this
-0.5.0-draft. The broker profile moves to 0.4.0-draft in lockstep.
-`draft-fane-opena2a-aap-02` is not submitted to the datatracker by this release;
-`-01` remains the current revision there.
+(document date 2026-07-06, refreshed to the 0.4.0 content in #9),
+`draft-fane-opena2a-aap-01` carries 0.4.0-draft (submitted 2026-07-23; document date
+2026-07-22), and no datatracker revision carries this 0.5.0-draft (the -02 render moved
+to 0.5.1-draft). The broker profile moves to 0.4.0-draft in lockstep. `draft-fane-opena2a-aap-02` is not submitted to the
+datatracker by this release; `-01` remains the current revision there.
 
 ### Added
 
