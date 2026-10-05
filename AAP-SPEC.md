@@ -168,8 +168,8 @@ fixtures; they are outside the ratified baseline, which is the ten claims and no
 else. The claim set is pinned by
 [`schemas/cgt-claims-v1.schema.json`](./schemas/cgt-claims-v1.schema.json).
 
-> **Implementation status (non-normative).** This specification does not record which
-> implementations mint or verify the 0.5 members. For the reference broker that record is
+> **Implementation status (non-normative).** The record of which implementations mint or
+> verify the 0.5 members is kept outside this specification: for the reference broker it is
 > broker profile §14 and the reference implementation's own repository; for the reference
 > verifiers it is the aap-conformance repository's `conformance.json`.
 
