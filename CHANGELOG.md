@@ -6,6 +6,18 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ## [Unreleased]
 
+### Changed
+
+- The specification and the broker profile no longer carry dated statements that no
+  implementation provides a feature (eight sentences: AAP-SPEC Section 4.2 preamble and
+  `authorization_details` row, Sections 4.6 and 7.3; broker profile Sections 6.8, 6.9, 7.3
+  and 14). Each is replaced by an undated statement of what the text defines (the 0.5
+  members are outside the ratified baseline) or by a non-normative "Implementation status"
+  note naming where current status is recorded: broker profile Section 14, the reference
+  implementation's repository, and the aap-conformance repository's `conformance.json`.
+  No requirement changes: the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both
+  documents are unchanged.
+
 ## [0.5.1-draft] - 2026-10-02
 
 Internet-Draft pairing: `draft-fane-opena2a-aap-02` (submitted 2026-10-02; document date
