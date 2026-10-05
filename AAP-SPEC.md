@@ -164,10 +164,14 @@ rows below, ten claims from `iss` to `jti`) is **ratified byte-for-byte from the
 implementation**: it is exactly what the Secretless broker's `mintBrokerAssertion`
 (`src/broker/cpi/assertion.ts`) signs. The 0.5 members (`authorization_details`,
 `aap_crit`, `cnf`; Sections 4.4 to 4.6) are specified here and pinned by generated
-fixtures; no implementation mints them as of 2026-09-08 (`mintBrokerAssertion` signs the
-ten baseline claims and nothing else, and none of the three names occurs in the reference
-broker's source). The claim set is pinned by
+fixtures; they are outside the ratified baseline, which is the ten claims and nothing
+else. The claim set is pinned by
 [`schemas/cgt-claims-v1.schema.json`](./schemas/cgt-claims-v1.schema.json).
+
+> **Implementation status (non-normative).** This specification does not record which
+> implementations mint or verify the 0.5 members. For the reference broker that record is
+> broker profile §14 and the reference implementation's own repository; for the reference
+> verifiers it is the aap-conformance repository's `conformance.json`.
 
 | Claim | Req | Type | Meaning |
 |---|---|---|---|
@@ -181,7 +185,7 @@ broker's source). The claim set is pinned by
 | `iat` / `exp` | MUST | NumericDate | Validity window; `exp - iat` is the policy TTL (§4.3). |
 | `jti` | MUST | 32 hex chars | Unique token id, 16 random bytes hex (Section 8.1). |
 | `aap_ver` | MAY (v1) | integer | Claim-schema version (Section 9.6). |
-| `authorization_details` | MAY | array | RFC 9396 structured grant entries, typed by the registry of Section 4.4. Mandatory to understand: MUST be listed in `aap_crit` when present. Narrows within `scope` and `trust_class`, never widens them (Section 4.4). Not minted by any implementation as of 2026-09-08 (Section 4.2, preamble). |
+| `authorization_details` | MAY | array | RFC 9396 structured grant entries, typed by the registry of Section 4.4. Mandatory to understand: MUST be listed in `aap_crit` when present. Narrows within `scope` and `trust_class`, never widens them (Section 4.4). Outside the ratified baseline (Section 4.2, preamble). |
 | `aap_crit` | MAY | string array | The claim names a verifier MUST understand or reject the token (Section 4.5). |
 | `cnf` | MAY | object | RFC 7800 confirmation: binds the token to the presenter's key (Section 4.6). Mandatory to understand: MUST be listed in `aap_crit` when present. |
 | `fga_constraints` | MAY, **deprecated** | string | JSON-encoded FGA policy from the 0.3 and 0.4 text. Deprecated in 0.5, replacedBy `authorization_details`. Still optional-to-ignore (broker profile §8.3): a verifier ignores it. No implementation minted it (the name does not occur in the reference broker's source); it stays defined because the -00 and -01 Internet-Draft text and both aap-conformance verifiers (`verifiers/python/verify.py`, `verifiers/node/verify.mjs`) carry it. |
@@ -340,10 +344,10 @@ sense; `cnf` on such a token is not verified by the downstream.
 the broker that minted it (a network binding, a peer broker, a delegatee). On the local
 unix socket binding, where the agent never holds the CGT and the presenter is bound by OS
 peer credentials, `cnf` MAY be omitted. A verifier that receives a token with `cnf` MUST
-verify the presenter's proof against the bound key and MUST reject the token otherwise. As
-of 2026-09-08 no implementation mints `cnf` and the reference broker binds no presentation
-(`mintBrokerAssertion` signs no `cnf`; broker profile 0.3 §6 verified the ATX and nothing
-about the presenter).
+verify the presenter's proof against the bound key and MUST reject the token otherwise.
+`cnf` is outside the ratified baseline of Section 4.2, and broker profile 0.3 §6 verified
+the ATX and nothing about the presenter; the implementation status note of Section 4.2
+says where support for `cnf` and for presentation binding is recorded.
 
 ### 4.7 Example with authorization details
 
@@ -676,10 +680,12 @@ opaque denial of broker profile §6.6. The list is local: it never leaves the op
 never fetched from a hosted service, and needs no federation transport. That is what keeps
 it inside Zero Failures (broker profile §11). An entry MAY carry an expiry no earlier than
 the revoked token's `exp` (a `jti` entry is useless after that) and a subject entry has no
-implicit expiry. As of 2026-09-08 no implementation maintains a grant revocation list: the
-broker profile 0.3 §6 step 2 bound revocation "entirely" to the ATX CRL, and the reference
-broker exposes no grant revocation surface (nothing in `src/broker` or `src/grant` revokes
-by `jti` or `sub`).
+implicit expiry. Broker profile 0.3 §6 step 2 bound revocation "entirely" to the ATX CRL;
+the grant revocation list is a requirement that text did not carry.
+
+> **Implementation status (non-normative).** This specification does not record which
+> implementations maintain a grant revocation list. For the reference broker that record
+> is broker profile §14 and the reference implementation's own repository.
 
 ## 8. Security Considerations
 

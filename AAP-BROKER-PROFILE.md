@@ -354,9 +354,11 @@ presentation. The bound key is the key the minted CGT or DA carries in `cnf` (AA
 local socket binding `cnf` MAY be omitted because the agent never holds the token.
 
 A presentation that fails to bind produces the opaque denial of Section 6.6 and an audit record
-naming the binding and the failure. As of 2026-09-08 the reference broker binds no presentation: the
-0.3 flow had no binding step, and the minted claim set (`mintBrokerAssertion`,
-`src/broker/cpi/assertion.ts`) carries no `cnf`.
+naming the binding and the failure. The 0.3 flow had no binding step.
+
+> **Implementation status (non-normative).** Sections 6.8 to 6.10 do not record which implementations
+> provide the steps they define. For the reference implementation that record is Section 14 and its
+> own repository.
 
 ### 6.9 Grant revocation list
 
@@ -371,8 +373,8 @@ log.
 
 An operator adds an entry when a grant is believed compromised, a delegation has leaked, or a policy
 change makes an outstanding grant wrong; the ATX CRL stays the mechanism for revoking the agent
-itself. As of 2026-09-08 no implementation maintains this list (the 0.3 text bound revocation
-"entirely" to the CRL; the reference broker exposes no grant revocation surface).
+itself. The 0.3 text bound revocation "entirely" to the CRL; the implementation status note of
+Section 6.8 says where support for this list is recorded.
 
 ### 6.10 Data clearance rules
 
@@ -513,9 +515,11 @@ rule:
 **The grant, not the policy, is what the broker enforces.** A policy that cannot be expressed as
 `authorization_details` is outside what the broker enforces and MUST NOT be described as enforced. The
 compile step happens at policy evaluation (Section 6, step 6), and the compiled grant is what the
-audit record carries. As of 2026-09-08 no implementation compiles policies to grants: the reference
-broker mints no `authorization_details` (Section 14) and reads none of the AIP-SPEC §7.2 policy
-actions.
+audit record carries.
+
+> **Implementation status (non-normative).** This section does not record which implementations
+> perform the compile step. For the reference implementation that record is Section 14 and its own
+> repository.
 
 ---
 
@@ -733,12 +737,13 @@ operator-reachable endpoint. It provides:
   transport; the provider has not been exercised against a live identity-provider tenant;
 - an ephemeral worker that performs the downstream operation and returns only the result.
 
-It does not yet provide, as of 2026-09-08: the presentation binding step of Section 6.8 (the minted
-claim set has no `cnf`); the grant revocation list of Section 6.9; the data clearance rules of
-Section 6.10 (no data sensitivity label is read and no result is projected or masked by label);
-`authorization_details` or `aap_crit` in the minted claim set; or the policy compile step of Section
-7.3. Each absence is checkable in the reference implementation's `src/broker` and `src/grant`
-directories.
+**Implementation status.** The list above is the whole of the surface this section describes. Outside
+that list are: the presentation binding step of Section 6.8 (a `cnf` member in the minted claim
+set); the grant revocation list of Section 6.9; the data clearance rules of Section 6.10 (reading a
+data sensitivity label, and projecting or masking a result by label); `authorization_details` and
+`aap_crit` in the minted claim set; and the policy compile step of Section 7.3. Whether a given
+release of the reference implementation provides any of them is recorded in its own repository,
+where each is checkable in the `src/broker` and `src/grant` directories and in the changelog.
 
 The developer surface is the existing AIM `@agent.perform_action` decorator: an agent references a
 grant, the SDK talks to the broker daemon, the broker does the rest.
