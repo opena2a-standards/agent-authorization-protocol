@@ -1,68 +1,114 @@
 #!/usr/bin/env python3
-"""Check that the first use of the name AIM in each listed document is expanded.
+"""Check that the first use of the name AIM in each document is expanded.
 
 "AIM" alone sits beside other agent identity acronyms, so in every document a
 specification reader is likely to open, the first line that contains the whole
 word AIM must name it as "OpenA2A AIM (Agent Identity Management)", and that
 phrase must be where the word first appears on the line. Later uses may be bare.
 
-The family navigation bar at the top of README.md is a list of link labels, not
-prose, and is not counted as a use.
+The documents are every Markdown file in the repository and the XML source of
+each Internet-Draft (the text renders are generated from it), so a new document
+is covered without being listed. The family navigation bar at the top of
+README.md is a list of link labels, not prose, and is not counted as a use.
 
-Exit code 0 = every listed document passes. Also run by validate_examples.py so
-the check runs in CI.
+Exit code 0 = every document passes. Also run by validate_examples.py so the
+check runs in CI.
 """
 
 import pathlib
 import re
+import subprocess
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 FIRST_USE = "OpenA2A AIM (Agent Identity Management)"
 
-DOCUMENTS = [
+# Git pathspecs: "*.md" matches at any depth, "draft-*.xml" at the top level.
+PATTERNS = ("*.md", "draft-*.xml")
+
+# Documents that must be present, so a move or rename cannot drop them from the check.
+REQUIRED = (
     "README.md",
     "AAP-SPEC.md",
     "AAP-BROKER-PROFILE.md",
     "examples/orders-db-exchange.md",
-]
+)
 
 NAV_BAR_PREFIX = "> **OpenA2A specs**"
 WORD = re.compile(r"\bAIM\b")
 PREFIX_LEN = FIRST_USE.index("AIM")
 
 
-def first_use_error(text: str) -> str | None:
-    """Return None if the first use of AIM in text is expanded, else a reason."""
+def first_use(text: str) -> tuple[int, str] | None:
+    """Return the line number and line of the first use of AIM in text, or None."""
     for lineno, line in enumerate(text.splitlines(), start=1):
-        if line.startswith(NAV_BAR_PREFIX):
-            continue
-        match = WORD.search(line)
-        if match is None:
-            continue
-        start = match.start() - PREFIX_LEN
-        if start >= 0 and line.startswith(FIRST_USE, start):
-            return None
-        return f"line {lineno}: first use of AIM is not {FIRST_USE!r}: {line.strip()}"
+        if not line.startswith(NAV_BAR_PREFIX) and WORD.search(line):
+            return lineno, line
     return None
 
 
-def check() -> int:
-    """Print one line per listed document and return the number of failures."""
+def first_use_error(text: str) -> str | None:
+    """Return None if the first use of AIM in text is expanded, else a reason."""
+    found = first_use(text)
+    if found is None:
+        return None
+    lineno, line = found
+    start = WORD.search(line).start() - PREFIX_LEN
+    if start >= 0 and line.startswith(FIRST_USE, start):
+        return None
+    return f"line {lineno}: first use of AIM is not {FIRST_USE!r}: {line.strip()}"
+
+
+def tracked_documents(root: pathlib.Path) -> list[str] | None:
+    """Return the tracked files matching PATTERNS, or None outside a git checkout."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "-z", "--", *PATTERNS],
+            capture_output=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return [name for name in result.stdout.decode("utf-8").split("\0") if name]
+
+
+def documents(root: pathlib.Path = ROOT) -> list[str]:
+    """Return every document the check covers, as sorted paths relative to root.
+
+    In a git checkout these are the tracked files, so local files that are never
+    committed are not read. Otherwise every matching file outside a hidden
+    directory is used.
+    """
+    names = tracked_documents(root)
+    if names is None:
+        paths = [*root.rglob("*.md"), *root.glob("draft-*.xml")]
+        names = [
+            path.relative_to(root).as_posix()
+            for path in paths
+            if not any(part.startswith(".") for part in path.relative_to(root).parts)
+        ]
+    return sorted(name for name in set(names) if (root / name).is_file())
+
+
+def check(root: pathlib.Path = ROOT) -> int:
+    """Print one line per document and return the number of failures."""
     failures = 0
-    for name in DOCUMENTS:
-        path = ROOT / name
-        if not path.is_file():
-            print(f"FAIL  {name}: listed document not found")
+    names = documents(root)
+    for name in REQUIRED:
+        if name not in names:
+            print(f"FAIL  {name}: required document not found")
             failures += 1
-            continue
-        error = first_use_error(path.read_text(encoding="utf-8"))
+    for name in names:
+        text = (root / name).read_text(encoding="utf-8")
+        error = first_use_error(text)
         if error:
             print(f"FAIL  {name}: {error}")
             failures += 1
-        else:
+        elif first_use(text):
             print(f"ok    {name}: first use of AIM is expanded")
+        else:
+            print(f"ok    {name}: does not use the name AIM")
     return failures
 
 

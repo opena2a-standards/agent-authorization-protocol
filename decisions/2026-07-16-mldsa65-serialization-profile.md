@@ -46,7 +46,8 @@ JOSE"). The gate condition is satisfied; the row flips or the spec is stale.
 4. **Downgrade rules** (existing §8.2 "MUST reject rather than silently downgrade"
    and §9.4 "MUST NOT accept on a subset" stand; two additions):
    - Suite acceptance is verifier-policy-pinned per path, never token-selected.
-     (Lesson from AIM's `X-Algorithm` header gap, where a hybrid-capable agent can
+     (Lesson from the `X-Algorithm` header gap in
+     OpenA2A AIM (Agent Identity Management), where a hybrid-capable agent can
      still authenticate classical-only because the client picks the algorithm.)
    - A producer configured for hybrid on a path MUST NOT emit classical-compact on
      that path; fallback is a broker-profile §8.1 version-negotiation event, never
