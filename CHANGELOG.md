@@ -25,6 +25,10 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   unchanged. `scripts/check_naming.py` checks the first use in every Markdown file in the
   repository and in the XML source of each Internet-Draft, so a new document is covered
   without being listed, and runs in CI through `scripts/validate_examples.py`.
+- `scripts/check_naming.py` skips fenced code blocks when it looks for the first use of the
+  name, so a diagram label or sample output in a code block is not counted as the first
+  use; the first use must be in prose. `scripts/validate_examples.py` also runs the unit
+  tests in `scripts/` (`test_*.py`), so CI runs them, and fails if none are found.
 
 ## [0.5.1-draft] - 2026-10-02
 
