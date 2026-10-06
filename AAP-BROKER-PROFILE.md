@@ -331,7 +331,8 @@ ATX is untrusted, or the provider fails. Diagnostic detail goes to the audit log
 
 Every verification, decision, resolution, and denial MUST be written to a signed audit log. The
 audit record MUST NOT contain any credential value or downstream token. Implementations SHOULD reuse
-the existing AIM signed-audit path rather than build a new one.
+the existing signed-audit path of OpenA2A AIM (Agent Identity Management) rather than build a new
+one.
 
 ### 6.8 Presentation binding
 

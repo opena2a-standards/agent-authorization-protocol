@@ -39,7 +39,7 @@ AAP has two layers:
 Interface with the Exchange mode (RFC 8693) implemented, credential confinement behind an
 ephemeral worker, and an in-repo end-to-end broker conformance test
 (`src/broker/aap-conformance.test.ts`). It targets broker conformance Level 1 (see
-[`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md) §13-§14). AIM (Agent Identity Management)
+[`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md) §13-§14). OpenA2A AIM (Agent Identity Management)
 supplies the developer surface the broker profile names (the `@agent.perform_action`
 decorator and 5-step fine-grained authorization) and is the reference implementation for the
 identity and trust layers AAP builds on (AIP, ATX, ATP); AIM does not implement the broker.

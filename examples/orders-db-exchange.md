@@ -5,7 +5,7 @@ grant reference, and no credential value or backend identifier ever enters the a
 
 ## 1. What the agent sees and emits
 
-The agent's code references only the grant. With the AIM developer surface:
+The agent's code references only the grant. With the developer surface of OpenA2A AIM (Agent Identity Management):
 
 ```python
 from aim_sdk import secure

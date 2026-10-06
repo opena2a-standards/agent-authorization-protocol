@@ -76,7 +76,8 @@ shipped `secretless broker` daemon does not yet construct the grant resolver, so
 returns 404 until an operator-facing grant-binding configuration lands
 ([opena2a-standards/agent-authorization-protocol#1](https://github.com/opena2a-standards/agent-authorization-protocol/issues/1)).
 
-The developer surface is the AIM `@agent.perform_action` decorator. See
+The developer surface is the `@agent.perform_action` decorator of
+OpenA2A AIM (Agent Identity Management). See
 [`examples/orders-db-exchange.md`](./examples/orders-db-exchange.md) and
 [`AAP-BROKER-PROFILE.md` §14](./AAP-BROKER-PROFILE.md#14-reference-implementation-informative).
 
