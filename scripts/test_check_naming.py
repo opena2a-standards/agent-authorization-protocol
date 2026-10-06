@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Tests for check_naming.py. Run: python3 -m unittest discover -s scripts -p 'test_*.py'"""
+"""Tests for check_naming.py. Run: python3 -m unittest discover -s scripts -p 'test_*.py'
+
+CI runs them through validate_examples.py.
+"""
 
 import contextlib
 import io
@@ -30,6 +33,10 @@ class FirstUseTest(unittest.TestCase):
         text = "AIM (Agent Identity Management) supplies X.\n"
         self.assertIsNotNone(first_use_error(text))
 
+    def test_organization_without_expansion_fails(self):
+        text = "OpenA2A AIM supplies X.\nOpenA2A AIM (Agent Identity Management) does Y.\n"
+        self.assertIn("line 1", first_use_error(text))
+
     def test_bare_use_before_expansion_on_same_line_fails(self):
         text = "AIM and OpenA2A AIM (Agent Identity Management).\n"
         self.assertIsNotNone(first_use_error(text))
@@ -40,6 +47,35 @@ class FirstUseTest(unittest.TestCase):
             "The OpenA2A AIM (Agent Identity Management) decorator.\n"
         )
         self.assertIsNone(first_use_error(text))
+
+    def test_ordinary_blockquote_is_a_use(self):
+        text = (
+            "> Reuse the existing AIM signed-audit path.\n"
+            "The OpenA2A AIM (Agent Identity Management) decorator.\n"
+        )
+        self.assertIn("line 1", first_use_error(text))
+
+    def test_fenced_code_block_is_not_a_use(self):
+        text = (
+            "Intro.\n"
+            "```text\n"
+            "client --> broker (AIM path)\n"
+            "```\n"
+            "The OpenA2A AIM (Agent Identity Management) decorator.\n"
+        )
+        self.assertIsNone(first_use_error(text))
+
+    def test_bare_use_after_fenced_code_block_fails(self):
+        text = "```\n(AIM path)\n```\nThe AIM decorator.\n"
+        self.assertIn("line 4", first_use_error(text))
+
+    def test_fence_closes_only_on_same_character_and_length(self):
+        text = "~~~~\n```\n~~~\n(AIM path)\n  ~~~~\nThe AIM decorator.\n"
+        self.assertIn("line 6", first_use_error(text))
+
+    def test_inline_triple_backticks_are_not_a_fence(self):
+        text = "```AIM``` is inline code.\n"
+        self.assertIn("line 1", first_use_error(text))
 
     def test_other_acronyms_are_not_a_use(self):
         text = "AIMS and AIMED are other words.\nThe AIM decorator.\n"
@@ -125,6 +161,21 @@ class DiscoveryTest(unittest.TestCase):
             with contextlib.redirect_stdout(out):
                 self.assertEqual(check_naming.check(self.root), 1)
         self.assertIn("FAIL  AAP-SPEC.md: required document not found", out.getvalue())
+
+    def test_document_without_the_name_is_reported_as_no_use(self):
+        write_required(self.root)
+        with mock.patch.object(check_naming, "tracked_documents", return_value=None):
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(check_naming.check(self.root), 0)
+        self.assertIn("ok    README.md: does not use the name AIM", out.getvalue())
+        self.assertNotIn("expanded", out.getvalue())
+
+    def test_main_exit_code_follows_the_failure_count(self):
+        for failures, code in ((0, 0), (1, 1), (3, 1)):
+            with self.subTest(failures=failures):
+                with mock.patch.object(check_naming, "check", return_value=failures):
+                    self.assertEqual(check_naming.main(), code)
 
 
 if __name__ == "__main__":

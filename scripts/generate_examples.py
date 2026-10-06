@@ -410,7 +410,7 @@ def bac_claims() -> dict:
 def extract_json_block(spec: str, heading: str) -> dict:
     """First ```json block after the exact heading line (validate_examples.py rules)."""
     lines = spec.splitlines()
-    start = next(i for i, l in enumerate(lines) if l.strip() == heading)
+    start = next(i for i, line in enumerate(lines) if line.strip() == heading)
     in_block, block = False, []
     for line in lines[start + 1 :]:
         if not in_block and line.strip() == "```json":

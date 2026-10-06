@@ -8,20 +8,22 @@ Reads schemas/examples-map.json, a list of entries:
 
 For each entry: find the heading line in the file, take the first fenced
 ```json block after it, parse it, and validate it against the schema.
-Also metaschema-checks every schemas/*.schema.json, and runs check_naming.py
-(first use of the name AIM in every Markdown document and Internet-Draft source).
+Also metaschema-checks every schemas/*.schema.json, runs check_naming.py
+(first use of the name AIM in every Markdown document and Internet-Draft source),
+and runs the unit tests in scripts/ (test_*.py), so CI runs them.
 
 Formats (date-time, uuid) are treated as annotations, not assertions, matching
 library defaults across implementations; structural keywords (type, enum,
 pattern, required) carry the contract.
 
-Exit code 0 = all schemas well-formed, all mapped examples valid, and every
-document expands the name AIM at first use.
+Exit code 0 = all schemas well-formed, all mapped examples valid, every
+document expands the name AIM at first use, and every unit test passes.
 """
 
 import json
 import pathlib
 import sys
+import unittest
 
 import check_naming
 
@@ -32,12 +34,13 @@ except ImportError:
     sys.exit(2)
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+SCRIPTS = ROOT / "scripts"
 
 
 def extract_block(md_path: pathlib.Path, heading: str) -> str:
     lines = md_path.read_text(encoding="utf-8").splitlines()
     try:
-        start = next(i for i, l in enumerate(lines) if l.strip() == heading)
+        start = next(i for i, line in enumerate(lines) if line.strip() == heading)
     except StopIteration:
         raise SystemExit(f"error: heading {heading!r} not found in {md_path}")
     in_block = False
@@ -55,6 +58,27 @@ def extract_block(md_path: pathlib.Path, heading: str) -> str:
                 f"error: no ```json block between {heading!r} and the next heading in {md_path}"
             )
     raise SystemExit(f"error: unterminated ```json block after {heading!r} in {md_path}")
+
+
+def run_unit_tests(start_dir: pathlib.Path = SCRIPTS) -> int:
+    """Run the unit tests (test_*.py) in start_dir and return the number of failures.
+
+    Finding no test at all counts as one failure, so a moved or renamed test file
+    cannot drop the tests from CI.
+    """
+    suite = unittest.TestLoader().discover(
+        str(start_dir), pattern="test_*.py", top_level_dir=str(start_dir)
+    )
+    result = unittest.TextTestRunner(stream=sys.stdout, verbosity=1).run(suite)
+    if result.testsRun == 0:
+        print(f"unit tests FAIL  no test_*.py tests found in {start_dir}")
+        return 1
+    failed = len(result.failures) + len(result.errors) + len(result.unexpectedSuccesses)
+    if failed:
+        print(f"unit tests FAIL  {failed} of {result.testsRun} failed")
+    else:
+        print(f"unit tests OK    {result.testsRun} passed")
+    return failed
 
 
 def main() -> int:
@@ -96,11 +120,12 @@ def main() -> int:
             print(f"example OK     {entry['file']} @ {entry['heading']!r}")
 
     failures += check_naming.check()
+    failures += run_unit_tests()
 
     if failures:
         print(f"\n{failures} failure(s)")
         return 1
-    print("\nall schemas and mapped examples valid; first use of AIM expanded")
+    print("\nall schemas and mapped examples valid; first use of AIM expanded; unit tests pass")
     return 0
 
 

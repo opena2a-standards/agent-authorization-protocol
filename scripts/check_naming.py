@@ -10,6 +10,8 @@ The documents are every Markdown file in the repository and the XML source of
 each Internet-Draft (the text renders are generated from it), so a new document
 is covered without being listed. The family navigation bar at the top of
 README.md is a list of link labels, not prose, and is not counted as a use.
+Neither is a line inside a fenced code block: a diagram label or sample output
+cannot carry the expansion, so the first use must be in prose.
 
 Exit code 0 = every document passes. Also run by validate_examples.py so the
 check runs in CI.
@@ -39,10 +41,46 @@ NAV_BAR_PREFIX = "> **OpenA2A specs**"
 WORD = re.compile(r"\bAIM\b")
 PREFIX_LEN = FIRST_USE.index("AIM")
 
+# A Markdown code fence: three or more backticks or tildes, indented or not (as
+# inside a list item), then the info string.
+FENCE = re.compile(r"\s*(`{3,}|~{3,})(.*)")
+
+
+def opening_fence(line: str) -> str | None:
+    """Return the fence that opens a fenced code block on line, or None."""
+    match = FENCE.fullmatch(line)
+    if match is None:
+        return None
+    fence, info = match.groups()
+    # A backtick fence's info string cannot contain a backtick: "```AIM```" is inline code.
+    if fence[0] == "`" and "`" in info:
+        return None
+    return fence
+
+
+def closes(line: str, fence: str) -> bool:
+    """Return True if line closes the fenced code block opened by fence."""
+    match = FENCE.fullmatch(line)
+    if match is None:
+        return False
+    closing, rest = match.groups()
+    return closing[0] == fence[0] and len(closing) >= len(fence) and not rest.strip()
+
 
 def first_use(text: str) -> tuple[int, str] | None:
-    """Return the line number and line of the first use of AIM in text, or None."""
+    """Return the line number and line of the first use of AIM in text, or None.
+
+    Lines inside a fenced code block, and the fences themselves, are skipped.
+    """
+    fence = None
     for lineno, line in enumerate(text.splitlines(), start=1):
+        if fence is not None:
+            if closes(line, fence):
+                fence = None
+            continue
+        fence = opening_fence(line)
+        if fence is not None:
+            continue
         if not line.startswith(NAV_BAR_PREFIX) and WORD.search(line):
             return lineno, line
     return None
