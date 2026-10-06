@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 """Tests for check_naming.py. Run: python3 -m unittest discover -s scripts -p 'test_*.py'"""
 
+import contextlib
+import io
 import pathlib
+import shutil
+import subprocess
 import sys
+import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
@@ -43,12 +49,82 @@ class FirstUseTest(unittest.TestCase):
         self.assertIsNone(first_use_error("No product name here.\n"))
 
 
-class ListedDocumentsTest(unittest.TestCase):
-    def test_every_listed_document_passes(self):
-        for name in check_naming.DOCUMENTS:
+class RepositoryDocumentsTest(unittest.TestCase):
+    def test_every_document_passes(self):
+        for name in check_naming.documents():
             with self.subTest(document=name):
                 text = (check_naming.ROOT / name).read_text(encoding="utf-8")
                 self.assertIsNone(first_use_error(text))
+
+    def test_documents_outside_the_required_list_are_covered(self):
+        names = check_naming.documents()
+        for name in (
+            *check_naming.REQUIRED,
+            "CHANGELOG.md",
+            "CONTRIBUTING.md",
+            "decisions/2026-07-16-mldsa65-serialization-profile.md",
+            "schemas/README.md",
+            "draft-fane-opena2a-aap-02.xml",
+        ):
+            with self.subTest(document=name):
+                self.assertIn(name, names)
+
+    def test_repository_check_has_no_failures(self):
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(check_naming.check(), 0)
+
+
+def write(root, name, text):
+    path = root / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def write_required(root):
+    for name in check_naming.REQUIRED:
+        write(root, name, "No product name here.\n")
+
+
+class DiscoveryTest(unittest.TestCase):
+    def setUp(self):
+        self.root = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.root)
+
+    def test_without_git_every_markdown_file_and_draft_source_is_found(self):
+        for name in ("a.md", "sub/b.md", ".hidden/c.md", "draft-x-00.xml",
+                     "draft-x-00.txt", "other.xml", "sub/draft-y-00.xml"):
+            write(self.root, name, "text\n")
+        with mock.patch.object(check_naming, "tracked_documents", return_value=None):
+            self.assertEqual(check_naming.documents(self.root),
+                             ["a.md", "draft-x-00.xml", "sub/b.md"])
+
+    @unittest.skipIf(shutil.which("git") is None, "git not installed")
+    def test_in_a_git_checkout_only_tracked_files_are_found(self):
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        write(self.root, "tracked.md", "text\n")
+        write(self.root, "draft-x-00.xml", "text\n")
+        write(self.root, "untracked.md", "The AIM decorator.\n")
+        subprocess.run(["git", "-C", str(self.root), "add", "tracked.md", "draft-x-00.xml"],
+                       check=True)
+        self.assertEqual(check_naming.documents(self.root), ["draft-x-00.xml", "tracked.md"])
+
+    def test_unlisted_document_with_bare_first_use_fails(self):
+        write_required(self.root)
+        write(self.root, "decisions/note.md", "Lesson from the AIM header gap.\n")
+        with mock.patch.object(check_naming, "tracked_documents", return_value=None):
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(check_naming.check(self.root), 1)
+        self.assertIn("FAIL  decisions/note.md: line 1", out.getvalue())
+
+    def test_missing_required_document_fails(self):
+        write_required(self.root)
+        (self.root / "AAP-SPEC.md").unlink()
+        with mock.patch.object(check_naming, "tracked_documents", return_value=None):
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(check_naming.check(self.root), 1)
+        self.assertIn("FAIL  AAP-SPEC.md: required document not found", out.getvalue())
 
 
 if __name__ == "__main__":
