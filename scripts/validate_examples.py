@@ -8,18 +8,22 @@ Reads schemas/examples-map.json, a list of entries:
 
 For each entry: find the heading line in the file, take the first fenced
 ```json block after it, parse it, and validate it against the schema.
-Also metaschema-checks every schemas/*.schema.json.
+Also metaschema-checks every schemas/*.schema.json, and runs check_naming.py
+(first use of the name AIM in the listed documents).
 
 Formats (date-time, uuid) are treated as annotations, not assertions, matching
 library defaults across implementations; structural keywords (type, enum,
 pattern, required) carry the contract.
 
-Exit code 0 = all schemas well-formed and all mapped examples valid.
+Exit code 0 = all schemas well-formed, all mapped examples valid, and every
+listed document expands the name AIM at first use.
 """
 
 import json
 import pathlib
 import sys
+
+import check_naming
 
 try:
     from jsonschema import Draft202012Validator
@@ -91,10 +95,12 @@ def main() -> int:
         else:
             print(f"example OK     {entry['file']} @ {entry['heading']!r}")
 
+    failures += check_naming.check()
+
     if failures:
         print(f"\n{failures} failure(s)")
         return 1
-    print("\nall schemas and mapped examples valid")
+    print("\nall schemas and mapped examples valid; first use of AIM expanded")
     return 0
 
 

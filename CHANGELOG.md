@@ -17,6 +17,13 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   implementation's repository, and the aap-conformance repository's `conformance.json`.
   No requirement changes: the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both
   documents are unchanged.
+- The first use of the name AIM in `README.md`, `AAP-SPEC.md` (the reference implementation
+  paragraph), `AAP-BROKER-PROFILE.md` (Section 6.7) and `examples/orders-db-exchange.md` now
+  reads "OpenA2A AIM (Agent Identity Management)", so the name is not read as another agent
+  identity acronym. Editorial: no requirement changes, and the counts of MUST, MUST NOT,
+  SHOULD, SHOULD NOT and MAY in both documents are unchanged. `scripts/check_naming.py`
+  checks the first use in each listed document and runs in CI through
+  `scripts/validate_examples.py`.
 
 ## [0.5.1-draft] - 2026-10-02
 
