@@ -58,6 +58,31 @@ class FindingsTest(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(findings(text), [])
 
+    def test_block_level_tag_that_begins_a_line_fails_across_a_blank_line(self):
+        # CommonMark reads a line that begins with such a tag as the start of
+        # an HTML block, which holds the line as raw HTML.
+        self.assertEqual(findings('Intro.\n\n<div\n\nclass="x">\n'),
+                         ["line 3: HTML tag in Markdown prose, not rendered: '<div class=\"x\">'"])
+        for text in ("<details\n\nopen> text", "<p\n\nfoo>", "<table\n\n>", '<div class="x\n\n">',
+                     '- <div\n\n  class="x">', "1. <div\n\n   class=x>",
+                     "- a\n    - <div\n\n      class=x>", "> <div\n\nclass=x>",
+                     "   <div\n\nclass=x>", "Intro.\n<DIV\n\nclass=x>", "</div\n\n>", "<pre\n\nx>"):
+            with self.subTest(text=text):
+                self.assertEqual(len(findings(text)), 1)
+
+    def test_tag_that_opens_no_html_block_does_not_cross_a_blank_line(self):
+        # No line here begins with a tag that opens an HTML block, so each tag
+        # is inside a paragraph.
+        for text in ("<span\n\nclass=x>", "`x` <div\n\nclass=x>", "</pre\n\n>"):
+            with self.subTest(text=text):
+                self.assertEqual(findings(text), [])
+
+    def test_block_level_tag_on_one_line_fails_once(self):
+        self.assertEqual(findings("<div>\n- <p>x</p>\n"),
+                         ["line 1: HTML tag in Markdown prose, not rendered: '<div>'",
+                          "line 2: HTML tag in Markdown prose, not rendered: '<p>'",
+                          "line 2: HTML tag in Markdown prose, not rendered: '</p>'"])
+
     def test_quoted_attribute_value_split_across_lines_fails(self):
         self.assertEqual(len(findings("A <a b='x\ny'> tag.\n")), 1)
 
