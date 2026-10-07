@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Check that every section-numbered citation of a family document resolves.
+"""Check that the section numbers cited next to a family document's name resolve.
 
 A citation such as "broker profile §8.1", "AIP Section 4.1" or "Section 4.4.1 of
-AAP-SPEC" sends the reader to a numbered section of an OpenA2A document. The
-citations checked are those in the Markdown documents of this repository and in
-the newest Internet-Draft render (draft-fane-opena2a-aap-NN.xml). CHANGELOG.md, the
-dated notes in decisions/ and the earlier renders cite the numbering of the version
-they describe and are not checked.
+AAP-SPEC" sends the reader to a numbered section of an OpenA2A document. The check
+reads a citation in which a name in NAMES below sits next to a section number, with
+the numbers listed directly after that number ("§7, §11", "Sections 6.8, 6.9 and
+7.3"). A number further along the sentence, such as §6.8 in "the broker profile (§6,
+step 3, and §6.8)", is not read. The citations checked are those in the Markdown
+documents of this repository and in the newest Internet-Draft render
+(draft-fane-opena2a-aap-NN.xml). CHANGELOG.md, the dated notes in decisions/ and
+the earlier renders cite the numbering of the version they describe and are not
+checked.
 
 1. A cited document of this repository (the specification, AAP-SPEC.md, and the
    broker profile, AAP-BROKER-PROFILE.md) has a numbered heading with each cited

@@ -23,7 +23,8 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   unchanged. AIP is a normative reference. One MUST and one SHOULD are added to
   AAP-SPEC.md; the broker profile's requirement counts are unchanged.
   `scripts/test_trust_class_grammar.py` pins the accepted and rejected values for both
-  schemas and checks that every example carries the domain-prefixed class.
+  schemas and checks that the five CGT and DA claim sets in `examples/tokens/` and the
+  `trust_class` values of the JSON examples in AAP-SPEC.md carry the domain-prefixed class.
 - The specification and the broker profile no longer carry dated statements that no
   implementation provides a feature (eight sentences: AAP-SPEC Section 4.2 preamble and
   `authorization_details` row, Sections 4.6 and 7.3; broker profile Sections 6.8, 6.9, 7.3
@@ -83,10 +84,14 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   it in the form "<label> is a normative reference" (or "an informative reference"), as it
   does for AIP above, so the next render must carry it. The check prints one class-parity
   line and runs in CI through `scripts/validate_examples.py`.
-- `scripts/check_section_citations.py` checks every section-numbered citation of a family
-  document ("broker profile §8.1", "AIP Section 4.1", "Section 4.4.1 of AAP-SPEC") in the
-  Markdown documents of the repository, except this changelog and the dated notes in
-  `decisions/`, and in the newest Internet-Draft render. A number cited from the
+- `scripts/check_section_citations.py` checks each citation in which a family document is
+  named next to a section number ("broker profile §8.1", "AIP Section 4.1", "Section 4.4.1
+  of AAP-SPEC"), with the numbers listed directly after that number ("broker profile §7,
+  §11"), in the Markdown documents of the repository, except this changelog and the dated
+  notes in `decisions/`, and in the newest Internet-Draft render. A number further along
+  the sentence is not read: in "the broker profile (§6, step 3, and §6.8)" the check reads
+  §6 only. A citation that names the ATX text `core.md` rather than `atx-spec/core.md` is
+  not read. A number cited from the
   specification or the broker profile must be a numbered heading of that document. Where
   the citing document's References section lists the cited document, the entry names its
   text file, and a document outside this repository is named by its text file in the
