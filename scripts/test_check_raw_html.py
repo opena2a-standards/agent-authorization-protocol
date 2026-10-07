@@ -83,6 +83,27 @@ class FindingsTest(unittest.TestCase):
                           "line 2: HTML tag in Markdown prose, not rendered: '<p>'",
                           "line 2: HTML tag in Markdown prose, not rendered: '</p>'"])
 
+    def test_raw_html_does_not_cross_a_line_that_begins_a_block_quote(self):
+        # CommonMark ends the paragraph before a line that begins a block
+        # quote, so the unclosed tag before that line is text.
+        for text in ("<x\n> quoted\n", "<x\n> quoted>\n", "A </x\n> y\n",
+                     "A <a title='x\n> y'> b\n", "A <?x\n> y?>\n", "> a <x\n> > b>\n",
+                     "> <a\n>\n> b>\n", "> > a\n\n> <x\n> > y>\n", "> > \n> <x\n> > y>\n",
+                     "> a > b <x\n> > y>\n", "- a <x\n  > y>\n"):
+            with self.subTest(text=text):
+                self.assertEqual(findings(text), [])
+
+    def test_tag_across_a_line_that_continues_a_block_quote_fails(self):
+        # The block quote markers of the second line are not text, and a ">"
+        # after four spaces, or after "2.", which cannot interrupt a
+        # paragraph, begins no block quote.
+        self.assertEqual(findings('> <a\n> b="c"> d\n'),
+                         ["line 1: HTML tag in Markdown prose, not rendered: '<a b=\"c\">'"])
+        for text in ("> <a\nb>\n", "> > <a\n> b>\n", "- > <a\n  > b>\n", "> > a\n> <x\n> > y>\n",
+                     "Intro.\n> <a\n> b>\n", "<x\n    > y\n", "> a <a title='x\n> 2. > y'>\n"):
+            with self.subTest(text=text):
+                self.assertEqual(len(findings(text)), 1)
+
     def test_quoted_attribute_value_split_across_lines_fails(self):
         self.assertEqual(len(findings("A <a b='x\ny'> tag.\n")), 1)
 
@@ -124,6 +145,23 @@ class FindingsTest(unittest.TestCase):
                      "A [link](<a b>) destination.", "a < b > c", "1 <2 and 3> 2"):
             with self.subTest(text=text):
                 self.assertEqual(findings(text), [])
+
+    def test_link_destination_after_spaces_or_a_line_break_passes(self):
+        for text in ("[t]( <x>)\n", 'A [t](  <x> "title") link.\n', "[t](\n<x>)\n",
+                     "> [t](\n> <x>)\n", "![i]( <a b>)\n", "[t]( <x> (t))\n", "[t]( <x>\n)\n",
+                     "[a [b] c]( <x>)\n", "[a\nb]( <x>)\n"):
+            with self.subTest(text=text):
+                self.assertEqual(findings(text), [])
+
+    def test_angle_brackets_that_are_no_link_destination_fail(self):
+        # CommonMark reads raw HTML here: the brackets follow no link text, are
+        # not followed by ")" or by spaces and a title, begin a paragraph, a
+        # block quote or an HTML block, or are inside the link text.
+        for text in ("a]( <x>)\n", "[t]( <x>\n", "[t]( <x> junk)\n", '[t]( <x>"t")\n',
+                     "[t](\n\n<x>)\n", "[t](\n> <x>)\n", "[t](\n<div>)\n", "[<b>]( <x>)\n",
+                     "[t]( <a<b>)\n"):
+            with self.subTest(text=text):
+                self.assertEqual(len(findings(text)), 1)
 
 
 class RepositoryDocumentsTest(unittest.TestCase):
