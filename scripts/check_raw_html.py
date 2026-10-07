@@ -5,12 +5,16 @@ CommonMark and GitHub Markdown read an angle-bracket placeholder such as
 <YYYY-MM-DD> or <name> as a raw HTML tag, and a rendered page does not show
 it: "fails on as of <YYYY-MM-DD>" renders as "fails on as of ". The
 repository's Markdown writes such a placeholder as a code span (`<name>`) or
-with an escaped bracket (\\<name>), and carries no raw HTML.
+with an escaped bracket (\\<name>), and carries no raw HTML other than HTML
+comments.
 
-The check fails on an HTML open or closing tag in the prose of a Markdown
-document: outside fenced code blocks and code spans, not escaped, and not the
-destination of a link. An HTML comment is not a tag and passes, and so is an
-autolink (<https://...>), which renders as a link.
+The check fails on raw HTML other than a comment in the prose of a Markdown
+document: an open or closing tag, a processing instruction (<?x?>), a
+declaration (<!DOCTYPE html>) or a CDATA section (<![CDATA[x]]>), outside
+fenced code blocks and code spans, not escaped, and not the destination of a
+link. As in CommonMark, raw HTML does not cross a blank line, which ends the
+paragraph. An HTML comment passes, and so does an autolink
+(<https://...>), which renders as a link.
 
 The documents are every Markdown file in the repository (check_naming.py
 lists them), so a new document is covered without being listed.
@@ -27,16 +31,35 @@ import check_naming
 
 ROOT = check_naming.ROOT
 
-# An open tag or a closing tag, as CommonMark defines raw HTML. A backslash
-# before the bracket escapes it, and "](<...>)" is a link destination.
+# A blank line ends a paragraph, and raw HTML does not cross it. CHAR is one
+# character of a paragraph (a line break only if no blank line follows it),
+# and WS one whitespace character of a paragraph.
+PARAGRAPH_BREAK = r"\n(?![ \t]*\n)"
+CHAR = rf"(?:[^\n]|{PARAGRAPH_BREAK})"
+WS = rf"(?:[^\S\n]|{PARAGRAPH_BREAK})"
+
+
+def chars_except(quote: str) -> str:
+    """Return a pattern for one paragraph character other than quote."""
+    return rf"(?:[^{quote}\n]|{PARAGRAPH_BREAK})"
+
+
+# Raw HTML other than a comment, as CommonMark defines it: an open tag, a
+# closing tag, a processing instruction, a declaration or a CDATA section,
+# none of which crosses a blank line. A backslash before the bracket escapes
+# it, and "](<...>)" is a link destination.
 TAG = re.compile(
-    r"""
+    rf"""
     (?<!\\)(?<!\]\()
     <(?:
         [A-Za-z][A-Za-z0-9-]*
-        (?:\s+[A-Za-z_:][A-Za-z0-9_.:-]*(?:\s*=\s*(?:[^\s"'=<>`]+|'[^']*'|"[^"]*"))?)*
-        \s*/?
-      | /[A-Za-z][A-Za-z0-9-]*\s*
+        (?:{WS}+[A-Za-z_:][A-Za-z0-9_.:-]*
+           (?:{WS}*={WS}*(?:[^\s"'=<>`]+|'{chars_except("'")}*'|"{chars_except('"')}*"))?)*
+        {WS}*/?
+      | /[A-Za-z][A-Za-z0-9-]*{WS}*
+      | \?{CHAR}*?\?
+      | ![A-Za-z]{chars_except(">")}*
+      | !\[CDATA\[{CHAR}*?\]\]
     )>
     """,
     re.VERBOSE,

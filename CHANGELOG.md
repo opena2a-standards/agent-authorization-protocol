@@ -85,8 +85,10 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   writing", "this revision", "today", "now"); on "no" with one word before
   "implementation" ("no current implementation"), on "none of the implementations", and on
   either wording split by emphasis, a code span or an inline element such as `<em>`.
-  "No known implementation" still passes, and "no implementation" used as a modifier ("no
-  implementation requirement") now passes. It covers the XML source of every
+  "No known implementation" still passes, and a normative statement ("no conforming
+  implementation accepts ...", also with "compliant" or "conformant") and "no
+  implementation" used as a modifier ("no implementation requirement") now pass. A unit
+  test covers every month name and its abbreviation. It covers the XML source of every
   Internet-Draft (`draft-*.xml`) except the filed `draft-fane-opena2a-aap-00` to `-02`,
   each failure line names the accepted wording, and its run time is linear in the number
   of matches.
@@ -137,9 +139,12 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   it). Both check lines end with the render's status, and unit tests run both checks on a
   copy of the -02 render as the next render.
 - `scripts/check_raw_html.py` fails on an HTML tag in the prose of any Markdown file, such
-  as an angle-bracket placeholder (`<YYYY-MM-DD>`) that a rendered page does not show; a
-  code span, an escaped bracket, an autolink and an HTML comment pass. It runs in CI
-  through `scripts/validate_examples.py`.
+  as an angle-bracket placeholder (`<YYYY-MM-DD>`) that a rendered page does not show, and
+  on the other raw HTML CommonMark reads: a processing instruction (`<?x?>`), a
+  declaration (`<!DOCTYPE html>`) and a CDATA section (`<![CDATA[x]]>`). A code span, a
+  fenced code block and its info string, an escaped bracket, an autolink and an HTML
+  comment pass, and so does a tag that a blank line splits, which CommonMark does not
+  read as raw HTML. It runs in CI through `scripts/validate_examples.py`.
 
 ## [0.5.1-draft] - 2026-10-02
 

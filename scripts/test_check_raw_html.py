@@ -36,6 +36,31 @@ class FindingsTest(unittest.TestCase):
         self.assertEqual(len(findings(text)), 1)
         self.assertIn("line 2:", findings(text)[0])
 
+    def test_processing_instruction_declaration_and_cdata_fail(self):
+        # CommonMark reads each as raw HTML: an html_block on its own line,
+        # html_inline in a paragraph.
+        for text, raw in (("<?php echo 1; ?>\n", "<?php echo 1; ?>"),
+                          ("<!DOCTYPE html>\n", "<!DOCTYPE html>"),
+                          ("<![CDATA[x]]>\n", "<![CDATA[x]]>"),
+                          ("A <?x?> here.\n", "<?x?>"),
+                          ("A <!DOCTYPE html> here.\n", "<!DOCTYPE html>"),
+                          ("A <![CDATA[x]]> here.\n", "<![CDATA[x]]>"),
+                          ("A <?x\ny?> here.\n", "<?x y?>")):
+            with self.subTest(text=text):
+                self.assertEqual(findings(text),
+                                 [f"line 1: HTML tag in Markdown prose, not rendered: {raw!r}"])
+
+    def test_raw_html_does_not_cross_a_blank_line(self):
+        # A blank line ends the paragraph, so CommonMark reads no raw HTML here.
+        for text in ('A <span\n\nclass="x"> tag.\n', 'A <a title="x\n\ny"> tag.\n',
+                     "A <a\n \n> tag.\n", "A <?x\n\ny?> here.\n", "A <!x\n\ny> here.\n",
+                     "A <![CDATA[x\n\ny]]> here.\n"):
+            with self.subTest(text=text):
+                self.assertEqual(findings(text), [])
+
+    def test_quoted_attribute_value_split_across_lines_fails(self):
+        self.assertEqual(len(findings("A <a b='x\ny'> tag.\n")), 1)
+
     def test_placeholder_in_a_table_row_fails(self):
         self.assertEqual(len(findings("| `x` | MUST | <type> | Shown. |\n")), 1)
 
@@ -57,12 +82,20 @@ class FindingsTest(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertEqual(findings(text), [])
 
+    def test_tag_in_a_fence_info_string_passes(self):
+        # CommonMark reads text after the opening fence as the info string.
+        for text in ("```<b>\nx\n```\n", "~~~ <b> x\n<n>\n~~~\n"):
+            with self.subTest(text=text):
+                self.assertEqual(findings(text), [])
+
     def test_text_after_a_fenced_code_block_is_checked(self):
         self.assertEqual(len(findings("```\n<a>\n```\nThen <b>.\n")), 1)
 
     def test_other_angle_brackets_pass(self):
         for text in ("An escaped \\<name> placeholder.", "An autolink <https://example.com>.",
                      "Mail <foo@example.com>.", "A comment <!-- marker --> here.",
+                     "Empty comments <!--> and <!---> here.",
+                     "An escaped \\<?x?> and \\<!DOCTYPE html> here.",
                      "A [link](<a b>) destination.", "a < b > c", "1 <2 and 3> 2"):
             with self.subTest(text=text):
                 self.assertEqual(findings(text), [])
