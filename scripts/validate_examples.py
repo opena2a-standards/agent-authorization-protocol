@@ -9,13 +9,16 @@ Reads schemas/examples-map.json, a list of entries:
 For each entry: find the heading line in the file, take the first fenced
 ```json block after it, parse it, and validate it against the schema.
 Also metaschema-checks every schemas/*.schema.json, runs check_naming.py
-(first use of the name AIM in every Markdown document and Internet-Draft source)
-and check_status_claims.py (rejects "as of <YYYY-MM-DD>", "as of the date of
-this revision", "no implementation" and "no reference implementation") and
+(first use of the name AIM in every Markdown document and Internet-Draft source),
+check_status_claims.py (rejects "as of" followed by a date or by "the date of
+this revision" or "this writing", and an unscoped "no implementation", "no
+reference implementation" or "none of the implementations"),
 check_references.py (AAP-SPEC.md and its newest Internet-Draft render agree
-on reference classes) and check_section_citations.py (each citation it reads, a
+on reference classes), check_section_citations.py (each citation it reads, a
 family document named next to a section number, resolves and says which text it
-means), and runs the unit tests in scripts/ (test_*.py), so CI runs them.
+means) and check_raw_html.py (no HTML tag, such as an angle-bracket placeholder,
+in Markdown prose), and runs the unit tests in scripts/ (test_*.py), so CI runs
+them.
 
 Formats (date-time, uuid) are treated as annotations, not assertions, matching
 library defaults across implementations; structural keywords (type, enum,
@@ -25,7 +28,8 @@ Exit code 0 = all schemas well-formed, all mapped examples valid, every
 document expands the name AIM at first use, the specification uses none of
 the wordings check_status_claims.py rejects, the specification and its newest
 render agree on reference classes, every citation check_section_citations.py
-reads resolves, and every unit test passes.
+reads resolves, no Markdown prose carries an HTML tag, and every unit test
+passes.
 """
 
 import json
@@ -34,6 +38,7 @@ import sys
 import unittest
 
 import check_naming
+import check_raw_html
 import check_status_claims
 import check_references
 import check_section_citations
@@ -134,6 +139,7 @@ def main() -> int:
     failures += check_status_claims.check()
     failures += check_references.check()
     failures += check_section_citations.check()
+    failures += check_raw_html.check()
     failures += run_unit_tests()
 
     if failures:
@@ -142,7 +148,7 @@ def main() -> int:
     print(
         "\nall schemas and mapped examples valid; first use of AIM expanded; "
         "no rejected implementation-status wording; reference classes agree; "
-        "section citations resolve; unit tests pass"
+        "section citations resolve; no HTML tag in Markdown prose; unit tests pass"
     )
     return 0
 
