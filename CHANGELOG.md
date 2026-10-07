@@ -38,7 +38,7 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   repository as the record; the `trust_class` row states the pattern the claim schemas in
   this repository match and names the aap-conformance `conformance.json` as the record for
   the verifiers; the `fga_constraints` row reads "no known implementation", as the -02
-  Internet-Draft text does. `scripts/check_status_claims.py` fails on "as of <YYYY-MM-DD>",
+  Internet-Draft text does. `scripts/check_status_claims.py` fails on `as of <YYYY-MM-DD>`,
   "as of the date of this revision", "no implementation" and "no reference implementation"
   in AAP-SPEC.md, AAP-BROKER-PROFILE.md and every Internet-Draft source after -02, and runs
   in CI through `scripts/validate_examples.py`. No requirement changes: the counts of
