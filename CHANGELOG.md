@@ -85,8 +85,10 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   writing", "this revision", "today", "now"); on "no" with one word before
   "implementation" ("no current implementation"), on "none of the implementations", and on
   either wording split by emphasis, a code span or an inline element such as `<em>`.
-  "No known implementation" still passes, and "no implementation" used as a modifier ("no
-  implementation requirement") now passes. It covers the XML source of every
+  "No known implementation" still passes, and a normative statement ("no conforming
+  implementation accepts ...", also with "compliant" or "conformant") and "no
+  implementation" used as a modifier ("no implementation requirement") now pass. A unit
+  test covers every month name and its abbreviation. It covers the XML source of every
   Internet-Draft (`draft-*.xml`) except the filed `draft-fane-opena2a-aap-00` to `-02`,
   each failure line names the accepted wording, and its run time is linear in the number
   of matches.
@@ -137,9 +139,22 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   it). Both check lines end with the render's status, and unit tests run both checks on a
   copy of the -02 render as the next render.
 - `scripts/check_raw_html.py` fails on an HTML tag in the prose of any Markdown file, such
-  as an angle-bracket placeholder (`<YYYY-MM-DD>`) that a rendered page does not show; a
-  code span, an escaped bracket, an autolink and an HTML comment pass. It runs in CI
-  through `scripts/validate_examples.py`.
+  as an angle-bracket placeholder (`<YYYY-MM-DD>`) that a rendered page does not show, and
+  on the other raw HTML CommonMark reads, where neither a blank line nor a line that
+  begins a block quote splits it: a processing instruction (`<?x?>`), a declaration
+  (`<!DOCTYPE html>`) and a CDATA section (`<![CDATA[x]]>`). A code span, a fenced code
+  block and its info string, an escaped bracket, an autolink, the destination of an
+  inline link (`[text](<...>)`, also after spaces or a line break) and an HTML comment
+  pass, and so does a tag inside a paragraph that a blank line or a line that begins a
+  block quote splits, which CommonMark does not read as raw HTML. The check takes a line
+  to begin a block quote where it begins with more block quote markers (`>`) than any
+  earlier line after the last blank line holds, and does not read the block quote markers
+  of any other line as text. A tag that opens an HTML block at the start of a line (`<div`,
+  `</div`, `<p`, `<pre`, `<table`, ...) fails even when a blank line splits it, as
+  CommonMark reads that line as raw HTML. A processing instruction, a declaration or a
+  CDATA section that a blank line or a line that begins a block quote splits passes, even
+  where it begins a line and CommonMark reads it as an HTML block that continues past that
+  line. It runs in CI through `scripts/validate_examples.py`.
 
 ## [0.5.1-draft] - 2026-10-02
 

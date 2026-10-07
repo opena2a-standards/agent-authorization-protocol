@@ -52,6 +52,15 @@ class FindingsTest(unittest.TestCase):
                 self.assertEqual(len(reasons), 1)
                 self.assertIn("line 1: dated implementation status", reasons[0])
 
+    def test_every_month_name_fails(self):
+        months = ("January", "February", "March", "April", "May", "June", "July", "August",
+                  "September", "October", "November", "December")
+        for month in (*months, *(name[:3] for name in months), "Sept"):
+            anchor = f"As of {month} 2026"
+            with self.subTest(anchor=anchor):
+                self.assertEqual(findings(f"{anchor}, both verifiers match.\n"),
+                                 [f"line 1: dated implementation status: {anchor!r}"])
+
     def test_month_name_date_anchor_is_reported_in_full(self):
         self.assertEqual(findings("As of 6 October 2026, both verifiers match.\n"),
                          ["line 1: dated implementation status: 'As of 6 October 2026'"])
@@ -124,6 +133,23 @@ class FindingsTest(unittest.TestCase):
                      "None of the known implementations mint it."):
             with self.subTest(text=text):
                 self.assertEqual(findings(text), [])
+
+    def test_normative_statement_passes(self):
+        # A conforming, compliant or conformant implementation is the subject of
+        # a requirement, not of a status claim.
+        for text in ("No conforming implementation accepts an AIT without cnf.",
+                     "No compliant implementation accepts it.",
+                     "No conformant implementation accepts it.",
+                     "No *conforming* implementation accepts it.",
+                     "None of the conforming implementations accept it.",
+                     "<t>No <em>conforming</em> implementation accepts it</t>"):
+            with self.subTest(text=text):
+                self.assertEqual(findings(text), [])
+
+    def test_nonconforming_qualifier_fails(self):
+        self.assertEqual(findings("No nonconforming implementation mints BACs.\n"),
+                         ["line 1: unscoped universal negative: "
+                          "'No nonconforming implementation'"])
 
     def test_named_record_passes(self):
         text = ("> **Implementation status (non-normative).** This specification does not\n"

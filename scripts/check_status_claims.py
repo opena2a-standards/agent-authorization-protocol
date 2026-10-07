@@ -19,9 +19,12 @@ HTML or xml2rfc element such as <em>):
   - an unscoped universal negative: "no implementation", "no implementations",
     "no" with one word before "implementation" ("no reference implementation",
     "no current implementation") and "none of the implementations". A negative
-    scoped to what is known passes ("no known implementation"), and so does
-    "no implementation" used as a modifier ("no implementation requirement",
-    "no implementation-defined claim").
+    scoped to what is known passes ("no known implementation"), and so do a
+    normative statement, whose qualifier makes it a requirement and not a
+    status ("no conforming implementation accepts ...", "no compliant
+    implementation", "no conformant implementation"), and "no implementation"
+    used as a modifier ("no implementation requirement", "no
+    implementation-defined claim").
 
 The documents are AAP-SPEC.md, AAP-BROKER-PROFILE.md and the XML source of
 every Internet-Draft (draft-*.xml at the top level) except the filed revisions
@@ -67,8 +70,10 @@ DATE = "|".join((
 ))
 
 # One word between "no" and "implementation" ("no current implementation"),
-# unless the word scopes the negative to what is known.
-QUALIFIER = rf"(?:(?!known\b)[A-Za-z][A-Za-z-]*{SEP})?"
+# unless the word scopes the negative to what is known or makes it a normative
+# statement ("no conforming implementation accepts ..." is a requirement).
+SCOPED = r"known|conforming|conformant|compliant"
+QUALIFIER = rf"(?:(?!(?:{SCOPED})\b)[A-Za-z][A-Za-z-]*{SEP})?"
 
 # "implementation" as a modifier of the next noun is not a claim about implementations.
 MODIFIED = (
