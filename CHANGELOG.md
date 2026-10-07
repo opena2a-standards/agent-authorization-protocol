@@ -8,6 +8,23 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ### Changed
 
+- `trust_class` (Section 4.2, and the DA through Section 5.3) uses the capability grammar of
+  AIP Section 4.1: a reserved namespace, or a namespace prefixed with the defining
+  organization's domain, then a colon and an action (`acme.com/orders:read`). The CGT and
+  DA claim schemas accept that grammar and keep accepting the legacy `namespace:action`
+  form (`^[a-z0-9_-]+:[a-z0-9_-]+$`), so no value valid before this change is rejected; a
+  verifier treats the legacy form as well formed under claim schema version 1, and
+  removing it requires a new claim schema version. A broker SHOULD mint the AIP grammar.
+  Section 4.2 no longer carries the dated sentence on the pattern of the claim schemas and
+  the reference verifiers. Every CGT and DA example in the specification, the broker
+  profile, `examples/orders-db-exchange.md` and `examples/tokens/` carries
+  `acme.com/orders:read`; the generated CGT and DA fixtures and their embedded bytes change
+  accordingly (Section 9.7), and the AIT and BAC fixtures and `test-keys.json` are
+  unchanged. AIP is a normative reference. One MUST and one SHOULD are added to
+  AAP-SPEC.md; the broker profile's requirement counts are unchanged.
+  `scripts/test_trust_class_grammar.py` pins the accepted and rejected values for both
+  schemas and checks that the five CGT and DA claim sets in `examples/tokens/` and the
+  `trust_class` values of the JSON examples in AAP-SPEC.md carry the domain-prefixed class.
 - The specification and the broker profile no longer carry dated statements that no
   implementation provides a feature (eight sentences: AAP-SPEC Section 4.2 preamble and
   `authorization_details` row, Sections 4.6 and 7.3; broker profile Sections 6.8, 6.9, 7.3
@@ -43,6 +60,62 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   in AAP-SPEC.md, AAP-BROKER-PROFILE.md and every Internet-Draft source after -02, and runs
   in CI through `scripts/validate_examples.py`. No requirement changes: the counts of
   MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both documents are unchanged.
+- The References entries for ATP (in both documents), for AIP (in the broker profile) and
+  for the broker profile (in the specification) name the text file whose section numbers
+  the documents cite: `ATP-SPEC.md`, `AIP-SPEC.md` and `AAP-BROKER-PROFILE.md`, as the AIP
+  entry of the specification already did. A family document can have more than one
+  numbered text: the capability format is Section 4.1 of `AIP-SPEC.md` and Section 5.1 of
+  draft-fane-opena2a-aip-04. In `examples/orders-db-exchange.md` the resolution flow was
+  cited as "Section 6 of the spec"; it is Section 6 of the broker profile (Section 6 of
+  the specification is the BAC), and the heading now says so. Editorial: no requirement
+  changes, and the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both documents
+  are unchanged.
+
+### Added
+
+- Section 11 lists the conformance suite, [AAP-CONFORMANCE], as an informative reference,
+  as the -02 Internet-Draft does; the specification cites its reference verifiers and
+  `conformance.json`. Editorial: no requirement changes.
+- `scripts/check_references.py` checks that every reference listed in both the
+  specification's Section 11 and the newest Internet-Draft render is in the same class
+  (normative or informative) in both, and that the specification lists every OpenA2A
+  family reference the render lists. A class the specification gives a reference after
+  the render was made passes only while the [Unreleased] section of this changelog records
+  it in the form "<label> is a normative reference" (or "an informative reference"), as it
+  does for AIP above, so the next render must carry it. The check prints one class-parity
+  line and runs in CI through `scripts/validate_examples.py`.
+- `scripts/check_section_citations.py` checks each citation in which a family document is
+  named next to a section number ("broker profile §8.1", "AIP Section 4.1", "Section 4.4.1
+  of AAP-SPEC"), with the numbers listed directly after that number ("broker profile §7,
+  §11"), in the Markdown documents of the repository, except this changelog and the dated
+  notes in `decisions/`, and in the newest Internet-Draft render. A number further along
+  the sentence is not read: in "the broker profile (§6, step 3, and §6.8)" the check reads
+  §6 only. A citation that names the ATX text `core.md` rather than `atx-spec/core.md` is
+  not read. A number cited from the
+  specification or the broker profile must be a numbered heading of that document. Where
+  the citing document's References section lists the cited document, the entry names its
+  text file, and a document outside this repository is named by its text file in the
+  citation or in that entry. A citation of "the spec" outside the specification fails, and
+  in the render each document cited by number must have a reference entry. The check
+  prints one census line: the citations per document, and the printed address of each
+  document the render cites by number, with whether that address or the entry's annotation
+  names the text file. For draft-fane-opena2a-aap-02 the [AIP] address names `AIP-SPEC.md`
+  and the [AAP-BROKER-PROFILE] address does not name `AAP-BROKER-PROFILE.md`. It runs in CI
+  through `scripts/validate_examples.py`; its unit tests pin the citation forms and the
+  rules.
+- `scripts/check_references.py` and `scripts/check_section_citations.py` tell a submitted
+  render from the next one. A render is submitted when a released section of this changelog
+  records it as "`draft-fane-opena2a-aap-NN` (submitted YYYY-MM-DD", as the 0.5.1-draft
+  section does for -02; any other render is the next render. A submitted render cannot
+  change, so there a recorded class change and a printed address that does not name its
+  text file are reported. In the next render both fail: a class change the [Unreleased]
+  section records fails until the render carries it, and a document cited by section number
+  fails until the address or the annotation of its reference entry names its text file. A
+  render made from the -02 source therefore lists [AIP] as a normative reference and, for
+  broker profile Section 8.1, prints an address of `AAP-BROKER-PROFILE.md` or names it in the
+  annotation (the -02 address, https://specs.opena2a.org/aap/broker-profile, does not name
+  it). Both check lines end with the render's status, and unit tests run both checks on a
+  copy of the -02 render as the next render.
 
 ## [0.5.1-draft] - 2026-10-02
 

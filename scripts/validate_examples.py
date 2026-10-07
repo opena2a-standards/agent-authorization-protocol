@@ -11,8 +11,11 @@ For each entry: find the heading line in the file, take the first fenced
 Also metaschema-checks every schemas/*.schema.json, runs check_naming.py
 (first use of the name AIM in every Markdown document and Internet-Draft source)
 and check_status_claims.py (rejects "as of <YYYY-MM-DD>", "as of the date of
-this revision", "no implementation" and "no reference implementation"), and
-runs the unit tests in scripts/ (test_*.py), so CI runs them.
+this revision", "no implementation" and "no reference implementation") and
+check_references.py (AAP-SPEC.md and its newest Internet-Draft render agree
+on reference classes) and check_section_citations.py (each citation it reads, a
+family document named next to a section number, resolves and says which text it
+means), and runs the unit tests in scripts/ (test_*.py), so CI runs them.
 
 Formats (date-time, uuid) are treated as annotations, not assertions, matching
 library defaults across implementations; structural keywords (type, enum,
@@ -20,7 +23,9 @@ pattern, required) carry the contract.
 
 Exit code 0 = all schemas well-formed, all mapped examples valid, every
 document expands the name AIM at first use, the specification uses none of
-the wordings check_status_claims.py rejects, and every unit test passes.
+the wordings check_status_claims.py rejects, the specification and its newest
+render agree on reference classes, every citation check_section_citations.py
+reads resolves, and every unit test passes.
 """
 
 import json
@@ -30,6 +35,8 @@ import unittest
 
 import check_naming
 import check_status_claims
+import check_references
+import check_section_citations
 
 try:
     from jsonschema import Draft202012Validator
@@ -125,6 +132,8 @@ def main() -> int:
 
     failures += check_naming.check()
     failures += check_status_claims.check()
+    failures += check_references.check()
+    failures += check_section_citations.check()
     failures += run_unit_tests()
 
     if failures:
@@ -132,7 +141,8 @@ def main() -> int:
         return 1
     print(
         "\nall schemas and mapped examples valid; first use of AIM expanded; "
-        "no rejected implementation-status wording; unit tests pass"
+        "no rejected implementation-status wording; reference classes agree; "
+        "section citations resolve; unit tests pass"
     )
     return 0
 

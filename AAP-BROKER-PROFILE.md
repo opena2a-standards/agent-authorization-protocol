@@ -101,7 +101,7 @@ BCP 14 (RFC 2119, RFC 8174) when, and only when, they appear in all capitals.
   an agent *is*: its identity, issuer and issuer chain, trust level, scan summary, and capabilities
   expressed as trust classes. ATX is the *subject claim* in AAP. (ATX is the current name for the
   credential formerly called ATC; implementations may still reference the legacy `atc` name.)
-- **Trust class**, a capability expressed in abstract trust terms, e.g. `db:read`, `orders:read`.
+- **Trust class**, a capability expressed in abstract trust terms, e.g. `db:read`, `acme.com/orders:read`.
   A trust class names *what an agent is trusted to do in the abstract*. It MUST NOT name a backend,
   a host, a path, a role, or a vendor.
 - **Grant reference**, the abstract identifier an agent emits instead of a secret, of the form
@@ -462,7 +462,7 @@ The grammar MUST be able to express the following clause, even though a single-o
 not evaluate the issuer-chain and jurisdiction predicates:
 
 > *Any agent whose issuer chain includes a node in my trusted-partners set, at OASB level L2 or
-> higher, holding capability `orders:read`, is granted the named resource `grant://orders-db`,
+> higher, holding capability `acme.com/orders:read`, is granted the named resource `grant://orders-db`,
 > scoped to read-only, for a short fixed window.*
 
 Expressed in the (non-normative) policy grammar:
@@ -472,7 +472,7 @@ Expressed in the (non-normative) policy grammar:
   match:
     issuerChainIncludes: { partnersSet: trusted-partners }   # federation attribute
     oasbLevel: ">=L2"                                         # from ATX scanSummary
-    trustClass: orders:read                                   # ATX capability
+    trustClass: acme.com/orders:read                          # ATX capability
     jurisdiction: { in: [us, eu] }                            # Section 9 (v1: parsed, not enforced)
   resolve:
     mode: exchange
@@ -773,7 +773,7 @@ Until then, identifiers are managed in this specification.
 - **RFC 9396**, OAuth 2.0 Rich Authorization Requests (the `authorization_details` claim).
 - **RFC 7800**, Proof-of-Possession Key Semantics for JSON Web Tokens (the `cnf` claim).
 - **RFC 9421**, HTTP Message Signatures (the HTTP presentation proof, Section 6.8).
-- **ATP**, Agent Trust Protocol specification (OpenA2A).
+- **ATP**, Agent Trust Protocol specification (OpenA2A; `ATP-SPEC.md`).
 - **ATX**, Agent Trust eXtension credential format (OpenA2A; see `atx-spec/core.md`).
 - **FIPS 204**, Module-Lattice-Based Digital Signature Standard (ML-DSA).
 - **RFC 9964**, ML-DSA for JOSE and COSE (the `ML-DSA-65` `alg` and `AKP` key type).
@@ -786,7 +786,7 @@ Until then, identifiers are managed in this specification.
 - **W3C DID Core 1.0** and the `did:opena2a` method.
 - **AI Agent Threat Matrix**, https://threats.opena2a.org (techniques T-3002, T-3003, T-3006, T-8002).
 - **OASB**, Open Agent Security Benchmark (levels L1–L3).
-- **AIP**, Agent Identity Protocol (OpenA2A), §7.2 policy actions, and the registered
+- **AIP**, Agent Identity Protocol (OpenA2A; `AIP-SPEC.md`), §7.2 policy actions, and the registered
   agent key used as a verification key in Section 6.8.
 - **DAAP**, OAuth Profile for Delegated AI Agent Authorization, draft-mishra-oauth-agent-grants-02
   (IETF Internet-Draft, 30 August 2026).
