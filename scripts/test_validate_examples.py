@@ -18,6 +18,7 @@ except ImportError:
     raise unittest.SkipTest("the 'jsonschema' package is required (pip install jsonschema)")
 
 import check_naming  # noqa: E402
+import check_raw_html  # noqa: E402
 import check_status_claims  # noqa: E402
 import check_section_citations  # noqa: E402
 import validate_examples  # noqa: E402
@@ -76,11 +77,12 @@ class RunUnitTestsTest(unittest.TestCase):
         self.assertIn("test_check_naming", names)
         self.assertIn("test_check_status_claims", names)
         self.assertIn("test_check_section_citations", names)
+        self.assertIn("test_check_raw_html", names)
 
 
 class MainTest(unittest.TestCase):
     def run_main(self, unit_test_failures, status_claim_failures=0,
-                 section_citation_failures=0):
+                 section_citation_failures=0, raw_html_failures=0):
         out = io.StringIO()
         with mock.patch.object(validate_examples, "run_unit_tests",
                                return_value=unit_test_failures) as run, \
@@ -89,11 +91,14 @@ class MainTest(unittest.TestCase):
                                   return_value=status_claim_failures) as status, \
                 mock.patch.object(check_section_citations, "check",
                                   return_value=section_citation_failures) as cite, \
+                mock.patch.object(check_raw_html, "check",
+                                  return_value=raw_html_failures) as raw_html, \
                 contextlib.redirect_stdout(out):
             code = validate_examples.main()
         run.assert_called_once_with()
         status.assert_called_once_with()
         cite.assert_called_once_with()
+        raw_html.assert_called_once_with()
         return code, out.getvalue()
 
     def test_unit_test_failure_fails_validation(self):
@@ -103,6 +108,11 @@ class MainTest(unittest.TestCase):
 
     def test_dated_implementation_status_fails_validation(self):
         code, out = self.run_main(0, status_claim_failures=1)
+        self.assertEqual(code, 1)
+        self.assertIn("1 failure(s)", out)
+
+    def test_html_tag_in_markdown_prose_fails_validation(self):
+        code, out = self.run_main(0, raw_html_failures=1)
         self.assertEqual(code, 1)
         self.assertIn("1 failure(s)", out)
 

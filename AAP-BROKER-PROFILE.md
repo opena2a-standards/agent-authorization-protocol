@@ -724,10 +724,11 @@ structural slots for Levels 2–3 in place.
 ## 14. Reference Implementation (Informative)
 
 The OpenA2A reference implementation lives in Secretless AI, as a library within the existing
-Secretless broker (a local daemon reachable over a Unix socket). The daemon does not yet construct
-the grant resolver from operator configuration, so `POST /grant` returns 404 on a shipped build;
-what follows describes the implemented library surface and its in-repo conformance test, not an
-operator-reachable endpoint. It provides:
+Secretless broker (a local daemon reachable over a Unix socket). This section describes the
+implemented library surface and its in-repo conformance test, not an operator-reachable endpoint:
+a daemon that does not construct the grant resolver from operator configuration returns 404 on
+`POST /grant`, and whether a given release constructs it is recorded in the reference
+implementation's repository. The library provides:
 
 - the `grant://` scheme;
 - the CPI abstraction with all three modes declared and **Exchange** implemented;

@@ -7,8 +7,8 @@
 **Date:** October 2026
 **Intended status:** Standards Track (IETF Internet-Draft; named individual authors will be attributed at Internet-Draft submission per IETF convention)
 
-> **Reconciliation note (2026-06-01).** This document supersedes the March 2026 draft
-> `aim-roadmap/master-plan/drafts/ietf-aap-internet-draft.md` by the same author. Changes
+> **Reconciliation note (2026-06-01).** This document supersedes the March 2026 working
+> draft of this protocol by the same author, which is not part of this repository. Changes
 > are non-architectural: the credential is renamed ATC → **ATX** (Agent Trust eXtension,
 > per `atx-spec/core.md`), DIDs move from `did:atp:` to `did:opena2a:`, and a companion
 > document, [`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md), is referenced as the
@@ -556,8 +556,9 @@ both entries have a parent of the same type. Removing the `data` entry from the 
 and leaving it in the delegatee would make the entry an orphan and the DA invalid.
 
 The v1 reference realizes delegation through its Exchange mode (the broker assertion is
-the subject token of the RFC 8693 exchange); it does not yet mint standalone DAs with an
-`act` chain.
+the subject token of the RFC 8693 exchange). Whether a given release also mints standalone
+DAs with an `act` chain is recorded in the reference implementation's repository (broker
+profile Section 14).
 
 ## 6. Behavioral Attestation Claim (BAC)
 
@@ -723,8 +724,9 @@ entry verifying (Section 9.4). Hybrid is the RECOMMENDED form wherever both ends
 AAP; single-suite compact tokens remain the interoperability baseline (Section 9.3).
 ML-DSA-65 signing uses the empty context string and no pre-hash variant, as RFC 9964
 requires. Key exchange, where AAP deployments negotiate transport keys, targets hybrid
-X25519 + ML-KEM-768 (FIPS 203); ML-KEM has no final JOSE registration yet, so that row
-remains reserved on the same adoption path this section previously applied to ML-DSA-65.
+X25519 + ML-KEM-768 (FIPS 203). That row remains reserved until ML-KEM has a final JOSE
+registration, the same adoption path this section previously applied to ML-DSA-65; the IANA
+"JSON Web Signature and Encryption Algorithms" registry is the record of that registration.
 
 ### 8.3 Intent Verification
 NanoMind intent verification provides semantic understanding that static policies cannot.
@@ -808,10 +810,10 @@ compact. A compact token carries exactly one signature and therefore exactly one
 
 The suite of a compact token is pinned per path by verifier policy (§8.2). `EdDSA` is the
 v1 interoperability baseline; an `ML-DSA-65` compact token is the PQ-interop form, minted
-where the counterparty advertises support for the RFC 9964 suites. During the current
-adoption window the RECOMMENDED default on foreign-interop paths remains `EdDSA` —
-deployed RFC 8693/OIDC verifiers do not yet verify RFC 9964 suites; the re-evaluation
-triggers are recorded in
+where the counterparty advertises support for the RFC 9964 suites. The RECOMMENDED default
+on foreign-interop paths is `EdDSA`, because an RFC 8693/OIDC verifier that does not
+implement the RFC 9964 suites rejects an `ML-DSA-65` token; the triggers for re-evaluating
+this default are recorded in
 [`decisions/2026-07-16-mldsa65-serialization-profile.md`](./decisions/2026-07-16-mldsa65-serialization-profile.md).
 Example (generated; the §4.2 CGT claim shape with its own `jti`, signed `ML-DSA-65` under
 test key `broker-pqc-1`):

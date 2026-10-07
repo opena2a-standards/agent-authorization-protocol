@@ -70,6 +70,26 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   the specification is the BAC), and the heading now says so. Editorial: no requirement
   changes, and the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both documents
   are unchanged.
+- AAP-SPEC Sections 5.5, 8.2 and 9.3 and broker profile Section 14 no longer state
+  implementation, deployment or registration status with "not yet" or "yet": whether the
+  reference implementation mints standalone DAs, and whether its daemon serves
+  `POST /grant`, is recorded in its own repository; the ML-KEM row stays reserved until a
+  final JOSE registration, whose record is the IANA "JSON Web Signature and Encryption
+  Algorithms" registry; and Section 9.3 states why `EdDSA` is the RECOMMENDED default on
+  foreign-interop paths (a verifier that does not implement the RFC 9964 suites rejects an
+  `ML-DSA-65` token). The reconciliation note no longer cites the superseded March 2026
+  draft by a file path outside this repository. No requirement changes: the counts of
+  MUST, MUST NOT, SHOULD, SHOULD NOT, MAY and RECOMMENDED in both documents are unchanged.
+- `scripts/check_status_claims.py` also fails on "as of" followed by a month-name date
+  ("October 2026", "6 October 2026", "October 6, 2026"), a year, or a moving anchor ("this
+  writing", "this revision", "today", "now"); on "no" with one word before
+  "implementation" ("no current implementation"), on "none of the implementations", and on
+  either wording split by emphasis, a code span or an inline element such as `<em>`.
+  "No known implementation" still passes, and "no implementation" used as a modifier ("no
+  implementation requirement") now passes. It covers the XML source of every
+  Internet-Draft (`draft-*.xml`) except the filed `draft-fane-opena2a-aap-00` to `-02`,
+  each failure line names the accepted wording, and its run time is linear in the number
+  of matches.
 
 ### Added
 
@@ -81,7 +101,7 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   (normative or informative) in both, and that the specification lists every OpenA2A
   family reference the render lists. A class the specification gives a reference after
   the render was made passes only while the [Unreleased] section of this changelog records
-  it in the form "<label> is a normative reference" (or "an informative reference"), as it
+  it in the form `<label> is a normative reference` (or `an informative reference`), as it
   does for AIP above, so the next render must carry it. The check prints one class-parity
   line and runs in CI through `scripts/validate_examples.py`.
 - `scripts/check_section_citations.py` checks each citation in which a family document is
@@ -116,6 +136,10 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   annotation (the -02 address, https://specs.opena2a.org/aap/broker-profile, does not name
   it). Both check lines end with the render's status, and unit tests run both checks on a
   copy of the -02 render as the next render.
+- `scripts/check_raw_html.py` fails on an HTML tag in the prose of any Markdown file, such
+  as an angle-bracket placeholder (`<YYYY-MM-DD>`) that a rendered page does not show; a
+  code span, an escaped bracket, an autolink and an HTML comment pass. It runs in CI
+  through `scripts/validate_examples.py`.
 
 ## [0.5.1-draft] - 2026-10-02
 
