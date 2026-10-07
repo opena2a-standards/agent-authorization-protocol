@@ -957,14 +957,14 @@ type registry of Section 4.4.1 are managed in this specification.
 - [FIPS 203], Module-Lattice-Based Key-Encapsulation Mechanism Standard.
 - [FIPS 204], Module-Lattice-Based Digital Signature Standard.
 - [ATX], Agent Trust eXtension credential format (`atx-spec/core.md`).
-- [ATP], Agent Trust Protocol.
+- [ATP], Agent Trust Protocol (`ATP-SPEC.md`).
 - [AIP], Agent Identity Protocol (`AIP-SPEC.md`; Section 4.1 is the capability grammar of `trust_class`).
 
 ### Informative References
 - [A2A], Agent-to-Agent Protocol Specification.
 - [MCP], Model Context Protocol Specification.
 - [OpenA2A], OpenA2A Platform Architecture.
-- [AAP-BROKER-PROFILE], AAP Broker & Resolution Layer (this repository).
+- [AAP-BROKER-PROFILE], AAP Broker & Resolution Layer (`AAP-BROKER-PROFILE.md`, this repository).
 - [AAP-CONFORMANCE], AAP Conformance Suite, https://github.com/opena2a-standards/aap-conformance
   (the two reference verifiers, and `conformance.json`, the record of what they verify).
 - [RFC 9421], HTTP Message Signatures (a presentation proof format, broker profile §6.8).

@@ -59,6 +59,16 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   in AAP-SPEC.md, AAP-BROKER-PROFILE.md and every Internet-Draft source after -02, and runs
   in CI through `scripts/validate_examples.py`. No requirement changes: the counts of
   MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both documents are unchanged.
+- The References entries for ATP (in both documents), for AIP (in the broker profile) and
+  for the broker profile (in the specification) name the text file whose section numbers
+  the documents cite: `ATP-SPEC.md`, `AIP-SPEC.md` and `AAP-BROKER-PROFILE.md`, as the AIP
+  entry of the specification already did. A family document can have more than one
+  numbered text: the capability format is Section 4.1 of `AIP-SPEC.md` and Section 5.1 of
+  draft-fane-opena2a-aip-04. In `examples/orders-db-exchange.md` the resolution flow was
+  cited as "Section 6 of the spec"; it is Section 6 of the broker profile (Section 6 of
+  the specification is the BAC), and the heading now says so. Editorial: no requirement
+  changes, and the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both documents
+  are unchanged.
 
 ### Added
 
@@ -73,6 +83,21 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   it in the form "<label> is a normative reference" (or "an informative reference"), as it
   does for AIP above, so the next render must carry it. The check prints one class-parity
   line and runs in CI through `scripts/validate_examples.py`.
+- `scripts/check_section_citations.py` checks every section-numbered citation of a family
+  document ("broker profile §8.1", "AIP Section 4.1", "Section 4.4.1 of AAP-SPEC") in the
+  Markdown documents of the repository, except this changelog and the dated notes in
+  `decisions/`, and in the newest Internet-Draft render. A number cited from the
+  specification or the broker profile must be a numbered heading of that document. Where
+  the citing document's References section lists the cited document, the entry names its
+  text file, and a document outside this repository is named by its text file in the
+  citation or in that entry. A citation of "the spec" outside the specification fails, and
+  in the render each document cited by number must have a reference entry. The check
+  prints one census line: the citations per document, and the printed address of each
+  document the render cites by number, with whether that address or the entry's annotation
+  names the text file. For draft-fane-opena2a-aap-02 the [AIP] address names `AIP-SPEC.md`
+  and the [AAP-BROKER-PROFILE] address does not name `AAP-BROKER-PROFILE.md`. It runs in CI
+  through `scripts/validate_examples.py`; its unit tests pin the citation forms and the
+  rules.
 
 ## [0.5.1-draft] - 2026-10-02
 

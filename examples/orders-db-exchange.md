@@ -41,7 +41,7 @@ grant resolves through an OAuth token exchange rather than a vaulted secret or a
     ttl: 300s
 ```
 
-## 3. Resolution flow (Section 6 of the spec)
+## 3. Resolution flow (Section 6 of the broker profile)
 
 ```
 agent ──grant://orders-db + ATX──▶ broker (unix socket)

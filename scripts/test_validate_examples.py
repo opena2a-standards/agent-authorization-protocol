@@ -19,6 +19,7 @@ except ImportError:
 
 import check_naming  # noqa: E402
 import check_status_claims  # noqa: E402
+import check_section_citations  # noqa: E402
 import validate_examples  # noqa: E402
 
 PASSING = "import unittest\n\nclass T(unittest.TestCase):\n    def test_ok(self):\n        pass\n"
@@ -74,20 +75,25 @@ class RunUnitTestsTest(unittest.TestCase):
         }
         self.assertIn("test_check_naming", names)
         self.assertIn("test_check_status_claims", names)
+        self.assertIn("test_check_section_citations", names)
 
 
 class MainTest(unittest.TestCase):
-    def run_main(self, unit_test_failures, status_claim_failures=0):
+    def run_main(self, unit_test_failures, status_claim_failures=0,
+                 section_citation_failures=0):
         out = io.StringIO()
         with mock.patch.object(validate_examples, "run_unit_tests",
                                return_value=unit_test_failures) as run, \
                 mock.patch.object(check_naming, "check", return_value=0), \
                 mock.patch.object(check_status_claims, "check",
                                   return_value=status_claim_failures) as status, \
+                mock.patch.object(check_section_citations, "check",
+                                  return_value=section_citation_failures) as cite, \
                 contextlib.redirect_stdout(out):
             code = validate_examples.main()
         run.assert_called_once_with()
         status.assert_called_once_with()
+        cite.assert_called_once_with()
         return code, out.getvalue()
 
     def test_unit_test_failure_fails_validation(self):
@@ -104,6 +110,11 @@ class MainTest(unittest.TestCase):
         code, out = self.run_main(0)
         self.assertEqual(code, 0)
         self.assertIn("unit tests pass", out)
+
+    def test_section_citation_failure_fails_validation(self):
+        code, out = self.run_main(0, section_citation_failures=1)
+        self.assertEqual(code, 1)
+        self.assertIn("1 failure(s)", out)
 
 
 if __name__ == "__main__":

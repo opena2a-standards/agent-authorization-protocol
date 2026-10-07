@@ -773,7 +773,7 @@ Until then, identifiers are managed in this specification.
 - **RFC 9396**, OAuth 2.0 Rich Authorization Requests (the `authorization_details` claim).
 - **RFC 7800**, Proof-of-Possession Key Semantics for JSON Web Tokens (the `cnf` claim).
 - **RFC 9421**, HTTP Message Signatures (the HTTP presentation proof, Section 6.8).
-- **ATP**, Agent Trust Protocol specification (OpenA2A).
+- **ATP**, Agent Trust Protocol specification (OpenA2A; `ATP-SPEC.md`).
 - **ATX**, Agent Trust eXtension credential format (OpenA2A; see `atx-spec/core.md`).
 - **FIPS 204**, Module-Lattice-Based Digital Signature Standard (ML-DSA).
 - **RFC 9964**, ML-DSA for JOSE and COSE (the `ML-DSA-65` `alg` and `AKP` key type).
@@ -786,7 +786,7 @@ Until then, identifiers are managed in this specification.
 - **W3C DID Core 1.0** and the `did:opena2a` method.
 - **AI Agent Threat Matrix**, https://threats.opena2a.org (techniques T-3002, T-3003, T-3006, T-8002).
 - **OASB**, Open Agent Security Benchmark (levels L1–L3).
-- **AIP**, Agent Identity Protocol (OpenA2A), §7.2 policy actions, and the registered
+- **AIP**, Agent Identity Protocol (OpenA2A; `AIP-SPEC.md`), §7.2 policy actions, and the registered
   agent key used as a verification key in Section 6.8.
 - **DAAP**, OAuth Profile for Delegated AI Agent Authorization, draft-mishra-oauth-agent-grants-02
   (IETF Internet-Draft, 30 August 2026).
