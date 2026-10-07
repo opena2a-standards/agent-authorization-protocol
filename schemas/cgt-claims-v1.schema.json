@@ -24,7 +24,11 @@
     },
     "trust_class": {
       "type": "string",
-      "pattern": "^[a-z0-9_-]+:[a-z0-9_-]+$"
+      "description": "The ATX capability exercised for this grant (AAP-SPEC section 4.2). The first branch is the capability grammar of AIP section 4.1, copied from that section: a reserved namespace, or a namespace prefixed with the defining organization's domain, then a colon and an action (e.g. `acme.com/orders:read`). The second branch is the legacy `namespace:action` form that claim schema v1 carried before it adopted the AIP grammar; it admits an unreserved bare namespace such as `orders:read`, and v1 keeps accepting it so a value a deployed broker mints stays valid. Dropping the legacy branch requires a new claim schema version.",
+      "anyOf": [
+        { "pattern": "^(?:[a-z0-9-]+(?:\\.[a-z0-9-]+)+/)?[a-z][a-z0-9_]*:[a-z][a-z0-9_]*$" },
+        { "pattern": "^[a-z0-9_-]+:[a-z0-9_-]+$" }
+      ]
     },
     "issuer_chain": {
       "type": "array",

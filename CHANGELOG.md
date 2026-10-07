@@ -8,6 +8,22 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ### Changed
 
+- `trust_class` (Section 4.2, and the DA through Section 5.3) uses the capability grammar of
+  AIP Section 4.1: a reserved namespace, or a namespace prefixed with the defining
+  organization's domain, then a colon and an action (`acme.com/orders:read`). The CGT and
+  DA claim schemas accept that grammar and keep accepting the legacy `namespace:action`
+  form (`^[a-z0-9_-]+:[a-z0-9_-]+$`), so no value valid before this change is rejected; a
+  verifier treats the legacy form as well formed under claim schema version 1, and
+  removing it requires a new claim schema version. A broker SHOULD mint the AIP grammar.
+  Section 4.2 no longer carries the dated sentence on the pattern of the claim schemas and
+  the reference verifiers. Every CGT and DA example in the specification, the broker
+  profile, `examples/orders-db-exchange.md` and `examples/tokens/` carries
+  `acme.com/orders:read`; the generated CGT and DA fixtures and their embedded bytes change
+  accordingly (Section 9.7), and the AIT and BAC fixtures and `test-keys.json` are
+  unchanged. AIP is a normative reference. One MUST and one SHOULD are added to
+  AAP-SPEC.md; the broker profile's requirement counts are unchanged.
+  `scripts/test_trust_class_grammar.py` pins the accepted and rejected values for both
+  schemas and checks that every example carries the domain-prefixed class.
 - The specification and the broker profile no longer carry dated statements that no
   implementation provides a feature (eight sentences: AAP-SPEC Section 4.2 preamble and
   `authorization_details` row, Sections 4.6 and 7.3; broker profile Sections 6.8, 6.9, 7.3

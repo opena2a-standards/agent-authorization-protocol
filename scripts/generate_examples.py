@@ -89,6 +89,11 @@ BROKER_ISSUER = "https://broker.acme.example"
 AGENT_DID = "did:opena2a:agent:acme/orders-reader"
 DELEGATEE_DID = "did:opena2a:agent:acme/reporting-bot"
 
+# The ATX capability every CGT and DA example carries (AAP-SPEC section 4.2), in
+# the capability grammar of AIP section 4.1: a namespace prefixed with the
+# defining organization's domain, a colon, and an action.
+TRUST_CLASS = "acme.com/orders:read"
+
 # 2026-06-01T12:00:00Z — the same fixed clock as the reference e2e test.
 IAT = int(datetime(2026, 6, 1, 12, 0, 0, tzinfo=timezone.utc).timestamp())
 
@@ -257,7 +262,7 @@ def cgt_claims() -> dict:
         "sub": AGENT_DID,
         "aud": "https://api.orders.internal",
         "scope": "orders.read",
-        "trust_class": "orders:read",
+        "trust_class": TRUST_CLASS,
         "issuer_chain": [REGISTRY_ISSUER],
         "trust_level": 4,
         "iat": IAT,
@@ -279,7 +284,7 @@ def da_claims() -> dict:
         "sub": DELEGATEE_DID,
         "aud": "https://api.orders.internal",
         "scope": "orders.read",
-        "trust_class": "orders:read",
+        "trust_class": TRUST_CLASS,
         "issuer_chain": [REGISTRY_ISSUER],
         "trust_level": 4,
         "act": {"sub": AGENT_DID},
@@ -342,7 +347,7 @@ def cgt_fgc_claims() -> dict:
         "sub": AGENT_DID,
         "aud": "https://api.orders.internal",
         "scope": "orders.read",
-        "trust_class": "orders:read",
+        "trust_class": TRUST_CLASS,
         "issuer_chain": [REGISTRY_ISSUER],
         "trust_level": 4,
         "authorization_details": cgt_authorization_details(),
@@ -360,7 +365,7 @@ def da_fgc_claims() -> dict:
         "sub": DELEGATEE_DID,
         "aud": "https://api.orders.internal",
         "scope": "orders.read",
-        "trust_class": "orders:read",
+        "trust_class": TRUST_CLASS,
         "issuer_chain": [REGISTRY_ISSUER],
         "trust_level": 4,
         "authorization_details": da_authorization_details(),
@@ -538,8 +543,9 @@ def build_files() -> dict[str, str]:
 
     # 0.5 fixtures: authorization_details + aap_crit + cnf on a CGT and on an
     # attenuated DA (sections 4.4 to 4.6, 5.4), and an L3 BAC carrying
-    # session_label (section 6.4). Additive: every earlier fixture is
-    # byte-identical to its 0.4 form.
+    # session_label (section 6.4). Additive: the AIT and BAC fixtures are
+    # byte-identical to their 0.4 form; the CGT and DA fixtures changed only
+    # by the domain-prefixed TRUST_CLASS.
     fgc_tokens = {
         "cgt-v1.fgc": ("broker-key-1", cgt_fgc_claims()),
         "da-v1.fgc": ("broker-key-1", da_fgc_claims()),

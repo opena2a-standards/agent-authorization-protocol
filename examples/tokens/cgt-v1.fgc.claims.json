@@ -3,7 +3,7 @@
   "sub": "did:opena2a:agent:acme/orders-reader",
   "aud": "https://api.orders.internal",
   "scope": "orders.read",
-  "trust_class": "orders:read",
+  "trust_class": "acme.com/orders:read",
   "issuer_chain": [
     "did:opena2a:authority:opena2a.org"
   ],

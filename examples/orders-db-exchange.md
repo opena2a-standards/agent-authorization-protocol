@@ -12,7 +12,7 @@ from aim_sdk import secure
 
 agent = secure("orders-reader")
 
-@agent.perform_action(capability="orders:read", grant="grant://orders-db")
+@agent.perform_action(capability="acme.com/orders:read", grant="grant://orders-db")
 def recent_orders(customer_id):
     # `db` here is provided by the broker-backed result handle.
     # No connection string, no token, no hostname is ever in scope.
@@ -31,7 +31,7 @@ grant resolves through an OAuth token exchange rather than a vaulted secret or a
   match:
     issuerChainIncludes: { partnersSet: trusted-partners }   # v1: parsed, treated as satisfied in-org
     oasbLevel: ">=L2"                                         # from ATX scanSummary
-    trustClass: orders:read                                   # ATX capability
+    trustClass: acme.com/orders:read                          # ATX capability
     jurisdiction: { in: [us, eu] }                            # v1: parsed, not enforced
   resolve:
     mode: exchange
@@ -48,7 +48,7 @@ agent ──grant://orders-db + ATX──▶ broker (unix socket)
                                    │ 1. verify ATX: sig + suite + expiry + cached CRL  (AIM path)
                                    │ 2. negotiate AAP version
                                    │ 3. evaluate policy → mode=exchange, scope=orders.read  (default-deny)
-                                   │ 4. mint broker assertion from ATX claims (subject, orders:read, ttl)
+                                   │ 4. mint broker assertion from ATX claims (subject, acme.com/orders:read, ttl)
                                    │       signed with broker's rotating delegated key
                                    │ 5. RFC 8693 token exchange ▶ orders-idp
                                    │       grant_type=urn:ietf:params:oauth:grant-type:token-exchange
