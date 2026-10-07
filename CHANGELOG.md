@@ -60,6 +60,20 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   in CI through `scripts/validate_examples.py`. No requirement changes: the counts of
   MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both documents are unchanged.
 
+### Added
+
+- Section 11 lists the conformance suite, [AAP-CONFORMANCE], as an informative reference,
+  as the -02 Internet-Draft does; the specification cites its reference verifiers and
+  `conformance.json`. Editorial: no requirement changes.
+- `scripts/check_references.py` checks that every reference listed in both the
+  specification's Section 11 and the newest Internet-Draft render is in the same class
+  (normative or informative) in both, and that the specification lists every OpenA2A
+  family reference the render lists. A class the specification gives a reference after
+  the render was made passes only while the [Unreleased] section of this changelog records
+  it in the form "<label> is a normative reference" (or "an informative reference"), as it
+  does for AIP above, so the next render must carry it. The check prints one class-parity
+  line and runs in CI through `scripts/validate_examples.py`.
+
 ## [0.5.1-draft] - 2026-10-02
 
 Internet-Draft pairing: `draft-fane-opena2a-aap-02` (submitted 2026-10-02; document date

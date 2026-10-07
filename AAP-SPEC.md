@@ -965,6 +965,8 @@ type registry of Section 4.4.1 are managed in this specification.
 - [MCP], Model Context Protocol Specification.
 - [OpenA2A], OpenA2A Platform Architecture.
 - [AAP-BROKER-PROFILE], AAP Broker & Resolution Layer (this repository).
+- [AAP-CONFORMANCE], AAP Conformance Suite, https://github.com/opena2a-standards/aap-conformance
+  (the two reference verifiers, and `conformance.json`, the record of what they verify).
 - [RFC 9421], HTTP Message Signatures (a presentation proof format, broker profile §6.8).
 - [RFC 9162], Certificate Transparency Version 2.0 (the transparency log in the Registry definition, Section 2).
 - [AI Agent Threat Matrix], https://threats.opena2a.org
