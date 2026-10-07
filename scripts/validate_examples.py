@@ -10,7 +10,8 @@ For each entry: find the heading line in the file, take the first fenced
 ```json block after it, parse it, and validate it against the schema.
 Also metaschema-checks every schemas/*.schema.json, runs check_naming.py
 (first use of the name AIM in every Markdown document and Internet-Draft source)
-and check_status_claims.py (implementation status stated without a date), and
+and check_status_claims.py (rejects "as of <YYYY-MM-DD>", "as of the date of
+this revision", "no implementation" and "no reference implementation"), and
 runs the unit tests in scripts/ (test_*.py), so CI runs them.
 
 Formats (date-time, uuid) are treated as annotations, not assertions, matching
@@ -18,8 +19,8 @@ library defaults across implementations; structural keywords (type, enum,
 pattern, required) carry the contract.
 
 Exit code 0 = all schemas well-formed, all mapped examples valid, every
-document expands the name AIM at first use, the specification states
-implementation status without a date, and every unit test passes.
+document expands the name AIM at first use, the specification uses none of
+the wordings check_status_claims.py rejects, and every unit test passes.
 """
 
 import json
@@ -131,7 +132,7 @@ def main() -> int:
         return 1
     print(
         "\nall schemas and mapped examples valid; first use of AIM expanded; "
-        "implementation status undated; unit tests pass"
+        "no rejected implementation-status wording; unit tests pass"
     )
     return 0
 

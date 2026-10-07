@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check that the specification states implementation status without a date.
+"""Check the specification for two wordings of implementation status that go stale.
 
 A sentence such as "as of 2026-09-08 no implementation mints cnf" is true on
 the day it is written and goes stale without the text changing; "as of the
@@ -91,7 +91,7 @@ def check(root: pathlib.Path = ROOT) -> int:
         if reasons:
             failures += 1
         else:
-            print(f"ok    {name}: implementation status carries no date")
+            print(f"ok    {name}: no rejected implementation-status wording")
     return failures
 
 
