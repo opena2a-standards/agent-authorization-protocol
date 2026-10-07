@@ -9,15 +9,18 @@ Reads schemas/examples-map.json, a list of entries:
 For each entry: find the heading line in the file, take the first fenced
 ```json block after it, parse it, and validate it against the schema.
 Also metaschema-checks every schemas/*.schema.json, runs check_naming.py
-(first use of the name AIM in every Markdown document and Internet-Draft source),
-and runs the unit tests in scripts/ (test_*.py), so CI runs them.
+(first use of the name AIM in every Markdown document and Internet-Draft source)
+and check_status_claims.py (rejects "as of <YYYY-MM-DD>", "as of the date of
+this revision", "no implementation" and "no reference implementation"), and
+runs the unit tests in scripts/ (test_*.py), so CI runs them.
 
 Formats (date-time, uuid) are treated as annotations, not assertions, matching
 library defaults across implementations; structural keywords (type, enum,
 pattern, required) carry the contract.
 
 Exit code 0 = all schemas well-formed, all mapped examples valid, every
-document expands the name AIM at first use, and every unit test passes.
+document expands the name AIM at first use, the specification uses none of
+the wordings check_status_claims.py rejects, and every unit test passes.
 """
 
 import json
@@ -26,6 +29,7 @@ import sys
 import unittest
 
 import check_naming
+import check_status_claims
 
 try:
     from jsonschema import Draft202012Validator
@@ -120,12 +124,16 @@ def main() -> int:
             print(f"example OK     {entry['file']} @ {entry['heading']!r}")
 
     failures += check_naming.check()
+    failures += check_status_claims.check()
     failures += run_unit_tests()
 
     if failures:
         print(f"\n{failures} failure(s)")
         return 1
-    print("\nall schemas and mapped examples valid; first use of AIM expanded; unit tests pass")
+    print(
+        "\nall schemas and mapped examples valid; first use of AIM expanded; "
+        "no rejected implementation-status wording; unit tests pass"
+    )
     return 0
 
 
