@@ -18,8 +18,11 @@ Markdown list too, since both documents cite the same family.
 Between drafts the Markdown is ahead of the render. A class the Markdown gives a
 reference after the render was made is accepted when the [Unreleased] section of
 CHANGELOG.md records it as "<label> is a normative reference" (or "an informative
-reference"). The next render must carry that class: once the section is released,
-the exception lapses. A recorded class the Markdown does not list fails.
+reference") and the render is a submitted one: a released section of CHANGELOG.md
+records it as "`draft-fane-opena2a-aap-NN` (submitted YYYY-MM-DD". A render no
+released section records as submitted is the next render, and must carry the
+recorded class; once the section is released, the exception lapses for every
+render. A recorded class the Markdown does not list fails.
 
 Prints one class-parity line. Exit code 0 = no shared reference differs in class and
 the Markdown lists every family reference of the render.
@@ -47,6 +50,10 @@ LABEL = re.compile(r"\[([^\]]+)\]")
 # or a repository of the opena2a-standards organization.
 FAMILY = re.compile(r"https://(?:[a-z0-9-]+\.)*opena2a\.org(?:/|$)|https://github\.com/opena2a-standards/")
 UNRELEASED = re.compile(r"##\s+\[Unreleased\]\s*")
+RELEASED = re.compile(r"##\s+\[(?!Unreleased\])[^\]]+\].*")
+# The Internet-Draft pairing of a released section: "`draft-fane-opena2a-aap-02`
+# (submitted 2026-10-02; document date ...". "-02 was not submitted" is not a record.
+SUBMITTED = re.compile(r"`?(draft-fane-opena2a-aap-\d+)`?\s+\(submitted\s+\d{4}-\d{2}-\d{2}\b")
 # "AIP is a normative reference", "RFC 9162 is an informative reference", "[AI Agent
 # Threat Matrix] is an informative reference".
 RECORDED = re.compile(
@@ -115,6 +122,34 @@ def recorded_classes(changelog: str) -> dict[str, tuple[str, str]]:
     return recorded
 
 
+def submitted_renders(changelog: str) -> set[str]:
+    """Return the draft names ("draft-fane-opena2a-aap-02") a released section records as submitted."""
+    section = []
+    in_section = False
+    for line in changelog.splitlines():
+        if line.startswith("## "):
+            in_section = RELEASED.fullmatch(line) is not None
+            continue
+        if in_section:
+            section.append(line)
+    return set(SUBMITTED.findall(" ".join(" ".join(section).split())))
+
+
+def render_submitted(root: pathlib.Path, render_name: str) -> bool:
+    """Return whether a released section of the changelog in root records the render as submitted."""
+    changelog = root / CHANGELOG
+    if not changelog.is_file():
+        return False
+    return pathlib.Path(render_name).stem in submitted_renders(changelog.read_text(encoding="utf-8"))
+
+
+def render_status(render_name: str, submitted: bool) -> str:
+    """Return the closing clause of a check line: whether the render is submitted or the next one."""
+    if submitted:
+        return f"{render_name} is submitted ({CHANGELOG})"
+    return f"{render_name} is the next render (no released section of {CHANGELOG} records it as submitted)"
+
+
 def newest_render(root: pathlib.Path) -> str | None:
     """Return the file name of the highest-numbered draft XML in root, or None."""
     drafts = []
@@ -130,8 +165,13 @@ def compare(
     render_entries: list[tuple[str, str, str, str]],
     recorded: dict[str, tuple[str, str]],
     render_name: str,
+    submitted: bool = True,
 ) -> tuple[list[str], str]:
-    """Return the failure lines and the class-parity summary."""
+    """Return the failure lines and the class-parity summary.
+
+    submitted: the render is a submitted one, so a class change the [Unreleased]
+    section records is accepted; the next render must carry it.
+    """
     failures = []
     md = {}
     for label, ref_class in md_entries:
@@ -157,8 +197,14 @@ def compare(
         matched_anchors.add(anchor)
         if md_class == render_class:
             same += 1
-        elif recorded.get(k, (None, None))[1] == md_class:
+        elif recorded.get(k, (None, None))[1] == md_class and submitted:
             changed.append(f"{label} {md_class}")
+        elif recorded.get(k, (None, None))[1] == md_class:
+            failures.append(
+                f"[{label}] is {md_class} in {SPEC} and {render_class} in {render_name}, the"
+                f" next render; {CHANGELOG} [Unreleased] records the change, so the next"
+                f" render must carry it"
+            )
         else:
             failures.append(
                 f"[{label}] is {md_class} in {SPEC} and {render_class} in {render_name}"
@@ -193,7 +239,8 @@ def compare(
         f" {same} same class, {len(changed)} changed since the render and recorded in"
         f" {CHANGELOG} [Unreleased]{' (' + ', '.join(changed) + ')' if changed else ''},"
         f" {len(failures)} failure(s); only in {SPEC}: {', '.join(md_only) or 'none'};"
-        f" only in the render: {', '.join(render_only) or 'none'}"
+        f" only in the render: {', '.join(render_only) or 'none'};"
+        f" {render_status(render_name, submitted)}"
     )
     return failures, summary
 
@@ -214,7 +261,9 @@ def check(root: pathlib.Path = ROOT) -> int:
         return 1
     changelog = root / CHANGELOG
     recorded = recorded_classes(changelog.read_text(encoding="utf-8")) if changelog.is_file() else {}
-    failures, summary = compare(md_entries, render_entries, recorded, render_name)
+    failures, summary = compare(
+        md_entries, render_entries, recorded, render_name, render_submitted(root, render_name)
+    )
     for failure in failures:
         print(f"FAIL  {failure}")
     print(f"{'FAIL' if failures else 'ok  '}  {summary}")

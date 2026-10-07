@@ -23,6 +23,11 @@ they describe and are not checked.
 4. In the render, each document cited by number has a reference entry. The census
    line lists the printed address (the entry's target) of each, and whether the
    address or the entry's annotation names the text file.
+5. The next render prints, for each document it cites by number, an address that
+   names the text file, or names it in the entry's annotation. A render a released
+   section of CHANGELOG.md records as submitted ("`draft-fane-opena2a-aap-02`
+   (submitted 2026-10-02") cannot change, so there an address that does not name its
+   text is reported, not failed; in any other render it fails.
 
 Prints one census line. Exit code 0 = no failure. Also run by validate_examples.py
 so the check runs in CI.
@@ -295,9 +300,11 @@ def check(root: pathlib.Path = ROOT) -> int:
 
     render_name = check_references.newest_render(root)
     addresses = []
+    status = ""
     if render_name is None:
         failures.append("no draft-fane-opena2a-aap-NN.xml found")
     else:
+        submitted = check_references.render_submitted(root, render_name)
         data = (root / render_name).read_bytes()
         references = render_references(data)
         # The XML source, so a failure names the line of the source; the citations are
@@ -312,11 +319,18 @@ def check(root: pathlib.Path = ROOT) -> int:
                 continue
             target, annotation = references[doc.label]
             names = doc.text in target or doc.text in annotation
+            if not names and not submitted:
+                failures.append(
+                    f"{render_name}: {doc.name} is cited by section number and its reference"
+                    f" entry ({target or 'no target'}) does not name {doc.text}; the next render"
+                    f" must print an address of {doc.text} or name it in the entry's annotation"
+                )
             addresses.append(
                 f"{doc.name} {target or '(no target)'}"
                 f" ({'names' if names else 'does not name'} {doc.text})"
             )
         parts.append(f"{render_name} {census(cites)}")
+        status = "; " + check_references.render_status(render_name, submitted)
 
     for failure in failures:
         print(f"FAIL  {failure}")
@@ -324,6 +338,7 @@ def check(root: pathlib.Path = ROOT) -> int:
         f"{'FAIL' if failures else 'ok  '}  section citations of family documents:"
         f" {'; '.join(parts) or 'none'}; {len(failures)} failure(s);"
         f" printed address in {render_name or 'no render'}: {', '.join(addresses) or 'none'}"
+        f"{status}"
     )
     return len(failures)
 

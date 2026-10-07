@@ -82,6 +82,12 @@ RENDER_XML = """<?xml version="1.0" encoding="utf-8"?>
 </rfc>
 """
 
+SUBMITTED_03 = """\
+## [0.6.0-draft] - 2026-01-02
+
+Internet-Draft pairing: `draft-fane-opena2a-aap-03` (submitted 2026-01-02).
+"""
+
 
 def found(text, file="doc.md"):
     """Return (document name, numbers, names its text file) for each citation in text."""
@@ -247,16 +253,53 @@ class CheckTest(unittest.TestCase):
             out,
         )
 
-    def test_printed_address_that_does_not_name_the_text_is_reported_not_failed(self):
+    def test_printed_address_that_does_not_name_the_text_is_reported_not_failed_in_a_submitted_render(self):
         files = self.base()
         files["draft-fane-opena2a-aap-03.xml"] = RENDER_XML.replace(
             "<annotation>Section numbers are those of AAP-BROKER-PROFILE.md.</annotation>", ""
         )
+        files["CHANGELOG.md"] = SUBMITTED_03
         failures, out = self.run_check(files)
         self.assertEqual(failures, 0, out)
         self.assertIn(
-            "broker profile https://example.org/aap/broker-profile (does not name AAP-BROKER-PROFILE.md)", out
+            "broker profile https://example.org/aap/broker-profile (does not name AAP-BROKER-PROFILE.md);"
+            " draft-fane-opena2a-aap-03.xml is submitted (CHANGELOG.md)",
+            out,
         )
+
+    def test_printed_address_that_does_not_name_the_text_fails_in_the_next_render(self):
+        files = self.base()
+        files["draft-fane-opena2a-aap-03.xml"] = RENDER_XML.replace(
+            "<annotation>Section numbers are those of AAP-BROKER-PROFILE.md.</annotation>", ""
+        )
+        unreleased = "## [Unreleased]\n\n" + SUBMITTED_03.split("\n\n", 1)[1]
+        for changelog in (None, SUBMITTED_03.replace("aap-03", "aap-02"), unreleased):
+            with self.subTest(changelog=changelog):
+                if changelog is None:
+                    files.pop("CHANGELOG.md", None)
+                else:
+                    files["CHANGELOG.md"] = changelog
+                failures, out = self.run_check(files)
+                self.assertEqual(failures, 1, out)
+                self.assertIn(
+                    "FAIL  draft-fane-opena2a-aap-03.xml: broker profile is cited by section number and its"
+                    " reference entry (https://example.org/aap/broker-profile) does not name"
+                    " AAP-BROKER-PROFILE.md; the next render must print an address of AAP-BROKER-PROFILE.md"
+                    " or name it in the entry's annotation",
+                    out,
+                )
+                self.assertIn(
+                    "draft-fane-opena2a-aap-03.xml is the next render (no released section of"
+                    " CHANGELOG.md records it as submitted)",
+                    out,
+                )
+
+    def test_next_render_passes_when_the_address_or_the_annotation_names_the_text(self):
+        # RENDER_XML names AIP-SPEC.md in the AIP address and AAP-BROKER-PROFILE.md in the
+        # broker profile annotation.
+        failures, out = self.run_check(self.base())
+        self.assertEqual(failures, 0, out)
+        self.assertIn("draft-fane-opena2a-aap-03.xml is the next render", out)
 
     def test_render_number_missing_from_the_profile_fails(self):
         files = self.base()
@@ -311,6 +354,31 @@ class RepositoryTest(unittest.TestCase):
             failures = check_section_citations.check()
         self.assertEqual(failures, 0, out.getvalue())
         self.assertIn("printed address in draft-fane-opena2a-aap-", out.getvalue())
+
+    def test_a_next_render_copied_from_the_02_render_must_print_an_address_of_the_broker_profile_text(self):
+        # The -02 render cites broker profile Section 8.1 and prints
+        # https://specs.opena2a.org/aap/broker-profile, which carries no section numbers.
+        root = check_section_citations.ROOT
+        render = (root / "draft-fane-opena2a-aap-02.xml").read_text(encoding="utf-8")
+        failure = "draft-fane-opena2a-aap-03.xml: broker profile is cited by section number"
+        blob = "https://github.com/opena2a-standards/agent-authorization-protocol/blob/main/AAP-BROKER-PROFILE.md"
+        for text, fails in (
+            (render, True),
+            (render.replace('target="https://specs.opena2a.org/aap/broker-profile"', f'target="{blob}"'), False),
+        ):
+            with self.subTest(fails=fails), tempfile.TemporaryDirectory() as tmp:
+                copy = pathlib.Path(tmp)
+                for name in ("AAP-SPEC.md", "AAP-BROKER-PROFILE.md"):
+                    (copy / name).write_bytes((root / name).read_bytes())
+                (copy / "draft-fane-opena2a-aap-03.xml").write_text(text, encoding="utf-8")
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out):
+                    check_section_citations.check(copy)
+                if fails:
+                    self.assertIn(failure, out.getvalue())
+                else:
+                    self.assertNotIn(failure, out.getvalue())
+                    self.assertIn(f"broker profile {blob} (names AAP-BROKER-PROFILE.md)", out.getvalue())
 
     def test_reference_entries_name_the_text_of_each_family_document_cited_by_number(self):
         root = check_section_citations.ROOT

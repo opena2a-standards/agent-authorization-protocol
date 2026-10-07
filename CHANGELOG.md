@@ -98,6 +98,19 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   and the [AAP-BROKER-PROFILE] address does not name `AAP-BROKER-PROFILE.md`. It runs in CI
   through `scripts/validate_examples.py`; its unit tests pin the citation forms and the
   rules.
+- `scripts/check_references.py` and `scripts/check_section_citations.py` tell a submitted
+  render from the next one. A render is submitted when a released section of this changelog
+  records it as "`draft-fane-opena2a-aap-NN` (submitted YYYY-MM-DD", as the 0.5.1-draft
+  section does for -02; any other render is the next render. A submitted render cannot
+  change, so there a recorded class change and a printed address that does not name its
+  text file are reported. In the next render both fail: a class change the [Unreleased]
+  section records fails until the render carries it, and a document cited by section number
+  fails until the address or the annotation of its reference entry names its text file. A
+  render made from the -02 source therefore lists [AIP] as a normative reference and, for
+  broker profile Section 8.1, prints an address of `AAP-BROKER-PROFILE.md` or names it in the
+  annotation (the -02 address, https://specs.opena2a.org/aap/broker-profile, does not name
+  it). Both check lines end with the render's status, and unit tests run both checks on a
+  copy of the -02 render as the next render.
 
 ## [0.5.1-draft] - 2026-10-02
 
