@@ -18,6 +18,7 @@ except ImportError:
     raise unittest.SkipTest("the 'jsonschema' package is required (pip install jsonschema)")
 
 import check_naming  # noqa: E402
+import check_status_claims  # noqa: E402
 import validate_examples  # noqa: E402
 
 PASSING = "import unittest\n\nclass T(unittest.TestCase):\n    def test_ok(self):\n        pass\n"
@@ -72,21 +73,30 @@ class RunUnitTestsTest(unittest.TestCase):
             for test in case
         }
         self.assertIn("test_check_naming", names)
+        self.assertIn("test_check_status_claims", names)
 
 
 class MainTest(unittest.TestCase):
-    def run_main(self, unit_test_failures):
+    def run_main(self, unit_test_failures, status_claim_failures=0):
         out = io.StringIO()
         with mock.patch.object(validate_examples, "run_unit_tests",
                                return_value=unit_test_failures) as run, \
                 mock.patch.object(check_naming, "check", return_value=0), \
+                mock.patch.object(check_status_claims, "check",
+                                  return_value=status_claim_failures) as status, \
                 contextlib.redirect_stdout(out):
             code = validate_examples.main()
         run.assert_called_once_with()
+        status.assert_called_once_with()
         return code, out.getvalue()
 
     def test_unit_test_failure_fails_validation(self):
         code, out = self.run_main(1)
+        self.assertEqual(code, 1)
+        self.assertIn("1 failure(s)", out)
+
+    def test_dated_implementation_status_fails_validation(self):
+        code, out = self.run_main(0, status_claim_failures=1)
         self.assertEqual(code, 1)
         self.assertIn("1 failure(s)", out)
 

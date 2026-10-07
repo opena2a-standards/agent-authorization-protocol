@@ -29,6 +29,20 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   name, so a diagram label or sample output in a code block is not counted as the first
   use; the first use must be in prose. `scripts/validate_examples.py` also runs the unit
   tests in `scripts/` (`test_*.py`), so CI runs them, and fails if none are found.
+- AAP-SPEC no longer states implementation status in a form that changes meaning with the
+  date it is read: Section 3.2 (no reference implementation mints AITs yet), the
+  `trust_class` row of Section 4.2 (what the aap-conformance verifiers match "as of the
+  date of this revision"), the `fga_constraints` row (no implementation minted it) and
+  Section 6.3 (no implementation mints BACs yet). Sections 3.2 and 6.3 carry a
+  non-normative "Implementation status" note naming the issuing Registry implementation's
+  repository as the record; the `trust_class` row states the pattern the claim schemas in
+  this repository match and names the aap-conformance `conformance.json` as the record for
+  the verifiers; the `fga_constraints` row reads "no known implementation", as the -02
+  Internet-Draft text does. `scripts/check_status_claims.py` fails on "as of <date>", "as
+  of the date of this revision", "no implementation" and "no reference implementation" in
+  AAP-SPEC.md, AAP-BROKER-PROFILE.md and every Internet-Draft source after -02, and runs
+  in CI through `scripts/validate_examples.py`. No requirement changes: the counts of
+  MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both documents are unchanged.
 
 ## [0.5.1-draft] - 2026-10-02
 

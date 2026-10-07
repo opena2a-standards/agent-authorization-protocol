@@ -139,10 +139,13 @@ eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCIsImtpZCI6InJlZ2lzdHJ5LWtleS0xIn0.eyJpc3MiOiJk
 }
 ```
 
-No reference implementation mints AITs yet; the schema and generated fixture pin the form
-for implementers. (The broker reference implementation consumes the ATX directly as its
-subject claim; the AIT is the standalone identity assertion for deployments without a
-presented ATX.)
+The schema and generated fixture pin the form for implementers. (The broker reference
+implementation consumes the ATX directly as its subject claim; the AIT is the standalone
+identity assertion for deployments without a presented ATX.)
+
+> **Implementation status (non-normative).** This specification does not record which
+> implementations mint AITs. An AIT is minted by the issuing Registry named in `iss`, and
+> the record is that Registry implementation's own repository.
 
 ### 3.3 Verification
 AIT verification MUST be local. The verifier checks the signature against the issuer's public
@@ -179,7 +182,7 @@ else. The claim set is pinned by
 | `sub` | MUST | DID | Agent DID, taken from the **verified** ATX — never from agent input. |
 | `aud` | MUST | string | Downstream audience / resource. |
 | `scope` | MUST | string | Downstream OAuth scope requested (e.g. `orders.read`). |
-| `trust_class` | MUST | `class:action` | The ATX capability (abstract trust class, e.g. `acme.com/orders:read`, a domain-prefixed namespace per AIP Section 4.1) exercised for this grant. Distinct from `scope`: the trust class is the portable, abstract capability; the scope is the local downstream binding. As of the date of this revision, both aap-conformance reference verifiers match `trust_class` against `^[a-z0-9_-]+:[a-z0-9_-]+$`, a pattern that admits no domain prefix; the JSON examples in this document carry the unprefixed `orders:read`. The claim schemas (`schemas/cgt-claims-v1.schema.json`, `schemas/da-claims-v1.schema.json`) carry the same pattern. |
+| `trust_class` | MUST | `class:action` | The ATX capability (abstract trust class, e.g. `acme.com/orders:read`, a domain-prefixed namespace per AIP Section 4.1) exercised for this grant. Distinct from `scope`: the trust class is the portable, abstract capability; the scope is the local downstream binding. The claim schemas (`schemas/cgt-claims-v1.schema.json`, `schemas/da-claims-v1.schema.json`) match `trust_class` against `^[a-z0-9_-]+:[a-z0-9_-]+$`, a pattern that admits no domain prefix, and the JSON examples in this document carry the unprefixed `orders:read`. The aap-conformance repository's `conformance.json` is the record of the pattern its reference verifiers match. |
 | `issuer_chain` | MUST | DID array | ATX issuer chain, carried for v2 cross-broker verification (broker profile §7, §11). |
 | `trust_level` | MUST | integer 0–4 | ATX trust level. |
 | `iat` / `exp` | MUST | NumericDate | Validity window; `exp - iat` is the policy TTL (§4.3). |
@@ -188,7 +191,7 @@ else. The claim set is pinned by
 | `authorization_details` | MAY | array | RFC 9396 structured grant entries, typed by the registry of Section 4.4. Mandatory to understand: MUST be listed in `aap_crit` when present. Narrows within `scope` and `trust_class`, never widens them (Section 4.4). Outside the ratified baseline (Section 4.2, preamble). |
 | `aap_crit` | MAY | string array | The claim names a verifier MUST understand or reject the token (Section 4.5). |
 | `cnf` | MAY | object | RFC 7800 confirmation: binds the token to the presenter's key (Section 4.6). Mandatory to understand: MUST be listed in `aap_crit` when present. |
-| `fga_constraints` | MAY, **deprecated** | string | JSON-encoded FGA policy from the 0.3 and 0.4 text. Deprecated in 0.5, replacedBy `authorization_details`. Still optional-to-ignore (broker profile §8.3): a verifier ignores it. No implementation minted it (the name does not occur in the reference broker's source); it stays defined because the -00 and -01 Internet-Draft text and both aap-conformance verifiers (`verifiers/python/verify.py`, `verifiers/node/verify.mjs`) carry it. |
+| `fga_constraints` | MAY, **deprecated** | string | JSON-encoded FGA policy from the 0.3 and 0.4 text. Deprecated in 0.5, replacedBy `authorization_details`. Still optional-to-ignore (broker profile §8.3): a verifier ignores it. No known implementation minted it (the name does not occur in the reference broker's source); it stays defined because the -00 and -01 Internet-Draft text and both aap-conformance verifiers (`verifiers/python/verify.py`, `verifiers/node/verify.mjs`) carry it. |
 | `intent_verified` | MAY | boolean | NanoMind intent verification result. Optional-to-ignore; not minted by the v1 reference. |
 | `max_uses` | MAY, **deprecated** | integer | Use-count bound from the 0.3 and 0.4 text. Deprecated in 0.5, replacedBy `budget.maxUses` (§4.4.1). Still optional-to-ignore; not minted by the v1 reference. When both are present, `budget.maxUses` MUST NOT exceed `max_uses` (the §4.4 narrowing rule applied to one bound). |
 | `context_required` | MAY | boolean | Whether exercise requires conversational context review. Optional-to-ignore; not minted by the v1 reference. |
@@ -572,8 +575,12 @@ state. It has no internet parallel, it exists because agents are non-determinist
 BAC verification is local (< 2 ms). The receiver verifies the signature against the
 issuing Registry instance's published public key, under the suite model of §8.2. The
 post-quantum profile for BACs (an ML-DSA-65 signature alongside Ed25519, via the
-multi-signature form of Section 9.4) is a target, not a shipped property: no
-implementation mints BACs yet, and v1 fixtures are Ed25519.
+multi-signature form of Section 9.4) is a target, not a shipped property: the v1 fixtures
+are Ed25519.
+
+> **Implementation status (non-normative).** This specification does not record which
+> implementations mint BACs. As for the AIT (Section 3.2), the record is the issuing
+> Registry implementation's own repository.
 
 ### 6.4 Claim Set
 
