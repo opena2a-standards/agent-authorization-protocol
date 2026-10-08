@@ -169,6 +169,42 @@ class FindingsTest(unittest.TestCase):
         self.assertEqual(len(findings(text)), 44444)
         self.assertLess(time.perf_counter() - start, 2.0)
 
+    def test_not_yet_status_fails(self):
+        for text, words in (
+                ("The shipped daemon does not yet construct the grant resolver.", "not yet"),
+                ("The daemon doesn't yet resolve a grant reference.", "doesn't yet"),
+                ("The daemon has yet to construct the grant resolver.", "yet to"),
+                ("As yet the daemon constructs nothing.", "As yet")):
+            with self.subTest(text=text):
+                self.assertEqual(findings(text), [f"line 1: status stated with yet: {words!r}"])
+
+    def test_yet_after_a_negative_fails(self):
+        text = ("| `da` | AAP-SPEC §5.3 | Pinned (Exchange only; "
+                "no standalone `act`-chain minting yet) |\n")
+        self.assertEqual(findings(text),
+                         ["line 1: status stated with yet: "
+                          "'no standalone act-chain minting yet'"])
+
+    def test_yet_split_across_lines_or_by_markup_fails(self):
+        for text in ("the daemon does not\nyet construct it.",
+                     "the daemon does *not* yet construct it.",
+                     "> the daemon does not\n> yet construct it.",
+                     "<t>the daemon does not <em>yet</em> construct it</t>"):
+            with self.subTest(text=text):
+                self.assertEqual(findings(text), ["line 1: status stated with yet: 'not yet'"])
+
+    def test_yet_outside_a_status_passes(self):
+        # "yet" as a conjunction, or a token's own validity window, is not a
+        # statement of what an implementation provides.
+        for text in ("A short yet complete claim set.",
+                     "The token carries no cnf member, yet the broker binds it.",
+                     "No key matches the kid. Yet the token is well formed.",
+                     "A token that is not yet valid MUST be rejected.",
+                     "A jti not yet seen is recorded; one not yet expired is kept.",
+                     "The yeti keyset is not the yetter one."):
+            with self.subTest(text=text):
+                self.assertEqual(findings(text), [])
+
     def test_other_dates_and_words_pass(self):
         text = ("Submitted 2026-10-02 as of record.\n"
                 "Each implementation carries no implementation-defined claim names.\n")
@@ -184,7 +220,7 @@ class RepositoryDocumentsTest(unittest.TestCase):
 
     def test_specification_documents_and_readme_are_covered(self):
         names = check_status_claims.documents()
-        for name in ("AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md"):
+        for name in ("AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md", "schemas/README.md"):
             with self.subTest(document=name):
                 self.assertIn(name, names)
 
@@ -213,7 +249,7 @@ class DiscoveryTest(unittest.TestCase):
             write(self.root, name, "As of the date of this revision no implementation.\n")
         self.assertEqual(check_status_claims.documents(self.root),
                          ["AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md",
-                          "draft-fane-opena2a-aap-03.xml"])
+                          "schemas/README.md", "draft-fane-opena2a-aap-03.xml"])
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             self.assertEqual(check_status_claims.check(self.root), 1)
@@ -225,7 +261,8 @@ class DiscoveryTest(unittest.TestCase):
             write(self.root, name, "<rfc><t>no implementation mints it</t></rfc>\n")
         self.assertEqual(check_status_claims.documents(self.root),
                          ["AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md",
-                          "draft-ietf-opena2a-aap-00.xml", "draft-other-03.xml"])
+                          "schemas/README.md", "draft-ietf-opena2a-aap-00.xml",
+                          "draft-other-03.xml"])
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             self.assertEqual(check_status_claims.check(self.root), 2)
@@ -272,6 +309,49 @@ class DiscoveryTest(unittest.TestCase):
                       "'As of 2026-10-08'", out.getvalue())
         self.assertIn("FAIL  README.md: line 3: unscoped universal negative: "
                       "'no implementation'", out.getvalue())
+
+    def test_status_claim_in_the_schemas_readme_fails(self):
+        write(self.root, "schemas/README.md",
+              "| Schema | Status |\n|---|---|\n"
+              "| `bac-claims-v1.schema.json` | Pinned, normative (no reference implementation "
+              "yet) |\n")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(check_status_claims.check(self.root), 1)
+        self.assertIn("FAIL  schemas/README.md: line 3: status stated with yet: "
+                      "'no reference implementation yet'; state what the text defines without "
+                      '"yet", and name the record that holds the status', out.getvalue())
+        self.assertIn("FAIL  schemas/README.md: line 3: unscoped universal negative: "
+                      "'no reference implementation'", out.getvalue())
+
+    def test_not_yet_in_the_readme_fails(self):
+        write(self.root, "README.md",
+              "Where it stops today: the shipped daemon does not yet construct the grant "
+              "resolver.\n")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(check_status_claims.check(self.root), 1)
+        self.assertIn("FAIL  README.md: line 1: status stated with yet: 'not yet'",
+                      out.getvalue())
+
+    def test_document_that_is_not_utf8_fails_without_a_traceback(self):
+        (self.root / "README.md").write_bytes(b"Text.\ncaf\xe9\n")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(check_status_claims.check(self.root), 1)
+        lines = out.getvalue().splitlines()
+        self.assertIn("FAIL  README.md: line 2: not valid UTF-8 (invalid continuation byte "
+                      "at byte 9); save the document as UTF-8", lines)
+        self.assertIn("ok    AAP-SPEC.md: no rejected implementation-status wording", lines)
+        self.assertIn("ok    schemas/README.md: no rejected implementation-status wording",
+                      lines)
+
+    def test_missing_schemas_readme_fails(self):
+        (self.root / "schemas" / "README.md").unlink()
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(check_status_claims.check(self.root), 1)
+        self.assertIn("FAIL  schemas/README.md: required document not found", out.getvalue())
 
     def test_missing_readme_fails(self):
         (self.root / "README.md").unlink()

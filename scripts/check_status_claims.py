@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""Check the specification for two wordings of implementation status that go stale.
+"""Check the specification for three wordings of implementation status that go stale.
 
 A sentence such as "as of 2026-09-08 no implementation mints cnf" is true on
 the day it is written and goes stale without the text changing; "as of the
 date of this revision" moves the claim's date silently every time a revision
-is cut. Neither can be checked by a reader. The specification instead names
-the record that answers the question (broker profile Section 14, the
-reference implementation's repository, the aap-conformance repository's
+is cut; "the daemon does not yet serve it" carries an unstated date in "yet".
+None can be checked by a reader. The specification instead names the record
+that answers the question (broker profile Section 14, the reference
+implementation's repository, the aap-conformance repository's
 conformance.json), or scopes a negative to what is known.
 
-The check fails on two wordings, in prose and in table rows, also when the
+The check fails on three wordings, in prose and in table rows, also when the
 words are split across lines or by inline markup (emphasis, a code span, an
 HTML or xml2rfc element such as <em>):
 
@@ -24,13 +25,22 @@ HTML or xml2rfc element such as <em>):
     status ("no conforming implementation accepts ...", "no compliant
     implementation", "no conformant implementation"), and "no implementation"
     used as a modifier ("no implementation requirement", "no
-    implementation-defined claim").
+    implementation-defined claim");
+  - a status stated with "yet": "not yet" ("does not yet construct", "doesn't
+    yet resolve"), "yet to" ("has yet to ship"), "as yet", and "yet" closing a
+    negative in the same clause ("no reference implementation yet", "no
+    standalone act-chain minting yet"). "yet" as a conjunction passes ("short
+    yet complete", "no cnf member, yet the broker binds it"), and so does a
+    token's own validity window ("not yet valid", "not yet expired", "a jti
+    not yet seen"), which is protocol state and not implementation status.
 
 The documents are AAP-SPEC.md, AAP-BROKER-PROFILE.md, README.md (its use
 cases and its Reference implementation section state what the reference
-implementation does) and the XML source of every Internet-Draft (draft-*.xml at
-the top level) except the filed revisions -00 to -02 of draft-fane-opena2a-aap,
-which are left as filed.
+implementation does), schemas/README.md (its Status column states what the
+reference implementation mints) and the XML source of every Internet-Draft
+(draft-*.xml at the top level) except the filed revisions -00 to -02 of
+draft-fane-opena2a-aap, which are left as filed. A document that is not valid
+UTF-8 fails with the line of the first byte that does not decode.
 
 Exit code 0 = every document passes. Also run by validate_examples.py so the
 check runs in CI.
@@ -43,7 +53,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-DOCUMENTS = ("AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md")
+DOCUMENTS = ("AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md", "schemas/README.md")
 
 # Internet-Draft revisions filed before this check existed; their text is not changed.
 LAST_FILED_REVISION = 2
@@ -89,6 +99,20 @@ NEGATIVE = "|".join((
     rf"\bnone{SEP}of{SEP}(?:the{SEP})?{QUALIFIER}implementations\b",
 ))
 
+# "yet" dates a status without naming the date. A negative and "yet" count only
+# within one clause, so "yet" as a conjunction after a comma or in the next
+# sentence passes; a token's own validity window ("not yet valid") is protocol
+# state, not implementation status.
+NEGATION = r"\bno(?:ne|thing)?\b|\bnot\b|\b[A-Za-z]+n['’]t\b"
+CLAUSE = r"[^.;:,()\[\]|]{0,80}?"
+WINDOW = r"valid|expired|seen|used|elapsed|reached"
+
+YET = "|".join((
+    rf"(?:{NEGATION}){CLAUSE}\byet\b(?!{SEP}(?:{WINDOW})\b)",
+    rf"\byet{SEP}to\b",
+    rf"\bas{SEP}yet\b",
+))
+
 ACCEPTED_RECORDS = ("broker profile Section 14, the reference implementation's repository, "
                     "or the aap-conformance repository's conformance.json")
 
@@ -105,9 +129,27 @@ RULES = (
         'write "no known implementation", or name the record that holds the status '
         f"({ACCEPTED_RECORDS})",
     ),
+    (
+        "status stated with yet",
+        re.compile(YET, re.IGNORECASE),
+        'state what the text defines without "yet", and name the record that holds the '
+        f"status ({ACCEPTED_RECORDS})",
+    ),
 )
 
 ACCEPTED = {name: accepted for name, _, accepted in RULES}
+
+
+def spoken(separator: re.Match) -> str:
+    """Read a separator as a space if it holds whitespace, else as markup inside a word."""
+    run = separator.group(0)
+    if any(char.isspace() for char in run):
+        return " "
+    # "fga_constraints" keeps its underscore; "`act`-chain" reads "act-chain".
+    text, start, end = separator.string, separator.start(), separator.end()
+    if run == "_" and text[start - 1:start].isalnum() and text[end:end + 1].isalnum():
+        return run
+    return ""
 
 
 def matches(text: str) -> list[tuple[int, str, str]]:
@@ -117,7 +159,7 @@ def matches(text: str) -> list[tuple[int, str, str]]:
     for name, pattern, _ in RULES:
         for match in pattern.finditer(text):
             lineno = bisect.bisect_right(line_starts, match.start())
-            words = " ".join(re.sub(SEP, " ", match.group(0)).split())
+            words = " ".join(re.sub(SEP, spoken, match.group(0)).split())
             found.append((match.start(), lineno, name, words))
     return [(lineno, name, words) for _, lineno, name, words in sorted(found)]
 
@@ -147,7 +189,15 @@ def check(root: pathlib.Path = ROOT) -> int:
             print(f"FAIL  {name}: required document not found")
             failures += 1
             continue
-        found = matches(path.read_text(encoding="utf-8"))
+        try:
+            text = path.read_text(encoding="utf-8")
+        except UnicodeDecodeError as error:
+            lineno = path.read_bytes().count(b"\n", 0, error.start) + 1
+            print(f"FAIL  {name}: line {lineno}: not valid UTF-8 ({error.reason} at byte "
+                  f"{error.start}); save the document as UTF-8")
+            failures += 1
+            continue
+        found = matches(text)
         for lineno, rule, words in found:
             print(f"FAIL  {name}: line {lineno}: {rule}: {words!r}; {ACCEPTED[rule]}")
         if found:
