@@ -162,15 +162,16 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   where it begins a line and CommonMark reads it as an HTML block that continues past that
   line. It runs in CI through `scripts/validate_examples.py`.
 - `scripts/check_spelling.py` fails on a British spelling of two word families in every
-  Markdown file and Internet-Draft source, outside fenced code blocks: -our where American
-  spelling has -or, and -ise or -isation where it has -ize or -ization, on the word stems
-  the script lists, with any prefix. An -our word fails with any ending. An -is- word fails
-  where one of the endings the script lists follows the -is- (-e, -ed, -er, -ers, -es,
-  -ing, -ingly, -able, -ably, -ation, -ations, -ational), and passes with any other ending.
-  Each finding names the line and the American spelling to write. Words whose American
-  spelling ends in -our or -ise ("hour", "detour", "advertise", "exercise",
-  "improvisation") pass. README.md now spells "honor" the American way, as the rest of the
-  repository does. It runs in CI through `scripts/validate_examples.py`.
+  Markdown file and Internet-Draft source, outside code (in Markdown, fenced code blocks
+  and code spans; in the Internet-Draft source, `<sourcecode>`, `<artwork>` and `<tt>`
+  elements): -our where American spelling has -or, and -ise or -isation where it has -ize
+  or -ization, on the word stems the script lists, with any prefix. An -our word fails with
+  any ending. An -is- word fails where one of the endings the script lists follows the -is-
+  (-e, -ed, -er, -ers, -es, -ing, -ingly, -able, -ably, -ation, -ations, -ational), and
+  passes with any other ending. Each finding names the line and the American spelling to
+  write. Words whose American spelling ends in -our or -ise ("hour", "detour", "advertise",
+  "exercise", "improvisation") pass. README.md now spells "honor" the American way, as the
+  rest of the repository does. It runs in CI through `scripts/validate_examples.py`.
 
 ## [0.5.1-draft] - 2026-10-02
 
