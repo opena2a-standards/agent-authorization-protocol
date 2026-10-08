@@ -182,9 +182,9 @@ class RepositoryDocumentsTest(unittest.TestCase):
                 text = (check_status_claims.ROOT / name).read_text(encoding="utf-8")
                 self.assertEqual(findings(text), [])
 
-    def test_specification_documents_are_covered(self):
+    def test_specification_documents_and_readme_are_covered(self):
         names = check_status_claims.documents()
-        for name in ("AAP-SPEC.md", "AAP-BROKER-PROFILE.md"):
+        for name in ("AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md"):
             with self.subTest(document=name):
                 self.assertIn(name, names)
 
@@ -212,7 +212,7 @@ class DiscoveryTest(unittest.TestCase):
                      "other-03.xml"):
             write(self.root, name, "As of the date of this revision no implementation.\n")
         self.assertEqual(check_status_claims.documents(self.root),
-                         ["AAP-SPEC.md", "AAP-BROKER-PROFILE.md",
+                         ["AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md",
                           "draft-fane-opena2a-aap-03.xml"])
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
@@ -224,7 +224,7 @@ class DiscoveryTest(unittest.TestCase):
         for name in ("draft-ietf-opena2a-aap-00.xml", "draft-other-03.xml"):
             write(self.root, name, "<rfc><t>no implementation mints it</t></rfc>\n")
         self.assertEqual(check_status_claims.documents(self.root),
-                         ["AAP-SPEC.md", "AAP-BROKER-PROFILE.md",
+                         ["AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md",
                           "draft-ietf-opena2a-aap-00.xml", "draft-other-03.xml"])
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
@@ -260,6 +260,25 @@ class DiscoveryTest(unittest.TestCase):
         self.assertIn("FAIL  AAP-SPEC.md: line 2: dated implementation status", out.getvalue())
         self.assertIn("FAIL  AAP-SPEC.md: line 2: unscoped universal negative", out.getvalue())
         self.assertIn("ok    AAP-BROKER-PROFILE.md", out.getvalue())
+
+    def test_status_claim_in_the_readme_fails(self):
+        write(self.root, "README.md",
+              "## Reference implementation\n\nAs of 2026-10-08 no implementation serves "
+              "`POST /grant`.\n")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(check_status_claims.check(self.root), 1)
+        self.assertIn("FAIL  README.md: line 3: dated implementation status: "
+                      "'As of 2026-10-08'", out.getvalue())
+        self.assertIn("FAIL  README.md: line 3: unscoped universal negative: "
+                      "'no implementation'", out.getvalue())
+
+    def test_missing_readme_fails(self):
+        (self.root / "README.md").unlink()
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(check_status_claims.check(self.root), 1)
+        self.assertIn("FAIL  README.md: required document not found", out.getvalue())
 
     def test_missing_document_fails(self):
         (self.root / "AAP-BROKER-PROFILE.md").unlink()

@@ -26,9 +26,11 @@ HTML or xml2rfc element such as <em>):
     used as a modifier ("no implementation requirement", "no
     implementation-defined claim").
 
-The documents are AAP-SPEC.md, AAP-BROKER-PROFILE.md and the XML source of
-every Internet-Draft (draft-*.xml at the top level) except the filed revisions
--00 to -02 of draft-fane-opena2a-aap, which are left as filed.
+The documents are AAP-SPEC.md, AAP-BROKER-PROFILE.md, README.md (its use
+cases and its Reference implementation section state what the reference
+implementation does) and the XML source of every Internet-Draft (draft-*.xml at
+the top level) except the filed revisions -00 to -02 of draft-fane-opena2a-aap,
+which are left as filed.
 
 Exit code 0 = every document passes. Also run by validate_examples.py so the
 check runs in CI.
@@ -41,7 +43,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-DOCUMENTS = ("AAP-SPEC.md", "AAP-BROKER-PROFILE.md")
+DOCUMENTS = ("AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md")
 
 # Internet-Draft revisions filed before this check existed; their text is not changed.
 LAST_FILED_REVISION = 2

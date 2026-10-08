@@ -25,11 +25,11 @@ library defaults across implementations; structural keywords (type, enum,
 pattern, required) carry the contract.
 
 Exit code 0 = all schemas well-formed, all mapped examples valid, every
-document expands the name AIM at first use, the specification uses none of
-the wordings check_status_claims.py rejects, the specification and its newest
-render agree on reference classes, every citation check_section_citations.py
-reads resolves, no Markdown prose carries an HTML tag, and every unit test
-passes.
+document expands the name AIM at first use, the specification and README.md
+use none of the wordings check_status_claims.py rejects, the specification
+and its newest render agree on reference classes, every citation
+check_section_citations.py reads resolves, no Markdown prose carries an HTML
+tag, and every unit test passes.
 """
 
 import json

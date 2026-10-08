@@ -92,6 +92,12 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   Internet-Draft (`draft-*.xml`) except the filed `draft-fane-opena2a-aap-00` to `-02`,
   each failure line names the accepted wording, and its run time is linear in the number
   of matches.
+- `scripts/check_status_claims.py` also checks `README.md`, whose use cases and Reference
+  implementation section state what the reference implementation does, so a dated status
+  ("as of" followed by a date) or an unscoped "no implementation" there fails CI as it does
+  in the specification. Its run lists the README after the two specification documents,
+  and a missing README fails as a missing specification document does. The README passes
+  unchanged.
 
 ### Added
 
