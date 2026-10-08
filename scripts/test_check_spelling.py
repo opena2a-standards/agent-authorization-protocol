@@ -44,6 +44,9 @@ class FindingsTest(unittest.TestCase):
                                   ("recognisable", "recognizable"),
                                   ("deserialising", "deserializing"),
                                   ("normaliser", "normalizer"),
+                                  ("organisational", "organizational"),
+                                  ("recognisably", "recognizably"),
+                                  ("generalisingly", "generalizingly"),
                                   ("AUTHORISED", "AUTHORIZED")):
             with self.subTest(word=british):
                 self.assertEqual(findings(f"a {british}.\n"),
@@ -52,7 +55,8 @@ class FindingsTest(unittest.TestCase):
     def test_american_words_ending_in_our_or_ise_pass(self):
         for word in ("our", "hour", "your", "four", "detour", "contour", "devour", "flour",
                      "glamour", "paramour", "advertise", "exercise", "compromised",
-                     "supervised", "improvisation", "emphasis", "emphases", "analyses",
+                     "supervised", "improvisation", "improvisational", "advisably",
+                     "surprisingly", "emphasis", "emphases", "analyses",
                      "criticism", "specialist", "optimism", "realism", "characteristic"):
             with self.subTest(word=word):
                 self.assertEqual(findings(f"a {word}.\n"), [])
@@ -73,9 +77,41 @@ class FindingsTest(unittest.TestCase):
         text = "Before.\n```\nnormalise(behaviour)\n```\nAfter the colour.\n"
         self.assertEqual(findings(text), ["line 5: 'colour'; write 'color'"])
 
+    def test_code_span_is_not_read(self):
+        self.assertEqual(findings("a `behaviour` span\n"), [])
+        for text in ("Call ``normalise(`x`)`` on the colour.\n",
+                     "Call `normalise(\nbehaviour)` on the colour.\n"):
+            with self.subTest(text=text):
+                lineno = text.count("\n")
+                self.assertEqual(findings(text), [f"line {lineno}: 'colour'; write 'color'"])
+
+    def test_unclosed_backtick_does_not_hide_prose(self):
+        for text in ("A lone ` before the colour.\n",
+                     "A `tick.\n\nThe colour.` here\n"):
+            with self.subTest(text=text):
+                lineno = text.count("\n")
+                self.assertEqual(findings(text), [f"line {lineno}: 'colour'; write 'color'"])
+
     def test_xml_source_is_read(self):
         text = "<t>A broker will <em>honour</em> the grant.</t>\n"
         self.assertEqual(findings(text), ["line 1: 'honour'; write 'honor'"])
+        self.assertEqual(findings(text, xml=True), ["line 1: 'honour'; write 'honor'"])
+
+    def test_xml_code_elements_are_not_read(self):
+        text = ('<sourcecode type="json"><![CDATA[\n'
+                '{"behaviour": "normalise"}\n'
+                "]]></sourcecode>\n"
+                "<artwork>\n+--------+\n| Colour |\n+--------+\n</artwork>\n"
+                "<t>Call <tt>normalise()</tt> on the flavour.</t>\n")
+        self.assertEqual(findings(text, xml=True), ["line 9: 'flavour'; write 'flavor'"])
+
+    def test_self_closing_xml_element_hides_no_prose(self):
+        text = '<artwork src="a.svg"/>\n<t>The colour.</t>\n<artwork>x</artwork>\n'
+        self.assertEqual(findings(text, xml=True), ["line 2: 'colour'; write 'color'"])
+
+    def test_markdown_code_rule_is_not_applied_to_xml(self):
+        text = "<t>A `honour` grant.</t>\n"
+        self.assertEqual(findings(text, xml=True), ["line 1: 'honour'; write 'honor'"])
 
 
 class RepositoryDocumentsTest(unittest.TestCase):
@@ -83,7 +119,7 @@ class RepositoryDocumentsTest(unittest.TestCase):
         for name in check_naming.documents():
             with self.subTest(document=name):
                 text = (check_spelling.ROOT / name).read_text(encoding="utf-8")
-                self.assertEqual(findings(text), [])
+                self.assertEqual(findings(text, xml=name.endswith(".xml")), [])
 
     def test_repository_check_has_no_failures(self):
         with contextlib.redirect_stdout(io.StringIO()):
@@ -117,6 +153,16 @@ class CheckTest(unittest.TestCase):
         self.assertIn("FAIL  decisions/note.md: line 1: 'honour'; write 'honor'", out)
         self.assertIn("FAIL  draft-x-00.xml: line 1: 'organisation'; write 'organization'", out)
         self.assertIn("ok    README.md: American spelling", out)
+
+    def test_code_in_markdown_and_xml_documents_passes(self):
+        write(self.root, "README.md", "Call `normalise()` on the color.\n")
+        write(self.root, "draft-x-00.xml",
+              '<sourcecode type="json"><![CDATA[\n{"behaviour": 1}\n]]></sourcecode>\n'
+              "<t>Call <tt>normalise()</tt>.</t>\n")
+        failures, out = self.run_check()
+        self.assertEqual(failures, 0)
+        self.assertIn("ok    README.md: American spelling", out)
+        self.assertIn("ok    draft-x-00.xml: American spelling", out)
 
     def test_document_with_several_british_words_counts_once(self):
         write(self.root, "README.md", "The colour.\nThe flavour.\n")
