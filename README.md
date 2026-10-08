@@ -34,7 +34,7 @@ Where it stops today: the Exchange broker is implemented as a library with an en
 
 ### An agent checks out with your money
 
-An agent authorized to buy holds a stored card. It can be argued into a second purchase, and a helper agent it delegates to inherits the whole card. Stored payment credentials give software standing authority with no expiry and no scope.
+An agent authorized to buy holds a stored card. It can be argued into a second purchase, and a helper agent it delegates to inherits the whole card. Stored payment credentials give software standing authority, with an expiry measured in years and no per-operation scope.
 
 Under AAP the agent holds a Capability Grant Token that names the trust class and scope a broker will honour; the broker denies anything outside a matching policy clause by default; and a Delegation Assertion must stay within its delegator's grant, so a delegated helper gets less, never more. A valid ATX is never permission on its own.
 
