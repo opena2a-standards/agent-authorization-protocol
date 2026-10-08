@@ -3,15 +3,15 @@
 
 The repository spells "authorization" and "behavior" the American way, so a
 British form of the same family reads as an inconsistency. The check fails on
-two families, in any letter case, with any prefix or ending:
+two families, in any letter case, with any prefix:
 
   - a word that ends in -our where American spelling has -or, on the stems in
-    OUR_STEMS ("honour", "behavioural", "favourite"; write "honor",
-    "behavioral", "favorite");
+    OUR_STEMS, with any ending ("honour", "behavioural", "favourite"; write
+    "honor", "behavioral", "favorite");
   - a word with -is- where American spelling has -iz-, on the stems in
     ISE_STEMS followed by an ending in ISE_ENDINGS ("authorise",
-    "organisation", "unrecognised"; write "authorize", "organization",
-    "unrecognized").
+    "organisational", "unrecognised"; write "authorize", "organizational",
+    "unrecognized"). A word with an ending ISE_ENDINGS does not list passes.
 
 Only listed stems are read, so words whose American spelling ends in -our or
 -ise ("hour", "detour", "glamour", "advertise", "exercise", "compromise",
@@ -51,7 +51,10 @@ ISE_STEMS = (
 )
 
 # Endings after "is"; "-ism" and "-ist" ("criticism", "specialist") are not listed.
-ISE_ENDINGS = ("able", "ation", "ations", "e", "ed", "er", "ers", "es", "ing")
+ISE_ENDINGS = (
+    "able", "ably", "ation", "ational", "ations", "e", "ed", "er", "ers", "es",
+    "ing", "ingly",
+)
 
 
 def alternation(words) -> str:

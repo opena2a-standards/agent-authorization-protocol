@@ -44,6 +44,9 @@ class FindingsTest(unittest.TestCase):
                                   ("recognisable", "recognizable"),
                                   ("deserialising", "deserializing"),
                                   ("normaliser", "normalizer"),
+                                  ("organisational", "organizational"),
+                                  ("recognisably", "recognizably"),
+                                  ("generalisingly", "generalizingly"),
                                   ("AUTHORISED", "AUTHORIZED")):
             with self.subTest(word=british):
                 self.assertEqual(findings(f"a {british}.\n"),
@@ -52,7 +55,8 @@ class FindingsTest(unittest.TestCase):
     def test_american_words_ending_in_our_or_ise_pass(self):
         for word in ("our", "hour", "your", "four", "detour", "contour", "devour", "flour",
                      "glamour", "paramour", "advertise", "exercise", "compromised",
-                     "supervised", "improvisation", "emphasis", "emphases", "analyses",
+                     "supervised", "improvisation", "improvisational", "advisably",
+                     "surprisingly", "emphasis", "emphases", "analyses",
                      "criticism", "specialist", "optimism", "realism", "characteristic"):
             with self.subTest(word=word):
                 self.assertEqual(findings(f"a {word}.\n"), [])
