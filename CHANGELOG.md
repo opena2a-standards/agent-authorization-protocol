@@ -98,6 +98,21 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   in the specification. Its run lists the README after the two specification documents,
   and a missing README fails as a missing specification document does. The README passes
   unchanged.
+- `scripts/check_status_claims.py` also fails on a status stated with "yet": "not yet"
+  ("does not yet construct"), "yet to", "as yet", and "yet" closing a negative in the same
+  clause ("no reference implementation yet"). "yet" as a conjunction and a token's own
+  validity window ("not yet valid", "not yet expired") pass. It also checks
+  `schemas/README.md`, whose Status column states what the reference implementation mints,
+  and a covered document that is not valid UTF-8 fails with a `FAIL` line naming the line of
+  the first byte that does not decode, instead of a traceback. `README.md` and
+  `schemas/README.md` no longer state status with "not yet" or "yet": whether a given
+  release of the `secretless broker` daemon constructs the grant resolver, and whether the
+  reference implementation mints standalone DAs, is recorded in the reference
+  implementation's repository, as broker profile Section 14 and AAP-SPEC Section 5.5 state;
+  the AIT and BAC rows name the implementation status notes of AAP-SPEC Sections 3.2 and
+  6.3. `.gitignore` lists `secrets.json` with the other secret-file patterns, and
+  `scripts/test_gitignore.py` checks the patterns with `git check-ignore`. Editorial: no
+  requirement changes.
 
 ### Added
 

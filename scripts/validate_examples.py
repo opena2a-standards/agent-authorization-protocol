@@ -11,8 +11,9 @@ For each entry: find the heading line in the file, take the first fenced
 Also metaschema-checks every schemas/*.schema.json, runs check_naming.py
 (first use of the name AIM in every Markdown document and Internet-Draft source),
 check_status_claims.py (rejects "as of" followed by a date or by "the date of
-this revision" or "this writing", and an unscoped "no implementation", "no
-reference implementation" or "none of the implementations"),
+this revision" or "this writing", an unscoped "no implementation", "no
+reference implementation" or "none of the implementations", and a status stated
+with "yet", such as "not yet" or "no reference implementation yet"),
 check_references.py (AAP-SPEC.md and its newest Internet-Draft render agree
 on reference classes), check_section_citations.py (each citation it reads, a
 family document named next to a section number, resolves and says which text it
@@ -26,8 +27,8 @@ library defaults across implementations; structural keywords (type, enum,
 pattern, required) carry the contract.
 
 Exit code 0 = all schemas well-formed, all mapped examples valid, every
-document expands the name AIM at first use, the specification and README.md
-use none of the wordings check_status_claims.py rejects, the specification
+document expands the name AIM at first use, the specification, README.md and
+schemas/README.md use none of the wordings check_status_claims.py rejects, the specification
 and its newest render agree on reference classes, every citation
 check_section_citations.py reads resolves, no Markdown prose carries an HTML
 tag, every document uses the American spelling check_spelling.py reads, and

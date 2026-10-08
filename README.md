@@ -30,7 +30,7 @@ node verifiers/node/verify.mjs fixtures
 # summary: 44 pass, 0 fail (44 fixtures)
 ```
 
-Where it stops today: the Exchange broker is implemented as a library with an end-to-end conformance test, but the shipped `secretless broker` daemon does not yet construct the grant resolver, so `POST /grant` returns 404 until grant-binding configuration lands (see the Reference implementation section below).
+Where it stops today: the Exchange broker is implemented as a library with an end-to-end conformance test. A `secretless broker` daemon that does not construct the grant resolver from operator configuration returns 404 on `POST /grant`, and whether a given release constructs it is recorded in the reference implementation's repository (see the Reference implementation section below).
 
 ### An agent checks out with your money
 
@@ -40,7 +40,7 @@ Under AAP the agent holds a Capability Grant Token that names the trust class an
 
 What you can do today: `fixtures/da-compact-scope-superset.json` in the conformance suite rejects a delegation wider than its delegator, `fixtures/cgt-compact-expired.json` rejects an expired grant, and the valid token bytes are in [`examples/tokens/`](./examples/tokens/).
 
-Where it stops today: the same daemon limit applies. The tokens can be minted and verified; the shipped daemon does not yet resolve a `grant://` reference against them.
+Where it stops today: the same daemon limit applies. The tokens can be minted and verified; whether a given release of the daemon resolves a `grant://` reference against them is recorded in the reference implementation's repository.
 
 Why you can check this yourself: [`AAP-SPEC.md`](./AAP-SPEC.md) and [`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md); the Internet-Draft [draft-fane-opena2a-aap](https://datatracker.ietf.org/doc/draft-fane-opena2a-aap/); [aap-conformance](https://github.com/opena2a-standards/aap-conformance), 44 byte-pinned fixtures with Node and Python verifiers; the published token bytes in [`examples/tokens/`](./examples/tokens/); and the broker library in [Secretless](https://github.com/opena2a-org/secretless-ai) under `src/broker/`.
 
@@ -103,10 +103,11 @@ text are in this repository. Each document carries its own version at the top;
 A v1 **Exchange** broker (RFC 8693) is implemented in the Secretless broker library, with an
 end-to-end conformance test proving the §4 invariant over the broker's Unix socket. Two limits are
 worth stating plainly rather than discovering later. The exchange is exercised against a fake
-transport injected into the provider adapter, not against a live identity-provider tenant. And the
-shipped `secretless broker` daemon does not yet construct the grant resolver, so `POST /grant`
-returns 404 until an operator-facing grant-binding configuration lands
-([opena2a-standards/agent-authorization-protocol#1](https://github.com/opena2a-standards/agent-authorization-protocol/issues/1)).
+transport injected into the provider adapter, not against a live identity-provider tenant. And a
+`secretless broker` daemon that does not construct the grant resolver from operator configuration
+returns 404 on `POST /grant`; whether a given release constructs it is recorded in the reference
+implementation's repository, and the operator-facing grant-binding configuration is tracked in
+[opena2a-standards/agent-authorization-protocol#1](https://github.com/opena2a-standards/agent-authorization-protocol/issues/1).
 
 The developer surface is the `@agent.perform_action` decorator of
 OpenA2A AIM (Agent Identity Management). See
