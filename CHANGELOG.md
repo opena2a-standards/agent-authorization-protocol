@@ -161,6 +161,14 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   CDATA section that a blank line or a line that begins a block quote splits passes, even
   where it begins a line and CommonMark reads it as an HTML block that continues past that
   line. It runs in CI through `scripts/validate_examples.py`.
+- `scripts/check_spelling.py` fails on a British spelling of two word families in every
+  Markdown file and Internet-Draft source, outside fenced code blocks: -our where American
+  spelling has -or, and -ise or -isation where it has -ize or -ization, on the word stems
+  the script lists, with any prefix or ending. Each finding names the line and the American
+  spelling to write. Words whose American spelling ends in -our or -ise ("hour", "detour",
+  "advertise", "exercise", "improvisation") pass. README.md now spells "honor" the
+  American way, as the rest of the repository does. It runs in CI through
+  `scripts/validate_examples.py`.
 
 ## [0.5.1-draft] - 2026-10-02
 
