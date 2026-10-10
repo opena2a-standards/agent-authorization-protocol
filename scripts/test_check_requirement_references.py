@@ -10,13 +10,13 @@ import pathlib
 import shutil
 import sys
 import tempfile
-import time
 import types
 import unittest
 from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
+import check_raw_html  # noqa: E402
 import check_requirement_references  # noqa: E402
 from check_requirement_references import findings  # noqa: E402
 
@@ -150,6 +150,36 @@ def characters_read(text: str) -> int:
                            types.SimpleNamespace(search=search)):
         check_requirement_references.inline_spans(counted)
     return counted.read
+
+
+def code_characters_read(text: str) -> int:
+    """Return how many characters inline_spans() reads to find the code spans in text: what
+    the search for backtick strings and the searches for a blank line of
+    check_raw_html.code_spans() read, each from where it starts to the end of what it finds,
+    or to the end of the text when it finds nothing."""
+    read = 0
+    backticks = check_raw_html.BACKTICKS
+    blank_line = check_raw_html.PARAGRAPH_END
+
+    def finditer(string: str, pos: int = 0):
+        nonlocal read
+        for match in backticks.finditer(string, pos):
+            read += match.end() - pos
+            pos = match.end()
+            yield match
+        read += len(string) - pos
+
+    def search(string: str, pos: int = 0):
+        nonlocal read
+        match = blank_line.search(string, pos)
+        read += (match.end() if match else len(string)) - pos
+        return match
+
+    with mock.patch.multiple(check_raw_html,
+                             BACKTICKS=types.SimpleNamespace(finditer=finditer),
+                             PARAGRAPH_END=types.SimpleNamespace(search=search)):
+        check_requirement_references.inline_spans(text)
+    return read
 
 
 class SentenceTest(unittest.TestCase):
@@ -452,14 +482,22 @@ class CodeAndCommentTest(unittest.TestCase):
                 self.assertLessEqual(read, 3 * len(body))
 
     def test_paragraph_of_unclosed_backtick_strings_is_read_in_one_pass(self):
-        # No backtick string here has a later one of the same length, so none opens a
-        # code span. A scan that re-reads the paragraph from each takes seconds on this
-        # 312 KB paragraph.
-        body = ("A broker MUST revoke it "
-                + "".join("`" * length + "a" for length in range(1, 800)) + " (RFC 7009).")
-        start = time.perf_counter()
-        self.assertEqual(count(body), 1)
-        self.assertLess(time.perf_counter() - start, 1.0)
+        # No backtick string here has a later one of the same length before the blank line,
+        # so none opens a code span. A scan that re-reads this 312 KB paragraph from each of
+        # its 799 backtick strings reads more than a hundred million characters; one pass
+        # reads each character at most once in each of its two searches (for a backtick
+        # string and for a blank line).
+        strings = "".join("`" * length + "a" for length in range(1, 800))
+        paragraph = "A broker MUST revoke it " + strings + " (RFC 7009)."
+        for closed, body in (("nowhere", paragraph),
+                             ("after the blank line", paragraph + "\n\n" + strings)):
+            with self.subTest(closed=closed):
+                self.assertEqual(count(body), 1)
+                read = code_characters_read(body)
+                # Finding the backtick strings reads the whole text, so a smaller count
+                # has missed a search of the scan.
+                self.assertGreaterEqual(read, len(body))
+                self.assertLessEqual(read, 2 * len(body))
 
     def test_inline_spans_are_those_of_the_paragraph_rules(self):
         text = "a `<!--` b <!-- `c` --> d `e\n\nf` g <!-- h\n \t\ni --> j ``k`` <!--->"

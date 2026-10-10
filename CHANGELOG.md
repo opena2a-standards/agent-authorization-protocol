@@ -153,7 +153,11 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/check_requirement_references.py` used. The pattern read the paragraph again to
   its end from each backtick string that no later string of the same length closes, so a
   312 KB paragraph of them took about four seconds. What is read as a code span is
-  unchanged.
+  unchanged. Its tests, one per check, count the characters the scan reads instead of
+  timing it, so a loaded runner does not fail them, and a scan that reads the paragraph
+  again from each backtick string still does. Each also reads a second paragraph whose
+  backtick strings close the first one's, so the scan's searches for a blank line are
+  counted too.
 - `schemas/da-claims-v1.schema.json` describes `exp`: it MUST NOT be later than the
   delegator's `exp`, and in a chain the bound holds link by link (AAP-SPEC Section 5.3), a
   verifier check, as the descriptions of the scope subset rule and of `max_depth` name
