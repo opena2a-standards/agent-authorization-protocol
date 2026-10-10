@@ -14,6 +14,7 @@ import sys
 import tempfile
 import types
 import unittest
+from collections.abc import Callable
 from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
@@ -167,11 +168,13 @@ class FindingsTest(unittest.TestCase):
                 self.assertEqual(len(findings(text)), 1)
 
 
-def characters_read(text: str) -> int:
-    """Return how many characters code_spans() reads to find the code spans in text: what
-    its search for backtick strings reads and what its searches for a blank line read, each
-    from where it starts to the end of what it finds, or to the end of the text when it
-    finds nothing. A count does not depend on how loaded the machine is, as a time does."""
+def characters_read(text: str, run: Callable[[str], object]) -> int:
+    """Return how many characters run(text) reads to find the code spans in text, run being
+    code_spans() or a function that calls it: what the search for backtick strings of
+    code_spans() reads and what its searches for a blank line read, each from where it
+    starts to the end of what it finds, or to the end of the text when it finds nothing. A
+    count does not depend on how loaded the machine is, as a time does.
+    test_check_requirement_references.py runs it on inline_spans()."""
     read = 0
     backticks = check_raw_html.BACKTICKS
     blank_line = check_raw_html.PARAGRAPH_END
@@ -193,7 +196,7 @@ def characters_read(text: str) -> int:
     with mock.patch.multiple(check_raw_html,
                              BACKTICKS=types.SimpleNamespace(finditer=finditer),
                              PARAGRAPH_END=types.SimpleNamespace(search=search)):
-        check_raw_html.code_spans(text)
+        run(text)
     return read
 
 
@@ -255,11 +258,19 @@ class CodeSpansTest(unittest.TestCase):
             with self.subTest(closed=closed):
                 self.assertEqual(findings(text),
                                  ["line 1: HTML tag in Markdown prose, not rendered: '<n>'"])
-                read = characters_read(text)
+                read = characters_read(text, check_raw_html.code_spans)
                 # Finding the backtick strings reads the whole text, so a smaller count
                 # has missed a search of the scan.
                 self.assertGreaterEqual(read, len(text))
                 self.assertLessEqual(read, 2 * len(text))
+
+    def test_characters_read_counts_what_the_function_it_runs_reads(self):
+        text = "a `b` c ``d`` e `f\n\ng` h\n"
+        once = characters_read(text, check_raw_html.code_spans)
+        self.assertGreaterEqual(once, len(text))
+        self.assertEqual(characters_read(text, lambda text: None), 0)
+        self.assertEqual(characters_read(text, lambda text: [check_raw_html.code_spans(text)
+                                                              for _ in range(2)]), 2 * once)
 
 
 class RepositoryDocumentsTest(unittest.TestCase):

@@ -6,6 +6,7 @@ CI runs them through validate_examples.py.
 
 import contextlib
 import io
+import itertools
 import pathlib
 import shutil
 import sys
@@ -18,6 +19,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 import check_raw_html  # noqa: E402
 import check_requirement_references  # noqa: E402
+import test_check_raw_html  # noqa: E402
 from check_requirement_references import findings  # noqa: E402
 
 REFERENCES = (
@@ -152,36 +154,6 @@ def characters_read(text: str) -> int:
     return counted.read
 
 
-def code_characters_read(text: str) -> int:
-    """Return how many characters inline_spans() reads to find the code spans in text: what
-    the search for backtick strings and the searches for a blank line of
-    check_raw_html.code_spans() read, each from where it starts to the end of what it finds,
-    or to the end of the text when it finds nothing."""
-    read = 0
-    backticks = check_raw_html.BACKTICKS
-    blank_line = check_raw_html.PARAGRAPH_END
-
-    def finditer(string: str, pos: int = 0):
-        nonlocal read
-        for match in backticks.finditer(string, pos):
-            read += match.end() - pos
-            pos = match.end()
-            yield match
-        read += len(string) - pos
-
-    def search(string: str, pos: int = 0):
-        nonlocal read
-        match = blank_line.search(string, pos)
-        read += (match.end() if match else len(string)) - pos
-        return match
-
-    with mock.patch.multiple(check_raw_html,
-                             BACKTICKS=types.SimpleNamespace(finditer=finditer),
-                             PARAGRAPH_END=types.SimpleNamespace(search=search)):
-        check_requirement_references.inline_spans(text)
-    return read
-
-
 def one_pass_reads(text: str) -> int:
     """Return the most characters a scan for the comments in text reads when it reads text
     in one pass: four times its length. Its searches for "-->" and for a blank line read a
@@ -234,6 +206,28 @@ def resuming_comment_scan(blank_line_from_each_comment: bool = False):
         return spans
 
     return inline_spans
+
+
+def spans_found_by(scan, text: str) -> list[tuple[int, int]]:
+    """Return scan(text), failing when the scan runs more than a hundred lines of code for
+    each character of text. Each loop of a scan moves forward through text, so one whose
+    merge loop stops moving past the span it last found would otherwise never end."""
+    budget = 100 * (len(text) + 1)
+
+    def trace(frame, event, arg):
+        nonlocal budget
+        if event == "line":
+            budget -= 1
+            if budget < 0:
+                raise AssertionError(f"the scan did not end on {text!r}")
+        return trace
+
+    previous = sys.gettrace()
+    sys.settrace(trace)
+    try:
+        return scan(text)
+    finally:
+        sys.settrace(previous)
 
 
 # A 64 KB paragraph of 16384 "<!--", none of them closed in it.
@@ -557,6 +551,25 @@ class CodeAndCommentTest(unittest.TestCase):
             self.assertEqual(count(body), 1)
             self.assertGreater(characters_read(body), one_pass_reads(body))
 
+    def test_altered_scans_find_the_spans_of_inline_spans(self):
+        # The two tests above measure copies of inline_spans() that search for "<!--"
+        # another way, so what they read counts for inline_spans() only while the copies
+        # find its spans. Every text of up to five of these pieces mixes backtick strings,
+        # "<!--", "-->" and blank lines; the texts the tests above read are added.
+        pieces = ("`", "``", "<!--", "-->", "\n\n", "a")
+        texts = ["".join(parts) for length in range(1, 6)
+                 for parts in itertools.product(pieces, repeat=length)]
+        texts += ["a `<!--` b <!-- `c` --> d `e\n\nf` g <!-- h\n \t\ni --> j ``k`` <!--->",
+                  UNCLOSED_COMMENTS, UNCLOSED_COMMENTS + "\n\nA later -->."]
+        scans = (("resuming inside the last comment", resuming_comment_scan()),
+                 ("searching for the blank line from each comment",
+                  resuming_comment_scan(blank_line_from_each_comment=True)))
+        for text in texts:
+            expected = check_requirement_references.inline_spans(text)
+            for name, scan in scans:
+                self.assertEqual(spans_found_by(scan, text), expected,
+                                 f"the scan {name} on {text[:80]!r}")
+
     def test_paragraph_of_unclosed_backtick_strings_is_read_in_one_pass(self):
         # No backtick string here has a later one of the same length before the blank line,
         # so none opens a code span. A scan that re-reads this 312 KB paragraph from each of
@@ -569,7 +582,8 @@ class CodeAndCommentTest(unittest.TestCase):
                              ("after the blank line", paragraph + "\n\n" + strings)):
             with self.subTest(closed=closed):
                 self.assertEqual(count(body), 1)
-                read = code_characters_read(body)
+                read = test_check_raw_html.characters_read(
+                    body, check_requirement_references.inline_spans)
                 # Finding the backtick strings reads the whole text, so a smaller count
                 # has missed a search of the scan.
                 self.assertGreaterEqual(read, len(body))

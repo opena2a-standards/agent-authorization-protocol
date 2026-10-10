@@ -148,8 +148,13 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   times the length of the text, not three: a scan that resumes its search for `<!--` one
   character past the last one found reads each `<!--` twice and still reads the paragraph
   in one pass, and the test now runs that scan and one that searches for the blank line
-  again from each `<!--`, which it fails. The failure line names "in contrast with" among
-  the contrast phrases that pass, as the check accepts it; it named five of the six.
+  again from each `<!--`, which it fails. Those two scans are copies of `inline_spans()`,
+  and a test now checks that both find the spans `inline_spans()` finds on every text of up
+  to five pieces mixing backtick strings, `<!--`, `-->` and blank lines, and on the texts
+  the two tests read, so a change to either copy, or to the loop of `inline_spans()` that
+  merges code spans and comments, that changes the spans found fails it; a copy that stops
+  moving past the span it last found fails it instead of running without end. The failure line names "in contrast with"
+  among the contrast phrases that pass, as the check accepts it; it named five of the six.
 - `scripts/check_raw_html.py` finds code spans in one forward pass: `code_spans()` reads
   each backtick string once and pairs it with the next string of the same length, and
   replaces the `CODE_SPAN` pattern that `prose()` and
