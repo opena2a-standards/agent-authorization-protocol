@@ -151,16 +151,19 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   again from each `<!--`, which it fails. Those two scans are copies of `inline_spans()`,
   and a test now checks that both find the spans `inline_spans()` finds on every text of up
   to five pieces mixing backtick strings, `<!--`, `-->` and blank lines, and on five more
-  texts: one that mixes them in prose, one of six pieces in which a code span begins where
-  a comment ends, one in which a `-->` begins inside a later `<!--`, which those pieces
-  cannot build, and the 64 KB paragraph of unclosed `<!--`, alone and with a `-->` after a
-  blank line, on which the tests count the characters read. A change to either copy, or to
-  the loop of `inline_spans()` that merges code spans and comments, fails it when it
-  changes the spans found on one of those texts. A copy that stops moving past the span it
-  last found fails it instead of running without end, which a test now checks with a scan
-  that never moves forward; that failure carries the first 80 characters of the text. The
-  failure line names "in contrast with" among the contrast phrases that pass, as the check
-  accepts it; it named five of the six.
+  texts: one that mixes them in prose; one of six pieces in which a backtick inside a
+  comment opens a code span the comment holds, so the code span that begins where the
+  comment ends is found only by resuming the search for code spans exactly there (in the
+  six texts of five pieces in which a code span begins where a comment ends, the first
+  search already finds it); one in which a `-->` begins inside a later `<!--`, which those
+  pieces cannot build; and the 64 KB paragraph of unclosed `<!--`, alone and with a `-->`
+  after a blank line, on which the tests count the characters read. A change to either
+  copy, or to the loop of `inline_spans()` that merges code spans and comments, fails it
+  when it changes the spans found on one of those texts. A copy that stops moving past the
+  span it last found fails it instead of running without end, which a test now checks with
+  a scan that never moves forward; that failure carries the first 80 characters of the
+  text. The failure line names "in contrast with" among the contrast phrases that pass, as
+  the check accepts it; it named five of the six.
 - `scripts/check_raw_html.py` finds code spans in one forward pass: `code_spans()` reads
   each backtick string once and pairs it with the next string of the same length, and
   replaces the `CODE_SPAN` pattern that `prose()` and
