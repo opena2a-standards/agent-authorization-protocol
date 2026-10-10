@@ -95,10 +95,10 @@ def markdown_references(text: str) -> list[tuple[str, str]]:
     return entries
 
 
-def render_references(data: str | bytes) -> list[tuple[str, str, str, str]]:
-    """Return (anchor, title, class, target) for each reference of an RFCXML v3 document."""
+def render_references(tree: ET.Element) -> list[tuple[str, str, str, str]]:
+    """Return (anchor, title, class, target) for each reference of a parsed RFCXML v3 document."""
     entries = []
-    for group in ET.fromstring(data).iter("references"):
+    for group in tree.iter("references"):
         name = CLASS_NAME.match(group.findtext("name", ""))
         if name is None:
             continue
@@ -158,24 +158,25 @@ def render_status(render_name: str, submitted: bool) -> str:
     return f"{render_name} is the next render (no released section of {CHANGELOG} records it as submitted)"
 
 
-def read_render(path: pathlib.Path) -> tuple[str | None, str | None]:
-    """Return the text of a render and None, or None and a reason when it is not valid
-    UTF-8 or not well-formed XML.
+def read_render(path: pathlib.Path) -> tuple[str | None, ET.Element | None, str | None]:
+    """Return the text of a render, its parsed root element and None, or None, None and a
+    reason when it is not valid UTF-8 or not well-formed XML.
 
     The reason names the line where reading stops, so such a render is reported as a
-    FAIL line instead of a traceback. check_section_citations.py reads the render
-    through this function too.
+    FAIL line instead of a traceback. The render is parsed here and only here: a caller
+    reads its references from the returned root, so a check parses the render once.
+    check_section_citations.py reads the render through this function too.
     """
     text, error = check_naming.read_text(path)
     if error:
-        return None, error
+        return None, None, error
     try:
-        ET.fromstring(text)
+        tree = ET.fromstring(text)
     except ET.ParseError as parse_error:
         line, _ = parse_error.position
-        return None, (f"line {line}: not well-formed XML ({expat.ErrorString(parse_error.code)}); "
-                      "correct the XML")
-    return text, None
+        return None, None, (f"line {line}: not well-formed XML ({expat.ErrorString(parse_error.code)}); "
+                            "correct the XML")
+    return text, tree, None
 
 
 def newest_render(root: pathlib.Path) -> str | None:
@@ -289,11 +290,11 @@ def check(root: pathlib.Path = ROOT) -> int:
     if not md_entries:
         print(f"FAIL  reference classes: no References section entries found in {SPEC}")
         return 1
-    render_text, error = read_render(root / render_name)
+    _, render_tree, error = read_render(root / render_name)
     if error:
         print(f"FAIL  reference classes: {render_name}: {error}")
         return 1
-    render_entries = render_references(render_text)
+    render_entries = render_references(render_tree)
     if not render_entries:
         print(f"FAIL  reference classes: no references found in {render_name}")
         return 1

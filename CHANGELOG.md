@@ -156,6 +156,11 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   delegator's `exp`, and in a chain the bound holds link by link (AAP-SPEC Section 5.3), a
   verifier check, as the descriptions of the scope subset rule and of `max_depth` name
   theirs. The schema accepts the same claim sets.
+- `check_references.read_render` returns the parsed root of the newest Internet-Draft
+  render with its text, and `render_references` in `scripts/check_references.py` and
+  `scripts/check_section_citations.py` reads the references from that root. Each check
+  parses the render once; it parsed it twice, once to prove it well-formed and once to
+  read its references. The output of both checks is unchanged.
 
 ### Added
 

@@ -10,6 +10,8 @@ import pathlib
 import sys
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
+from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
@@ -167,7 +169,7 @@ class ParseTest(unittest.TestCase):
         self.assertIn("AIP-SPEC.md", entries["AIP"])
 
     def test_render_references_carry_target_and_annotation(self):
-        references = render_references(RENDER_XML.encode())
+        references = render_references(ET.fromstring(RENDER_XML.encode()))
         self.assertEqual(references["AIP"], ("https://example.org/agent-identity-protocol/AIP-SPEC.md", ""))
         self.assertEqual(
             references["AAP-BROKER-PROFILE"],
@@ -255,6 +257,12 @@ class CheckTest(unittest.TestCase):
             " broker profile https://example.org/aap/broker-profile (names AAP-BROKER-PROFILE.md)",
             out,
         )
+
+    def test_the_render_is_parsed_once(self):
+        with mock.patch.object(ET, "fromstring", wraps=ET.fromstring) as fromstring:
+            failures, out = self.run_check(self.base())
+        self.assertEqual(failures, 0, out)
+        self.assertEqual(fromstring.call_count, 1)
 
     def test_printed_address_that_does_not_name_the_text_is_reported_not_failed_in_a_submitted_render(self):
         files = self.base()

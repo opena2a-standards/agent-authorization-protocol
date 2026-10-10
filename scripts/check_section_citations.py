@@ -221,10 +221,10 @@ def reference_entries(text: str) -> dict[str, str]:
     return entries
 
 
-def render_references(data: str | bytes) -> dict[str, tuple[str, str]]:
-    """Return {anchor: (target, annotation)} for each reference of an RFCXML v3 document."""
+def render_references(tree: ET.Element) -> dict[str, tuple[str, str]]:
+    """Return {anchor: (target, annotation)} for each reference of a parsed RFCXML v3 document."""
     references = {}
-    for ref in ET.fromstring(data).iter("reference"):
+    for ref in tree.iter("reference"):
         annotation = ref.find("annotation")
         references[ref.get("anchor", "")] = (
             ref.get("target", ""),
@@ -317,11 +317,11 @@ def check(root: pathlib.Path = ROOT) -> int:
         failures.append("no draft-fane-opena2a-aap-NN.xml found")
     else:
         submitted = check_references.render_submitted(root, render_name)
-        text, error = check_references.read_render(root / render_name)
+        text, tree, error = check_references.read_render(root / render_name)
         if error:
             failures.append(f"{render_name}: {error}")
         else:
-            references = render_references(text)
+            references = render_references(tree)
             # The XML source, so a failure names the line of the source; the citations
             # are in element text, where a line break is a space.
             cites = [c for c in citations(render_name, text) if c.doc.name != "AAP-SPEC"]
