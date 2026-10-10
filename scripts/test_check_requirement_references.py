@@ -561,12 +561,13 @@ class CodeAndCommentTest(unittest.TestCase):
         # find its spans. Every text of up to five of these pieces mixes backtick strings,
         # "<!--", "-->" and blank lines. Five more texts are added: one that mixes them in
         # prose; one of six pieces, in which a backtick inside a comment opens a code span
-        # the comment holds, so the code span that begins where the comment ends is found
-        # only by a search for code spans that resumes exactly there (in "<!---->`a`" and
-        # the five other texts of five pieces in which a code span begins where a comment
-        # ends, the first search for code spans already finds that span); one the pieces
-        # cannot build, in which a "-->" begins inside a later "<!--"; and the paragraph and
-        # the body whose characters the three tests above count.
+        # that begins inside the comment, so the first search for code spans does not
+        # return the code span that begins where the comment ends, and a search that
+        # resumes later than the comment's end misses it (in "<!---->`a`" and the five
+        # other texts of five pieces in which a code span begins where a comment ends, the
+        # first search for code spans already finds that span); one the pieces cannot
+        # build, in which a "-->" begins inside a later "<!--"; and the paragraph and the
+        # body whose characters the three tests above count.
         pieces = ("`", "``", "<!--", "-->", "\n\n", "a")
         texts = ["".join(parts) for length in range(1, 6)
                  for parts in itertools.product(pieces, repeat=length)]
