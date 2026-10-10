@@ -11,6 +11,7 @@ import shutil
 import sys
 import tempfile
 import time
+import types
 import unittest
 from unittest import mock
 
@@ -118,6 +119,37 @@ class FindingsTest(unittest.TestCase):
 
 def count(body: str) -> int:
     return len(findings(document(body)))
+
+
+class CountedText(str):
+    """A text that adds up the characters its find() calls read: from where each starts
+    to the end of what it finds, or to the end of the text when it finds nothing."""
+
+    read = 0
+
+    def find(self, sub, start=0, end=None):
+        end = len(self) if end is None else end
+        found = super().find(sub, start, end)
+        self.read += (end if found < 0 else found + len(sub)) - start
+        return found
+
+
+def characters_read(text: str) -> int:
+    """Return how many characters inline_spans() reads to find the comments in text: what
+    its find() calls read and what its searches for a blank line read. A count does not
+    depend on how loaded the machine is, as a time does."""
+    counted = CountedText(text)
+    pattern = check_requirement_references.PARAGRAPH_END
+
+    def search(string: str, pos: int = 0):
+        match = pattern.search(string, pos)
+        counted.read += (match.end() if match else len(string)) - pos
+        return match
+
+    with mock.patch.object(check_requirement_references, "PARAGRAPH_END",
+                           types.SimpleNamespace(search=search)):
+        check_requirement_references.inline_spans(counted)
+    return counted.read
 
 
 class SentenceTest(unittest.TestCase):
@@ -404,13 +436,20 @@ class CodeAndCommentTest(unittest.TestCase):
                 self.assertEqual(count(body), expected)
 
     def test_paragraph_of_unclosed_comments_is_read_in_one_pass(self):
-        # No "<!--" here is closed, so none begins a comment. A scan that re-reads the
-        # paragraph from each "<!--" takes seconds on this 64 KB paragraph, and four times
-        # as long on one twice the size.
-        body = "A broker MUST revoke it " + "<!--" * 16384 + " (RFC 7009)."
-        start = time.perf_counter()
-        self.assertEqual(count(body), 1)
-        self.assertLess(time.perf_counter() - start, 1.0)
+        # No "<!--" here is closed before the blank line, so none begins a comment. A scan
+        # that re-reads this 64 KB paragraph to its end from each of its 16384 "<!--" reads
+        # more than half a billion characters; one pass reads each character at most once in
+        # each of its three searches (for "<!--", for "-->" and for a blank line).
+        paragraph = "A broker MUST revoke it " + "<!--" * 16384 + " (RFC 7009)."
+        for closed, body in (("nowhere", paragraph),
+                             ("after the blank line", paragraph + "\n\nA later -->.")):
+            with self.subTest(closed=closed):
+                self.assertEqual(count(body), 1)
+                read = characters_read(body)
+                # Learning that no "-->" closes the first "<!--" reads the paragraph from
+                # there, so a smaller count has missed a search of the scan.
+                self.assertGreaterEqual(read, len(paragraph) - paragraph.index("<!--"))
+                self.assertLessEqual(read, 3 * len(body))
 
     def test_paragraph_of_unclosed_backtick_strings_is_read_in_one_pass(self):
         # No backtick string here has a later one of the same length, so none opens a
