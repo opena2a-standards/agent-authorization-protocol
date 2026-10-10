@@ -267,7 +267,9 @@ class CodeSpansTest(unittest.TestCase):
     def test_characters_read_counts_what_the_function_it_runs_reads(self):
         text = "a `b` c ``d`` e `f\n\ng` h\n"
         once = characters_read(text, check_raw_html.code_spans)
-        self.assertGreaterEqual(once, len(text))
+        # The search for backtick strings reads the 25 characters of the text once, and the
+        # searches for a blank line read 17.
+        self.assertEqual(once, 42)
         self.assertEqual(characters_read(text, lambda text: None), 0)
         self.assertEqual(characters_read(text, lambda text: [check_raw_html.code_spans(text)
                                                               for _ in range(2)]), 2 * once)

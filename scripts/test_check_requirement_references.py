@@ -209,9 +209,11 @@ def resuming_comment_scan(blank_line_from_each_comment: bool = False):
 
 
 def spans_found_by(scan, text: str) -> list[tuple[int, int]]:
-    """Return scan(text), failing when the scan runs more than a hundred lines of code for
-    each character of text. Each loop of a scan moves forward through text, so one whose
-    merge loop stops moving past the span it last found would otherwise never end."""
+    """Return scan(text), failing when the scan runs more than a hundred lines of code plus
+    a hundred for each character of text. Each loop of a scan moves forward through text,
+    so one whose merge loop stops moving past the span it last found would otherwise never
+    end. The failure names the first 80 characters of text, as the comparison of the spans
+    does: two of the texts compared are longer than 65,000 characters."""
     budget = 100 * (len(text) + 1)
 
     def trace(frame, event, arg):
@@ -219,7 +221,7 @@ def spans_found_by(scan, text: str) -> list[tuple[int, int]]:
         if event == "line":
             budget -= 1
             if budget < 0:
-                raise AssertionError(f"the scan did not end on {text!r}")
+                raise AssertionError(f"the scan did not end on {text[:80]!r}")
         return trace
 
     previous = sys.gettrace()
@@ -513,6 +515,8 @@ class CodeAndCommentTest(unittest.TestCase):
             ("Note <!-- open\n\nA broker MUST revoke it <!-- per RFC 7009 -->.", 0),
             ("Note <!-- open\n \t\nA broker MUST revoke it <!-- per\nRFC 7009 -->.", 0),
             ("A broker MUST revoke it <!-- per RFC 7009 <!-- or --", 1),
+            # A "-->" that begins inside a "<!--" does not close it; the next "-->" does.
+            ("Note <!-- open\n\n<!--> A broker MUST revoke it (RFC 7009). -->", 0),
         ):
             with self.subTest(body=body):
                 self.assertEqual(count(body), expected)
@@ -555,11 +559,15 @@ class CodeAndCommentTest(unittest.TestCase):
         # The two tests above measure copies of inline_spans() that search for "<!--"
         # another way, so what they read counts for inline_spans() only while the copies
         # find its spans. Every text of up to five of these pieces mixes backtick strings,
-        # "<!--", "-->" and blank lines; the texts the tests above read are added.
+        # "<!--", "-->" and blank lines. Five more texts are added: one that mixes them in
+        # prose; one of six pieces, in which a code span begins where a comment ends; one
+        # the pieces cannot build, in which a "-->" begins inside a later "<!--"; and the
+        # paragraph and the body whose characters the three tests above count.
         pieces = ("`", "``", "<!--", "-->", "\n\n", "a")
         texts = ["".join(parts) for length in range(1, 6)
                  for parts in itertools.product(pieces, repeat=length)]
         texts += ["a `<!--` b <!-- `c` --> d `e\n\nf` g <!-- h\n \t\ni --> j ``k`` <!--->",
+                  "<!--`-->`<!--`", "<!--\n\n<!-->",
                   UNCLOSED_COMMENTS, UNCLOSED_COMMENTS + "\n\nA later -->."]
         scans = (("resuming inside the last comment", resuming_comment_scan()),
                  ("searching for the blank line from each comment",
@@ -569,6 +577,19 @@ class CodeAndCommentTest(unittest.TestCase):
             for name, scan in scans:
                 self.assertEqual(spans_found_by(scan, text), expected,
                                  f"the scan {name} on {text[:80]!r}")
+
+    def test_scan_that_does_not_end_fails_naming_the_first_80_characters_of_the_text(self):
+        def scan(text):
+            position = 0
+            while position < len(text):
+                position += 0  # never moves past the first character
+
+        text = "<!--" * 50
+        tracer = sys.gettrace()
+        with self.assertRaises(AssertionError) as raised:
+            spans_found_by(scan, text)
+        self.assertEqual(str(raised.exception), f"the scan did not end on {text[:80]!r}")
+        self.assertIs(sys.gettrace(), tracer)
 
     def test_paragraph_of_unclosed_backtick_strings_is_read_in_one_pass(self):
         # No backtick string here has a later one of the same length before the blank line,
