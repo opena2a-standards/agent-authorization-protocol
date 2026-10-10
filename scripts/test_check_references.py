@@ -273,11 +273,11 @@ class CheckTest(unittest.TestCase):
     )
     SUBMITTED = "\nInternet-Draft pairing: `draft-fane-opena2a-aap-09` (submitted 2026-01-02).\n"
 
-    def run_check(self, changelog):
+    def run_check(self, changelog, render=None):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
             (root / "AAP-SPEC.md").write_text(self.SPEC, encoding="utf-8")
-            (root / "draft-fane-opena2a-aap-09.xml").write_bytes(self.RENDER)
+            (root / "draft-fane-opena2a-aap-09.xml").write_bytes(render or self.RENDER)
             (root / "CHANGELOG.md").write_text(changelog, encoding="utf-8")
             out = io.StringIO()
             with contextlib.redirect_stdout(out):
@@ -299,6 +299,28 @@ class CheckTest(unittest.TestCase):
         changelog = CHANGELOG_TEXT.replace("### Changed\n", "### Changed\n" + self.SUBMITTED)
         failures, out = self.run_check(changelog)
         self.assertEqual(failures, 1, out)
+
+    def test_render_that_is_not_utf8_or_not_well_formed_fails_without_a_traceback(self):
+        # The render ends with a line break, so its last line, "</rfc>", is line `lines`.
+        lines = self.RENDER.count(b"\n")
+        for render, reason in (
+            (
+                self.RENDER + b"<!-- caf\xe9 -->\n",
+                f"line {lines + 1}: not valid UTF-8 (invalid continuation byte at byte"
+                f" {len(self.RENDER) + 8}); save the document as UTF-8",
+            ),
+            (
+                self.RENDER.replace(b"</rfc>", b"<t></rfc>"),
+                f"line {lines}: not well-formed XML (mismatched tag); correct the XML",
+            ),
+        ):
+            with self.subTest(reason=reason):
+                failures, out = self.run_check(CHANGELOG_TEXT, render)
+                self.assertEqual(failures, 1, out)
+                self.assertEqual(
+                    out.splitlines(),
+                    [f"FAIL  reference classes: draft-fane-opena2a-aap-09.xml: {reason}"],
+                )
 
 
 class RepositoryTest(unittest.TestCase):

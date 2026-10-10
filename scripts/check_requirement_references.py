@@ -63,12 +63,13 @@ LIST_ITEM = re.compile(r"\s*([-*+]|\d{1,9}[.)])(\s+)")
 # An HTML comment that begins a line: an HTML block, which runs to the line that
 # holds "-->" whatever lies between, a blank line or a fence included.
 COMMENT_START = re.compile(r"\s*<!--")
-# An HTML comment or a code span inside a paragraph: neither crosses a blank line.
-# The code span is the one check_raw_html.CODE_SPAN reads.
-INLINE = re.compile(
-    r"<!--(?:[^\n]|\n(?![ \t]*\n))*?-->"
-    r"|(?<![`\\])(?P<ticks>`+)(?!`)(?:[^\n]|\n(?![ \t]*\n))+?(?<!`)(?P=ticks)(?!`)"
-)
+# An HTML comment inside a paragraph runs from "<!--" to the first "-->" before the next
+# blank line. inline_spans() finds comments in one forward pass, so a paragraph with many
+# "<!--" and no "-->" is not re-read to its end from each of them.
+COMMENT_OPEN = "<!--"
+COMMENT_CLOSE = "-->"
+# The line break that begins a blank line, which ends a paragraph.
+PARAGRAPH_END = re.compile(r"\n[ \t]*\n")
 # A thematic break, or the underline of a setext heading.
 RULE = re.compile(r"=+|-+|(?:[-*_]\s*){3,}")
 # An ATX heading, which is a unit of prose by itself.
@@ -100,7 +101,10 @@ CONTRAST = re.compile(
     r"\b(?:unlike|in\s+contrast\s+(?:to|with)|as\s+opposed\s+to|rather\s+than|instead\s+of)\b",
     re.IGNORECASE,
 )
-CONTRAST_WORDS = '"unlike", "in contrast to", "as opposed to", "rather than" or "instead of"'
+CONTRAST_WORDS = (
+    '"unlike", "in contrast to", "in contrast with", "as opposed to", "rather than" or '
+    '"instead of"'
+)
 # A relative clause after a contrast can state a requirement on what the contrast names.
 RELATIVE = re.compile(r"[,;:]?\s*(?:which|that|who|whom|whose|where)\b", re.IGNORECASE)
 
@@ -159,6 +163,62 @@ def blocks(lines: list[str]) -> list[str]:
         paragraph = UNIT_HEADING.match(line) is None
         read.append(line)
     return read
+
+
+def inline_spans(text: str) -> list[tuple[int, int]]:
+    """Return the start and end offsets of the HTML comments and code spans inside the
+    paragraphs of text, in order. Neither crosses a blank line, and whichever begins
+    first holds the other's markers. The code span is the one check_raw_html.CODE_SPAN
+    reads; a "<!--" with no "-->" before the next blank line does not begin a comment."""
+    # The first "-->" and the first blank line found so far, kept while the scan moves
+    # forward; len(text) when there is none.
+    close = brk = -1
+
+    def comment(pos: int) -> tuple[int, int] | None:
+        """Return the offsets of the first comment that begins at or after pos."""
+        nonlocal close, brk
+        while (start := text.find(COMMENT_OPEN, pos)) >= 0:
+            body = start + len(COMMENT_OPEN)
+            if close < body:
+                close = text.find(COMMENT_CLOSE, body)
+                close = len(text) if close < 0 else close
+            if close == len(text):
+                return None
+            if brk < start:
+                end = PARAGRAPH_END.search(text, start)
+                brk = end.start() if end else len(text)
+            if close < brk:
+                return start, close + len(COMMENT_CLOSE)
+            # No "<!--" before the blank line is closed before it.
+            pos = brk
+        return None
+
+    spans = []
+    code = check_raw_html.CODE_SPAN.search(text)
+    note = comment(0)
+    while code or note:
+        if note is None or (code is not None and code.start() < note[0]):
+            span = code.span()
+        else:
+            span = note
+        spans.append(span)
+        if code is not None and code.start() < span[1]:
+            code = check_raw_html.CODE_SPAN.search(text, span[1])
+        if note is not None and note[0] < span[1]:
+            note = comment(span[1])
+    return spans
+
+
+def blank_inline(text: str) -> str:
+    """Return text with its inline comments and code spans blanked out: every character
+    but a line break replaced by a space, so offsets and lines are kept."""
+    parts = []
+    last = 0
+    for start, end in inline_spans(text):
+        parts += [text[last:start], re.sub(r"[^\n]", " ", text[start:end])]
+        last = end
+    parts.append(text[last:])
+    return "".join(parts)
 
 
 def label_numbers(entry: str) -> list[str]:
@@ -281,7 +341,7 @@ def findings(text: str) -> list[str]:
     only_informative = informative - normative
     if not only_informative:
         return []
-    read = INLINE.sub(check_raw_html.blank, "\n".join(block)).split("\n")
+    read = blank_inline("\n".join(block)).split("\n")
     found = []
     for unit in units(block, section):
         body = "\n".join(block[index] for index in unit)

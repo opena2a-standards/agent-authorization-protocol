@@ -61,7 +61,8 @@
     },
     "exp": {
       "type": "integer",
-      "minimum": 0
+      "minimum": 0,
+      "description": "Expiry, a NumericDate as in the CGT (AAP-SPEC section 4.2). MUST NOT be later than the delegator's `exp`; in a chain (nested `act`) the bound holds link by link, so a DA expires no later than any grant in its chain (section 5.3; a verifier check, made by a verifier that can resolve the delegator's grant)."
     },
     "jti": {
       "type": "string",

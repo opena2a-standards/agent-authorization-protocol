@@ -10,6 +10,7 @@ import pathlib
 import shutil
 import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -386,6 +387,38 @@ class CodeAndCommentTest(unittest.TestCase):
     def test_comment_inside_a_code_span_is_not_a_comment(self):
         self.assertEqual(count("Write `<!--` first. A broker MUST send RFC 7009 before `-->`."), 1)
 
+    def test_comment_closes_at_the_first_close_before_the_blank_line(self):
+        for body, expected in (
+            # A backtick inside a comment does not open a code span.
+            ("A broker MUST <!-- a ` tick --> revoke it (RFC 7009) and `log` it.", 1),
+            # The first "<!--" is closed by the first "-->", whatever lies between.
+            ("A broker MUST <!-- a <!-- b --> revoke it (RFC 7009).", 1),
+            ("A broker MUST <!-- a <!-- b --> revoke it --> (RFC 7009).", 1),
+            # A "<!--" with no "-->" before the blank line is text; a later one can close.
+            ("Note <!-- open\n\nA broker MUST revoke it --> per RFC 7009.", 1),
+            ("Note <!-- open\n\nA broker MUST revoke it <!-- per RFC 7009 -->.", 0),
+            ("Note <!-- open\n \t\nA broker MUST revoke it <!-- per\nRFC 7009 -->.", 0),
+            ("A broker MUST revoke it <!-- per RFC 7009 <!-- or --", 1),
+        ):
+            with self.subTest(body=body):
+                self.assertEqual(count(body), expected)
+
+    def test_paragraph_of_unclosed_comments_is_read_in_one_pass(self):
+        # No "<!--" here is closed, so none begins a comment. A scan that re-reads the
+        # paragraph from each "<!--" takes seconds on this 64 KB paragraph, and four times
+        # as long on one twice the size.
+        body = "A broker MUST revoke it " + "<!--" * 16384 + " (RFC 7009)."
+        start = time.perf_counter()
+        self.assertEqual(count(body), 1)
+        self.assertLess(time.perf_counter() - start, 1.0)
+
+    def test_inline_spans_are_those_of_the_paragraph_rules(self):
+        text = "a `<!--` b <!-- `c` --> d `e\n\nf` g <!-- h\n \t\ni --> j ``k`` <!--->"
+        self.assertEqual(
+            [text[start:end] for start, end in check_requirement_references.inline_spans(text)],
+            ["`<!--`", "<!-- `c` -->", "``k``"],
+        )
+
 
 class RepositoryDocumentsTest(unittest.TestCase):
     def test_both_specification_documents_are_covered(self):
@@ -430,7 +463,15 @@ class CheckTest(unittest.TestCase):
             check_requirement_references.check(self.root)
         self.assertIn(
             'requirement keyword (an RFC named only for contrast passes after "unlike", '
-            '"in contrast to", "as opposed to", "rather than" or "instead of")\n', out.getvalue())
+            '"in contrast to", "in contrast with", "as opposed to", "rather than" or '
+            '"instead of")\n', out.getvalue())
+
+    def test_failure_line_names_every_contrast_that_passes(self):
+        for phrase in ("unlike", "in contrast to", "in contrast with", "as opposed to",
+                       "rather than", "instead of"):
+            with self.subTest(phrase=phrase):
+                self.assertIsNotNone(check_requirement_references.CONTRAST.fullmatch(phrase))
+                self.assertIn(f'"{phrase}"', check_requirement_references.FIX)
 
     def test_document_that_is_not_utf8_fails_without_a_traceback(self):
         (self.root / "PROFILE.md").write_bytes(

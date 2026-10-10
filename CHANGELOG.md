@@ -130,6 +130,25 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   a requirement is normative. `scripts/check_requirement_references.py` reads references
   named by RFC number and does not see this one. No requirement changes: the counts of
   MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both documents are unchanged.
+- The newest Internet-Draft render is read the same way: `scripts/check_references.py` and
+  `scripts/check_section_citations.py` read it through `check_naming.read_text` and parse
+  it in one function, `check_references.read_render`. A render that is not valid UTF-8 or
+  not well-formed XML fails with a `FAIL` line naming the line where reading stops
+  (`FAIL  reference classes: <render>: <reason>`, and `FAIL  <render>: <reason>` with the
+  census line, whose Markdown documents are still checked), instead of stopping
+  `scripts/validate_examples.py` with an `xml.etree` `ParseError` traceback; the checks
+  that follow still run.
+- `scripts/check_requirement_references.py` finds the HTML comments inside a paragraph in
+  one forward pass, from each `<!--` to the first `-->` before the next blank line. The
+  pattern it replaces read the paragraph again to its end from each `<!--` that has no
+  `-->`, so a 64 KB paragraph of them took seconds and one twice that size four times as
+  long. What is read as a comment or a code span is unchanged. The failure line names "in
+  contrast with" among the contrast phrases that pass, as the check accepts it; it named
+  five of the six.
+- `schemas/da-claims-v1.schema.json` describes `exp`: it MUST NOT be later than the
+  delegator's `exp`, and in a chain the bound holds link by link (AAP-SPEC Section 5.3), a
+  verifier check, as the descriptions of the scope subset rule and of `max_depth` name
+  theirs. The schema accepts the same claim sets.
 
 ### Added
 

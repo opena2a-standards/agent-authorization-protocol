@@ -227,7 +227,10 @@ class CheckTest(unittest.TestCase):
             root = pathlib.Path(tmp)
             for name, text in files.items():
                 (root / name).parent.mkdir(parents=True, exist_ok=True)
-                (root / name).write_text(text, encoding="utf-8")
+                if isinstance(text, bytes):
+                    (root / name).write_bytes(text)
+                else:
+                    (root / name).write_text(text, encoding="utf-8")
             out = io.StringIO()
             with contextlib.redirect_stdout(out):
                 failures = check_section_citations.check(root)
@@ -345,6 +348,35 @@ class CheckTest(unittest.TestCase):
         failures, out = self.run_check(files)
         self.assertEqual(failures, 1, out)
         self.assertIn("AAP-BROKER-PROFILE.md not found", out)
+
+    def test_render_that_is_not_utf8_or_not_well_formed_fails_without_a_traceback(self):
+        # RENDER_XML ends with a line break, so its last line, "</rfc>", is line `lines`.
+        lines = RENDER_XML.count("\n")
+        data = RENDER_XML.encode("utf-8")
+        for render, reason in (
+            (
+                data + b"<!-- caf\xe9 -->\n",
+                f"line {lines + 1}: not valid UTF-8 (invalid continuation byte at byte"
+                f" {len(data) + 8}); save the document as UTF-8",
+            ),
+            (
+                RENDER_XML.replace("</rfc>", "<t></rfc>"),
+                f"line {lines}: not well-formed XML (mismatched tag); correct the XML",
+            ),
+        ):
+            with self.subTest(reason=reason):
+                files = self.base()
+                files["draft-fane-opena2a-aap-03.xml"] = render
+                failures, out = self.run_check(files)
+                self.assertEqual(failures, 1, out)
+                self.assertIn(f"FAIL  draft-fane-opena2a-aap-03.xml: {reason}\n", out)
+                # The Markdown documents are still checked.
+                self.assertIn(
+                    "FAIL  section citations of family documents: AAP-SPEC.md 2 (AIP 1,"
+                    " broker profile 1); 1 failure(s); printed address in"
+                    " draft-fane-opena2a-aap-03.xml: none",
+                    out,
+                )
 
 
 class RepositoryTest(unittest.TestCase):

@@ -219,6 +219,20 @@ class NotUtf8Test(unittest.TestCase):
         self.assertFalse(check_references.render_submitted(
             self.root, "draft-fane-opena2a-aap-02.xml"))
 
+    def test_the_newest_render_fails_each_check_that_reads_it(self):
+        render = check_references.newest_render(self.root)
+        path = self.root / render
+        original = path.read_bytes()
+        path.write_bytes(original + b"<!-- caf\xe9 -->\n")
+        results = self.run_checks()
+        lineno = original.count(b"\n") + 1
+        line = f"{render}: line {lineno}: {self.REASON}"
+        for module in (check_naming, check_references, check_section_citations, check_spelling):
+            failures, out = results[module]
+            with self.subTest(check=module.__name__):
+                self.assertGreaterEqual(failures, 1, out)
+                self.assertIn(line, out)
+
     def test_extract_block_exits_with_the_reason(self):
         path = self.root / "AAP-SPEC.md"
         path.write_bytes(b"### 1 Example\n\ncaf\xe9\n")
