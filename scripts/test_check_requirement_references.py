@@ -19,6 +19,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 import check_raw_html  # noqa: E402
 import check_requirement_references  # noqa: E402
+import test_check_raw_html  # noqa: E402
 from check_requirement_references import findings  # noqa: E402
 
 REFERENCES = (
@@ -151,36 +152,6 @@ def characters_read(text: str) -> int:
                            types.SimpleNamespace(search=search)):
         check_requirement_references.inline_spans(counted)
     return counted.read
-
-
-def code_characters_read(text: str) -> int:
-    """Return how many characters inline_spans() reads to find the code spans in text: what
-    the search for backtick strings and the searches for a blank line of
-    check_raw_html.code_spans() read, each from where it starts to the end of what it finds,
-    or to the end of the text when it finds nothing."""
-    read = 0
-    backticks = check_raw_html.BACKTICKS
-    blank_line = check_raw_html.PARAGRAPH_END
-
-    def finditer(string: str, pos: int = 0):
-        nonlocal read
-        for match in backticks.finditer(string, pos):
-            read += match.end() - pos
-            pos = match.end()
-            yield match
-        read += len(string) - pos
-
-    def search(string: str, pos: int = 0):
-        nonlocal read
-        match = blank_line.search(string, pos)
-        read += (match.end() if match else len(string)) - pos
-        return match
-
-    with mock.patch.multiple(check_raw_html,
-                             BACKTICKS=types.SimpleNamespace(finditer=finditer),
-                             PARAGRAPH_END=types.SimpleNamespace(search=search)):
-        check_requirement_references.inline_spans(text)
-    return read
 
 
 def one_pass_reads(text: str) -> int:
@@ -611,7 +582,8 @@ class CodeAndCommentTest(unittest.TestCase):
                              ("after the blank line", paragraph + "\n\n" + strings)):
             with self.subTest(closed=closed):
                 self.assertEqual(count(body), 1)
-                read = code_characters_read(body)
+                read = test_check_raw_html.characters_read(
+                    body, check_requirement_references.inline_spans)
                 # Finding the backtick strings reads the whole text, so a smaller count
                 # has missed a search of the scan.
                 self.assertGreaterEqual(read, len(body))
