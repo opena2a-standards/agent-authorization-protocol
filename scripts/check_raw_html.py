@@ -38,6 +38,7 @@ check runs in CI.
 import bisect
 import re
 import sys
+from collections.abc import Callable
 
 import check_naming
 
@@ -120,9 +121,11 @@ BLOCK_TAG = re.compile(
     re.VERBOSE | re.MULTILINE | re.IGNORECASE,
 )
 
-# A code span: a backtick string, then text that does not end the paragraph,
-# then a backtick string of the same length.
-CODE_SPAN = re.compile(r"(?<![`\\])(`+)(?!`)((?:[^\n]|\n(?![ \t]*\n))+?)(?<!`)\1(?!`)")
+# A backtick string: a run of backticks, read whole. code_spans() pairs the
+# backtick strings that begin and end each code span.
+BACKTICKS = re.compile(r"`+")
+# The line break that begins a blank line, which ends a paragraph.
+PARAGRAPH_END = re.compile(r"\n[ \t]*\n")
 
 # A link destination in angle brackets (the group) after a link text, "(",
 # spaces and at most one line break, followed by the ")" that ends the link or
@@ -147,6 +150,47 @@ def blank_group(match: re.Match, group: int) -> str:
     return text[:start] + re.sub(r"[^\n]", " ", text[start:end]) + text[end:]
 
 
+def code_spans(text: str) -> Callable[[int], tuple[int, int] | None]:
+    """Return a function that gives the start and end offsets of the first code
+    span of text that begins at or after an offset, or None when none does.
+
+    A code span is a backtick string that neither a backtick nor a backslash
+    precedes, then text that does not end the paragraph, then the next
+    backtick string of the same length. Each backtick string is paired once
+    with the next string of its length, so a paragraph with many backtick
+    strings that no later string of the same length closes is not read again
+    to its end from each of them.
+    """
+    runs = [match.span() for match in BACKTICKS.finditer(text)]
+    # The next backtick string of the same length as each, read from the last.
+    closing: list[int | None] = [None] * len(runs)
+    latest: dict[int, int] = {}
+    for index in reversed(range(len(runs))):
+        start, end = runs[index]
+        closing[index] = latest.get(end - start)
+        latest[end - start] = index
+    # The code span each backtick string opens, in order. The first blank line
+    # found so far is kept while the scan moves forward.
+    spans = []
+    brk = -1
+    for index, (start, end) in enumerate(runs):
+        close = closing[index]
+        if close is None or text[start - 1:start] == "\\":
+            continue
+        if brk < end:
+            found = PARAGRAPH_END.search(text, end)
+            brk = found.start() if found else len(text)
+        if runs[close][0] < brk:
+            spans.append((start, runs[close][1]))
+    starts = [start for start, _ in spans]
+
+    def search(pos: int) -> tuple[int, int] | None:
+        index = bisect.bisect_left(starts, pos)
+        return spans[index] if index < len(spans) else None
+
+    return search
+
+
 def prose(text: str) -> str:
     """Return text with fenced code blocks and code spans blanked out.
 
@@ -163,7 +207,15 @@ def prose(text: str) -> str:
             continue
         fence = check_naming.opening_fence(line)
         lines.append(" " * len(line) if fence is not None else line)
-    return CODE_SPAN.sub(blank, "\n".join(lines))
+    text = "\n".join(lines)
+    search = code_spans(text)
+    parts = []
+    last = 0
+    while (span := search(last)) is not None:
+        parts += [text[last:span[0]], re.sub(r"[^\n]", " ", text[span[0]:span[1]])]
+        last = span[1]
+    parts.append(text[last:])
+    return "".join(parts)
 
 
 def tag_text(body: str) -> str:

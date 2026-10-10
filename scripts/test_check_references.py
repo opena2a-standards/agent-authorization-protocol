@@ -10,6 +10,8 @@ import pathlib
 import sys
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
+from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
@@ -116,7 +118,7 @@ class ParseTest(unittest.TestCase):
         self.assertEqual(markdown_references("# Spec\n\n- [ATP], a list item.\n"), [])
 
     def test_render_entries_carry_class_title_and_target(self):
-        entries = render_references(RENDER_XML)
+        entries = render_references(ET.fromstring(RENDER_XML))
         self.assertEqual(len(entries), 6)
         self.assertIn(
             ("THREATMATRIX", "AI Agent Threat Matrix", "informative", "https://threats.opena2a.org"),
@@ -161,7 +163,7 @@ class ParseTest(unittest.TestCase):
 class CompareTest(unittest.TestCase):
     def test_shared_references_in_the_same_class_pass(self):
         failures, summary = compare(
-            markdown_references(SPEC_TEXT), render_references(RENDER_XML), {}, "draft.xml"
+            markdown_references(SPEC_TEXT), render_references(ET.fromstring(RENDER_XML)), {}, "draft.xml"
         )
         self.assertEqual(failures, [])
         self.assertIn("5 shared, 5 same class, 0 changed", summary)
@@ -170,7 +172,7 @@ class CompareTest(unittest.TestCase):
     def test_label_matches_render_title(self):
         failures, summary = compare(
             [("AI Agent Threat Matrix", "informative")],
-            render_references(RENDER_XML),
+            render_references(ET.fromstring(RENDER_XML)),
             {},
             "draft.xml",
         )
@@ -299,6 +301,12 @@ class CheckTest(unittest.TestCase):
         changelog = CHANGELOG_TEXT.replace("### Changed\n", "### Changed\n" + self.SUBMITTED)
         failures, out = self.run_check(changelog)
         self.assertEqual(failures, 1, out)
+
+    def test_the_render_is_parsed_once(self):
+        with mock.patch.object(ET, "fromstring", wraps=ET.fromstring) as fromstring:
+            failures, out = self.run_check(CHANGELOG_TEXT + self.SUBMITTED)
+        self.assertEqual(failures, 0, out)
+        self.assertEqual(fromstring.call_count, 1)
 
     def test_render_that_is_not_utf8_or_not_well_formed_fails_without_a_traceback(self):
         # The render ends with a line break, so its last line, "</rfc>", is line `lines`.
