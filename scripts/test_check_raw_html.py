@@ -12,7 +12,7 @@ import re
 import shutil
 import sys
 import tempfile
-import time
+import types
 import unittest
 from unittest import mock
 
@@ -167,6 +167,36 @@ class FindingsTest(unittest.TestCase):
                 self.assertEqual(len(findings(text)), 1)
 
 
+def characters_read(text: str) -> int:
+    """Return how many characters code_spans() reads to find the code spans in text: what
+    its search for backtick strings reads and what its searches for a blank line read, each
+    from where it starts to the end of what it finds, or to the end of the text when it
+    finds nothing. A count does not depend on how loaded the machine is, as a time does."""
+    read = 0
+    backticks = check_raw_html.BACKTICKS
+    blank_line = check_raw_html.PARAGRAPH_END
+
+    def finditer(string: str, pos: int = 0):
+        nonlocal read
+        for match in backticks.finditer(string, pos):
+            read += match.end() - pos
+            pos = match.end()
+            yield match
+        read += len(string) - pos
+
+    def search(string: str, pos: int = 0):
+        nonlocal read
+        match = blank_line.search(string, pos)
+        read += (match.end() if match else len(string)) - pos
+        return match
+
+    with mock.patch.multiple(check_raw_html,
+                             BACKTICKS=types.SimpleNamespace(finditer=finditer),
+                             PARAGRAPH_END=types.SimpleNamespace(search=search)):
+        check_raw_html.code_spans(text)
+    return read
+
+
 class CodeSpansTest(unittest.TestCase):
     # The pattern code_spans() replaces: a backtick string that neither a backtick nor a
     # backslash precedes, then text that does not end the paragraph, then a backtick
@@ -213,14 +243,23 @@ class CodeSpansTest(unittest.TestCase):
                 self.assertEqual(search(pos), match and match.span(), (text, pos))
 
     def test_paragraph_of_unclosed_backtick_strings_is_read_in_one_pass(self):
-        # No backtick string here has a later one of the same length, so none opens a
-        # code span. A scan that reads the paragraph again from each takes seconds on
-        # this 312 KB paragraph.
-        text = "".join("`" * length + "a" for length in range(1, 800)) + " <n>.\n"
-        start = time.perf_counter()
-        self.assertEqual(findings(text),
-                         ["line 1: HTML tag in Markdown prose, not rendered: '<n>'"])
-        self.assertLess(time.perf_counter() - start, 1.0)
+        # No backtick string here has a later one of the same length before the blank line,
+        # so none opens a code span. A scan that re-reads this 312 KB paragraph from each of
+        # its 799 backtick strings reads more than a hundred million characters; one pass
+        # reads each character at most once in each of its two searches (for a backtick
+        # string and for a blank line).
+        strings = "".join("`" * length + "a" for length in range(1, 800))
+        paragraph = strings + " <n>.\n"
+        for closed, text in (("nowhere", paragraph),
+                             ("after the blank line", paragraph + "\n" + strings + "\n")):
+            with self.subTest(closed=closed):
+                self.assertEqual(findings(text),
+                                 ["line 1: HTML tag in Markdown prose, not rendered: '<n>'"])
+                read = characters_read(text)
+                # Finding the backtick strings reads the whole text, so a smaller count
+                # has missed a search of the scan.
+                self.assertGreaterEqual(read, len(text))
+                self.assertLessEqual(read, 2 * len(text))
 
 
 class RepositoryDocumentsTest(unittest.TestCase):

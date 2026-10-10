@@ -144,16 +144,23 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `-->`, so a 64 KB paragraph of them took seconds and one twice that size four times as
   long. What is read as a comment or a code span is unchanged. Its test counts the
   characters the scan reads instead of timing it, so a loaded runner does not fail it,
-  and a scan that reads the paragraph again from each `<!--` still does. The failure line
-  names "in contrast with" among the contrast phrases that pass, as the check accepts it;
-  it named five of the six.
+  and a scan that reads the paragraph again from each `<!--` still does. Its bound is four
+  times the length of the text, not three: a scan that resumes its search for `<!--` one
+  character past the last one found reads each `<!--` twice and still reads the paragraph
+  in one pass, and the test now runs that scan and one that searches for the blank line
+  again from each `<!--`, which it fails. The failure line names "in contrast with" among
+  the contrast phrases that pass, as the check accepts it; it named five of the six.
 - `scripts/check_raw_html.py` finds code spans in one forward pass: `code_spans()` reads
   each backtick string once and pairs it with the next string of the same length, and
   replaces the `CODE_SPAN` pattern that `prose()` and
   `scripts/check_requirement_references.py` used. The pattern read the paragraph again to
   its end from each backtick string that no later string of the same length closes, so a
   312 KB paragraph of them took about four seconds. What is read as a code span is
-  unchanged.
+  unchanged. Its tests, one per check, count the characters the scan reads instead of
+  timing it, so a loaded runner does not fail them, and a scan that reads the paragraph
+  again from each backtick string still does. Each also reads a second paragraph whose
+  backtick strings close the first one's, so the scan's searches for a blank line are
+  counted too.
 - `schemas/da-claims-v1.schema.json` describes `exp`: it MUST NOT be later than the
   delegator's `exp`, and in a chain the bound holds link by link (AAP-SPEC Section 5.3), a
   verifier check, as the descriptions of the scope subset rule and of `max_depth` name
