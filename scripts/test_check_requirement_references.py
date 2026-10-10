@@ -412,6 +412,16 @@ class CodeAndCommentTest(unittest.TestCase):
         self.assertEqual(count(body), 1)
         self.assertLess(time.perf_counter() - start, 1.0)
 
+    def test_paragraph_of_unclosed_backtick_strings_is_read_in_one_pass(self):
+        # No backtick string here has a later one of the same length, so none opens a
+        # code span. A scan that re-reads the paragraph from each takes seconds on this
+        # 312 KB paragraph.
+        body = ("A broker MUST revoke it "
+                + "".join("`" * length + "a" for length in range(1, 800)) + " (RFC 7009).")
+        start = time.perf_counter()
+        self.assertEqual(count(body), 1)
+        self.assertLess(time.perf_counter() - start, 1.0)
+
     def test_inline_spans_are_those_of_the_paragraph_rules(self):
         text = "a `<!--` b <!-- `c` --> d `e\n\nf` g <!-- h\n \t\ni --> j ``k`` <!--->"
         self.assertEqual(

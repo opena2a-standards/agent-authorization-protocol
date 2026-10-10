@@ -7,9 +7,12 @@ CI runs them through validate_examples.py.
 import contextlib
 import io
 import pathlib
+import random
+import re
 import shutil
 import sys
 import tempfile
+import time
 import unittest
 from unittest import mock
 
@@ -162,6 +165,62 @@ class FindingsTest(unittest.TestCase):
                      "[t]( <a<b>)\n"):
             with self.subTest(text=text):
                 self.assertEqual(len(findings(text)), 1)
+
+
+class CodeSpansTest(unittest.TestCase):
+    # The pattern code_spans() replaces: a backtick string that neither a backtick nor a
+    # backslash precedes, then text that does not end the paragraph, then a backtick
+    # string of the same length. It reads the paragraph again to its end from each
+    # backtick string that no later string of the same length closes.
+    PATTERN = re.compile(r"(?<![`\\])(`+)(?!`)((?:[^\n]|\n(?![ \t]*\n))+?)(?<!`)\1(?!`)")
+
+    def test_spans(self):
+        for text, expected in (
+            ("a ``b`` c", ["``b``"]),
+            ("a ``b` c`` d", ["``b` c``"]),
+            # A backtick string after a backslash opens no code span, and can close one.
+            ("a \\`b` c` d", ["` c`"]),
+            ("a `b\\` c", ["`b\\`"]),
+            ("a `b\nc` d", ["`b\nc`"]),
+            ("a `b\n \t\nc` d", []),
+            # A backtick string that no later string of the same length closes is text.
+            ("a `b ``c`` d", ["``c``"]),
+            ("a ```b`` c", []),
+        ):
+            with self.subTest(text=text):
+                search = check_raw_html.code_spans(text)
+                found = []
+                last = 0
+                while (span := search(last)) is not None:
+                    found.append(text[span[0]:span[1]])
+                    last = span[1]
+                self.assertEqual(found, expected)
+
+    def test_span_from_an_offset_inside_a_span(self):
+        text = "a `b` c` d"
+        search = check_raw_html.code_spans(text)
+        self.assertEqual(search(0), (2, 5))
+        self.assertEqual(search(3), (4, 8))
+        self.assertIsNone(search(5))
+
+    def test_spans_are_those_of_the_pattern(self):
+        rng = random.Random(52)
+        for _ in range(2000):
+            text = "".join(rng.choice("```\\a \n\t") for _ in range(rng.randrange(24)))
+            search = check_raw_html.code_spans(text)
+            for pos in range(len(text) + 1):
+                match = self.PATTERN.search(text, pos)
+                self.assertEqual(search(pos), match and match.span(), (text, pos))
+
+    def test_paragraph_of_unclosed_backtick_strings_is_read_in_one_pass(self):
+        # No backtick string here has a later one of the same length, so none opens a
+        # code span. A scan that reads the paragraph again from each takes seconds on
+        # this 312 KB paragraph.
+        text = "".join("`" * length + "a" for length in range(1, 800)) + " <n>.\n"
+        start = time.perf_counter()
+        self.assertEqual(findings(text),
+                         ["line 1: HTML tag in Markdown prose, not rendered: '<n>'"])
+        self.assertLess(time.perf_counter() - start, 1.0)
 
 
 class RepositoryDocumentsTest(unittest.TestCase):

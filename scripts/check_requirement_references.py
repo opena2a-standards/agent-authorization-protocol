@@ -168,8 +168,8 @@ def blocks(lines: list[str]) -> list[str]:
 def inline_spans(text: str) -> list[tuple[int, int]]:
     """Return the start and end offsets of the HTML comments and code spans inside the
     paragraphs of text, in order. Neither crosses a blank line, and whichever begins
-    first holds the other's markers. The code span is the one check_raw_html.CODE_SPAN
-    reads; a "<!--" with no "-->" before the next blank line does not begin a comment."""
+    first holds the other's markers. The code span is the one check_raw_html.code_spans()
+    finds; a "<!--" with no "-->" before the next blank line does not begin a comment."""
     # The first "-->" and the first blank line found so far, kept while the scan moves
     # forward; len(text) when there is none.
     close = brk = -1
@@ -194,16 +194,17 @@ def inline_spans(text: str) -> list[tuple[int, int]]:
         return None
 
     spans = []
-    code = check_raw_html.CODE_SPAN.search(text)
+    code_span = check_raw_html.code_spans(text)
+    code = code_span(0)
     note = comment(0)
     while code or note:
-        if note is None or (code is not None and code.start() < note[0]):
-            span = code.span()
+        if note is None or (code is not None and code[0] < note[0]):
+            span = code
         else:
             span = note
         spans.append(span)
-        if code is not None and code.start() < span[1]:
-            code = check_raw_html.CODE_SPAN.search(text, span[1])
+        if code is not None and code[0] < span[1]:
+            code = code_span(span[1])
         if note is not None and note[0] < span[1]:
             note = comment(span[1])
     return spans
