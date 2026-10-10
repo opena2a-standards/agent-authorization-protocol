@@ -25,7 +25,8 @@ recorded class; once the section is released, the exception lapses for every
 render. A recorded class the Markdown does not list fails.
 
 Prints one class-parity line. Exit code 0 = no shared reference differs in class and
-the Markdown lists every family reference of the render.
+the Markdown lists every family reference of the render. A render that is not valid
+UTF-8 or not well-formed XML fails with a line naming where it stops reading.
 Also run by validate_examples.py so the check runs in CI.
 """
 
@@ -33,6 +34,7 @@ import pathlib
 import re
 import sys
 import xml.etree.ElementTree as ET
+from xml.parsers import expat
 
 import check_naming
 
@@ -93,7 +95,7 @@ def markdown_references(text: str) -> list[tuple[str, str]]:
     return entries
 
 
-def render_references(data: bytes) -> list[tuple[str, str, str, str]]:
+def render_references(data: str | bytes) -> list[tuple[str, str, str, str]]:
     """Return (anchor, title, class, target) for each reference of an RFCXML v3 document."""
     entries = []
     for group in ET.fromstring(data).iter("references"):
@@ -154,6 +156,26 @@ def render_status(render_name: str, submitted: bool) -> str:
     if submitted:
         return f"{render_name} is submitted ({CHANGELOG})"
     return f"{render_name} is the next render (no released section of {CHANGELOG} records it as submitted)"
+
+
+def read_render(path: pathlib.Path) -> tuple[str | None, str | None]:
+    """Return the text of a render and None, or None and a reason when it is not valid
+    UTF-8 or not well-formed XML.
+
+    The reason names the line where reading stops, so such a render is reported as a
+    FAIL line instead of a traceback. check_section_citations.py reads the render
+    through this function too.
+    """
+    text, error = check_naming.read_text(path)
+    if error:
+        return None, error
+    try:
+        ET.fromstring(text)
+    except ET.ParseError as parse_error:
+        line, _ = parse_error.position
+        return None, (f"line {line}: not well-formed XML ({expat.ErrorString(parse_error.code)}); "
+                      "correct the XML")
+    return text, None
 
 
 def newest_render(root: pathlib.Path) -> str | None:
@@ -267,7 +289,11 @@ def check(root: pathlib.Path = ROOT) -> int:
     if not md_entries:
         print(f"FAIL  reference classes: no References section entries found in {SPEC}")
         return 1
-    render_entries = render_references((root / render_name).read_bytes())
+    render_text, error = read_render(root / render_name)
+    if error:
+        print(f"FAIL  reference classes: {render_name}: {error}")
+        return 1
+    render_entries = render_references(render_text)
     if not render_entries:
         print(f"FAIL  reference classes: no references found in {render_name}")
         return 1

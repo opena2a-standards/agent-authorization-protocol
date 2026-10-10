@@ -33,8 +33,9 @@ checked.
    (submitted 2026-10-02") cannot change, so there an address that does not name its
    text is reported, not failed; in any other render it fails.
 
-Prints one census line. Exit code 0 = no failure. Also run by validate_examples.py
-so the check runs in CI.
+Prints one census line. Exit code 0 = no failure. A document that is not valid UTF-8,
+or a render that is not well-formed XML, fails with a line naming where it stops
+reading. Also run by validate_examples.py so the check runs in CI.
 """
 
 import pathlib
@@ -220,7 +221,7 @@ def reference_entries(text: str) -> dict[str, str]:
     return entries
 
 
-def render_references(data: bytes) -> dict[str, tuple[str, str]]:
+def render_references(data: str | bytes) -> dict[str, tuple[str, str]]:
     """Return {anchor: (target, annotation)} for each reference of an RFCXML v3 document."""
     references = {}
     for ref in ET.fromstring(data).iter("reference"):
@@ -316,31 +317,34 @@ def check(root: pathlib.Path = ROOT) -> int:
         failures.append("no draft-fane-opena2a-aap-NN.xml found")
     else:
         submitted = check_references.render_submitted(root, render_name)
-        data = (root / render_name).read_bytes()
-        references = render_references(data)
-        # The XML source, so a failure names the line of the source; the citations are
-        # in element text, where a line break is a space.
-        cites = [
-            c for c in citations(render_name, data.decode("utf-8")) if c.doc.name != "AAP-SPEC"
-        ]
-        failures += unresolved(cites, headings)
-        for doc in sorted({c.doc for c in cites}, key=lambda d: d.name):
-            if doc.label not in references:
-                failures.append(f"{render_name}: {doc.name} is cited by section number and has no reference entry")
-                continue
-            target, annotation = references[doc.label]
-            names = doc.text in target or doc.text in annotation
-            if not names and not submitted:
-                failures.append(
-                    f"{render_name}: {doc.name} is cited by section number and its reference"
-                    f" entry ({target or 'no target'}) does not name {doc.text}; the next render"
-                    f" must print an address of {doc.text} or name it in the entry's annotation"
+        text, error = check_references.read_render(root / render_name)
+        if error:
+            failures.append(f"{render_name}: {error}")
+        else:
+            references = render_references(text)
+            # The XML source, so a failure names the line of the source; the citations
+            # are in element text, where a line break is a space.
+            cites = [c for c in citations(render_name, text) if c.doc.name != "AAP-SPEC"]
+            failures += unresolved(cites, headings)
+            for doc in sorted({c.doc for c in cites}, key=lambda d: d.name):
+                if doc.label not in references:
+                    failures.append(
+                        f"{render_name}: {doc.name} is cited by section number and has no reference entry"
+                    )
+                    continue
+                target, annotation = references[doc.label]
+                names = doc.text in target or doc.text in annotation
+                if not names and not submitted:
+                    failures.append(
+                        f"{render_name}: {doc.name} is cited by section number and its reference"
+                        f" entry ({target or 'no target'}) does not name {doc.text}; the next render"
+                        f" must print an address of {doc.text} or name it in the entry's annotation"
+                    )
+                addresses.append(
+                    f"{doc.name} {target or '(no target)'}"
+                    f" ({'names' if names else 'does not name'} {doc.text})"
                 )
-            addresses.append(
-                f"{doc.name} {target or '(no target)'}"
-                f" ({'names' if names else 'does not name'} {doc.text})"
-            )
-        parts.append(f"{render_name} {census(cites)}")
+            parts.append(f"{render_name} {census(cites)}")
         status = "; " + check_references.render_status(render_name, submitted)
 
     for failure in failures:
