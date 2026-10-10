@@ -5,13 +5,11 @@ CI runs them through validate_examples.py.
 """
 
 import contextlib
-import inspect
 import io
 import pathlib
 import shutil
 import sys
 import tempfile
-import textwrap
 import types
 import unittest
 from unittest import mock
@@ -192,18 +190,50 @@ def one_pass_reads(text: str) -> int:
     return 4 * len(text)
 
 
-def inline_spans_with(*replacements: tuple[str, str]):
-    """Return inline_spans() compiled from its source with each old text replaced by its
-    new text, each old text found there once. It reads the globals of
-    check_requirement_references, so characters_read() counts what it reads."""
-    source = textwrap.dedent(inspect.getsource(check_requirement_references.inline_spans))
-    for old, new in replacements:
-        if source.count(old) != 1:
-            raise AssertionError(f"inline_spans() does not hold {old!r} once")
-        source = source.replace(old, new)
-    namespace: dict = {}
-    exec(source, vars(check_requirement_references), namespace)
-    return namespace["inline_spans"]
+def resuming_comment_scan(blank_line_from_each_comment: bool = False):
+    """Return a copy of inline_spans() that resumes its search for "<!--" one character
+    past the last one found, where inline_spans() resumes at the blank line, and that,
+    with blank_line_from_each_comment, searches for the blank line again from each
+    "<!--". It reads COMMENT_OPEN, COMMENT_CLOSE and PARAGRAPH_END from
+    check_requirement_references when it runs, so characters_read() counts what it reads."""
+
+    def inline_spans(text: str) -> list[tuple[int, int]]:
+        close = brk = -1
+
+        def comment(pos: int) -> tuple[int, int] | None:
+            nonlocal close, brk
+            while (start := text.find(check_requirement_references.COMMENT_OPEN, pos)) >= 0:
+                body = start + len(check_requirement_references.COMMENT_OPEN)
+                if close < body:
+                    close = text.find(check_requirement_references.COMMENT_CLOSE, body)
+                    close = len(text) if close < 0 else close
+                if close == len(text):
+                    return None
+                if blank_line_from_each_comment or brk < start:
+                    end = check_requirement_references.PARAGRAPH_END.search(text, start)
+                    brk = end.start() if end else len(text)
+                if close < brk:
+                    return start, close + len(check_requirement_references.COMMENT_CLOSE)
+                pos = start + 1
+            return None
+
+        spans = []
+        code_span = check_raw_html.code_spans(text)
+        code = code_span(0)
+        note = comment(0)
+        while code or note:
+            if note is None or (code is not None and code[0] < note[0]):
+                span = code
+            else:
+                span = note
+            spans.append(span)
+            if code is not None and code[0] < span[1]:
+                code = code_span(span[1])
+            if note is not None and note[0] < span[1]:
+                note = comment(span[1])
+        return spans
+
+    return inline_spans
 
 
 # A 64 KB paragraph of 16384 "<!--", none of them closed in it.
@@ -513,7 +543,7 @@ class CodeAndCommentTest(unittest.TestCase):
         # at the blank line, reads the paragraph once in each search but its "<!--" twice:
         # 245,845 characters for this 65,586-character body.
         body = UNCLOSED_COMMENTS + "\n\nA later -->."
-        scan = inline_spans_with(("pos = brk", "pos = start + 1"))
+        scan = resuming_comment_scan()
         with mock.patch.object(check_requirement_references, "inline_spans", scan):
             self.assertEqual(count(body), 1)
             self.assertLessEqual(characters_read(body), one_pass_reads(body))
@@ -522,7 +552,7 @@ class CodeAndCommentTest(unittest.TestCase):
         # Searching for the blank line again from each "<!--" reads the paragraph again
         # from each: more than half a billion characters for this 64 KB paragraph.
         body = UNCLOSED_COMMENTS + "\n\nA later -->."
-        scan = inline_spans_with(("pos = brk", "pos = start + 1"), ("if brk < start:", "if True:"))
+        scan = resuming_comment_scan(blank_line_from_each_comment=True)
         with mock.patch.object(check_requirement_references, "inline_spans", scan):
             self.assertEqual(count(body), 1)
             self.assertGreater(characters_read(body), one_pass_reads(body))
