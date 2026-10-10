@@ -51,6 +51,8 @@ import pathlib
 import re
 import sys
 
+import check_naming
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 DOCUMENTS = ("AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md", "schemas/README.md")
@@ -189,12 +191,9 @@ def check(root: pathlib.Path = ROOT) -> int:
             print(f"FAIL  {name}: required document not found")
             failures += 1
             continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError as error:
-            lineno = path.read_bytes().count(b"\n", 0, error.start) + 1
-            print(f"FAIL  {name}: line {lineno}: not valid UTF-8 ({error.reason} at byte "
-                  f"{error.start}); save the document as UTF-8")
+        text, error = check_naming.read_text(path)
+        if error:
+            print(f"FAIL  {name}: {error}")
             failures += 1
             continue
         found = matches(text)

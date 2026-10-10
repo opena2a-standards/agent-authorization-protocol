@@ -122,7 +122,11 @@ def check(root=ROOT) -> int:
     """Print one line per document and return the number of failures."""
     failures = 0
     for name in check_naming.documents(root):
-        text = (root / name).read_text(encoding="utf-8")
+        text, error = check_naming.read_text(root / name)
+        if error:
+            print(f"FAIL  {name}: {error}")
+            failures += 1
+            continue
         reasons = findings(text, xml=name.endswith(".xml"))
         for reason in reasons:
             print(f"FAIL  {name}: {reason}")

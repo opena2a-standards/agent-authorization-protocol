@@ -13,8 +13,10 @@ README.md is a list of link labels, not prose, and is not counted as a use.
 Neither is a line inside a fenced code block: a diagram label or sample output
 cannot carry the expansion, so the first use must be in prose.
 
-Exit code 0 = every document passes. Also run by validate_examples.py so the
-check runs in CI.
+Exit code 0 = every document passes. A document that is not valid UTF-8 fails
+with the line of the first byte that does not decode; read_text() reports it,
+and the other checks read their documents through it. Also run by
+validate_examples.py so the check runs in CI.
 """
 
 import pathlib
@@ -129,6 +131,21 @@ def documents(root: pathlib.Path = ROOT) -> list[str]:
     return sorted(name for name in set(names) if (root / name).is_file())
 
 
+def read_text(path: pathlib.Path) -> tuple[str | None, str | None]:
+    """Return the text of path and None, or None and a reason when path is not valid UTF-8.
+
+    The reason names the line of the first byte that does not decode. Every check
+    reads its documents through this function, so such a document is reported as
+    a FAIL line instead of a traceback.
+    """
+    try:
+        return path.read_text(encoding="utf-8"), None
+    except UnicodeDecodeError as error:
+        lineno = path.read_bytes().count(b"\n", 0, error.start) + 1
+        return None, (f"line {lineno}: not valid UTF-8 ({error.reason} at byte {error.start}); "
+                      "save the document as UTF-8")
+
+
 def check(root: pathlib.Path = ROOT) -> int:
     """Print one line per document and return the number of failures."""
     failures = 0
@@ -138,7 +155,11 @@ def check(root: pathlib.Path = ROOT) -> int:
             print(f"FAIL  {name}: required document not found")
             failures += 1
     for name in names:
-        text = (root / name).read_text(encoding="utf-8")
+        text, error = read_text(root / name)
+        if error:
+            print(f"FAIL  {name}: {error}")
+            failures += 1
+            continue
         error = first_use_error(text)
         if error:
             print(f"FAIL  {name}: {error}")

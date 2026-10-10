@@ -456,30 +456,38 @@ the broker has not issued when the revocation becomes visible to it, including t
 resolution that has already passed step 5.
 
 Before each downstream operation of step 8, the broker MUST repeat, for the grant being exercised,
-every check whose outcome can change after a resolution has passed it: from step 2, the validity
-window of the ATX and the cached CRL, under the freshness bound of Section 6.12; from step 5, the
-grant revocation list, with the cascade of Section 6.9; and the expiry of the grant itself (its
-`exp`, within the clock-skew bound of step 2). The signature(s) and suite verified at step 2 do not
-change and need not be repeated. These checks read local state and the clock, so repeating them
-adds no network dependency. If any repeated check fails (the agent's ATX is on the CRL, the cached
-CRL is older than the Section 6.12 bound for the grant's tier, the grant is revoked, or the ATX or
-the grant has expired), the broker MUST NOT issue the operation, MUST end the ephemeral worker,
-where one exists, and discard the downstream credential, and MUST return the opaque denial of
-Section 6.6, with the reason in the audit log. An approval returned by the escalation hook of
-Section 6.10, a place in a queue, and a deferred start do not carry authorization across a
-revocation or an expiry: the repeated checks apply when the operation resumes.
+the following checks, whose outcome can change after a resolution has passed them: from step 2, the
+validity window of the ATX and the cached CRL, under the freshness bound of Section 6.12; from step
+5, the grant revocation list, with the cascade of Section 6.9; and the expiry of the grant itself
+(its `exp`, within the clock-skew bound of step 2). A DA expires no later than its delegator's
+grant (AAP-SPEC §5.3), so the expiry of the grant itself covers every grant in its `act` chain.
+The list is closed: this section requires no other check to be repeated. The signature(s) and
+suite verified at step 2 do not change and need not be repeated. The proof of step 3 belongs to
+one presentation: the `created` and `nonce` parameters of the HTTP binding and the challenge of
+the A2A and MCP bindings (Section 6.8) are checked once, since a nonce or a challenge the broker
+has accepted is no longer unseen, and checking it again would fail every operation after the
+first. Policy (step 6) is not evaluated again: a policy change that makes an outstanding grant
+wrong reaches it through the grant revocation list (Section 6.9). The repeated checks read local
+state and the clock, so repeating them adds no network dependency. If any repeated check fails
+(the agent's ATX is on the CRL, the cached CRL is older than the Section 6.12 bound for the
+grant's tier, the grant is revoked, or the ATX or the grant has expired), the broker MUST NOT
+issue the operation, MUST end the ephemeral worker, where one exists, and discard the downstream
+credential, and MUST return the opaque denial of Section 6.6, with the reason in the audit log.
+An approval returned by the escalation hook of Section 6.10, a place in a queue, and a deferred
+start do not carry authorization across a revocation or an expiry: the repeated checks apply when
+the operation resumes.
 
 Because the expiry of the grant is among the repeated checks, a downstream credential is not used
-after the grant it was obtained under has expired, whatever lifetime the downstream issuer gave it.
-Where the downstream issuer supports token revocation (RFC 7009), a broker SHOULD revoke an
-outstanding downstream credential when the grant it was obtained under is revoked. An operator
-SHOULD configure the downstream issuer so that the credentials it issues to the broker live no
-longer than the TTL of the grant tier (AAP-SPEC §4.3).
+for an operation issued after the grant it was obtained under has expired, whatever lifetime the
+downstream issuer gave it. Where the downstream issuer supports token revocation (RFC 7009), a
+broker SHOULD revoke an outstanding downstream credential when the grant it was obtained under is
+revoked. An operator SHOULD configure the downstream issuer so that the credentials it issues to
+the broker live no longer than the TTL of the grant tier (AAP-SPEC §4.3).
 
-Outside the revocation guarantee of AAP: a downstream operation already issued when the revocation
-becomes visible to the broker, and the validity, at a downstream authorization server or resource
-server, of a credential the broker cannot revoke. The grant revocation list never leaves the
-operator (Section 6.9), so no downstream sees it.
+Outside the revocation and expiry guarantees of AAP: a downstream operation already issued when
+the revocation becomes visible to the broker or when the grant expires, and the validity, at a
+downstream authorization server or resource server, of a credential the broker cannot revoke. The
+grant revocation list never leaves the operator (Section 6.9), so no downstream sees it.
 
 ---
 
@@ -812,6 +820,8 @@ Until then, identifiers are managed in this specification.
 - **RFC 9421**, HTTP Message Signatures (the HTTP presentation proof, Section 6.8).
 - **ATP**, Agent Trust Protocol specification (OpenA2A; `ATP-SPEC.md`).
 - **ATX**, Agent Trust eXtension credential format (OpenA2A; see `atx-spec/core.md`).
+- **AIP**, Agent Identity Protocol (OpenA2A; `AIP-SPEC.md`), §7.2 policy actions, and the registered
+  agent key used as a verification key in Section 6.8.
 - **FIPS 204**, Module-Lattice-Based Digital Signature Standard (ML-DSA).
 - **RFC 9964**, ML-DSA for JOSE and COSE (the `ML-DSA-65` `alg` and `AKP` key type).
 - **RFC 8032**, Edwards-Curve Digital Signature Algorithm (EdDSA / Ed25519).
@@ -823,8 +833,6 @@ Until then, identifiers are managed in this specification.
 - **W3C DID Core 1.0** and the `did:opena2a` method.
 - **AI Agent Threat Matrix**, https://threats.opena2a.org (techniques T-3002, T-3003, T-3006, T-8002).
 - **OASB**, Open Agent Security Benchmark (levels L1–L3).
-- **AIP**, Agent Identity Protocol (OpenA2A; `AIP-SPEC.md`), §7.2 policy actions, and the registered
-  agent key used as a verification key in Section 6.8.
 - **DAAP**, OAuth Profile for Delegated AI Agent Authorization, draft-mishra-oauth-agent-grants-02
   (IETF Internet-Draft, 30 August 2026).
 
