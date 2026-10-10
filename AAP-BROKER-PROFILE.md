@@ -288,7 +288,8 @@ produces a typed, opaque denial (Section 6.6).
 2. **Verify the ATX locally**, reusing the ATP/ATX verification path: signature(s), suite, validity
    window (issuedAt/expiresAt within the family clock-skew bound of ATP Section 10.2), and the
    cached, federated CRL, under the freshness bound of Section 6.12 for the grant's tier.
-   Revoking an agent's ATX MUST remove its access within the existing CRL propagation window.
+   Revoking an agent's ATX MUST remove its access within the existing CRL propagation window;
+   Section 6.13 states what that covers once a resolution has passed this step.
    Agent revocation rides on the ATX and the federated CRL; grant revocation is the local list
    of step 5.
 3. **Bind the presentation** (Section 6.8): prove that the presenter is the agent the ATX names,
@@ -446,6 +447,33 @@ open for every decision. From 0.4 the broker MUST apply a
 
 The bounds are deployment settings; this profile fixes only the ordering (SUPER_PRIVILEGED at most
 as old as PRIVILEGED, at most as old as the default) and the fail closed behavior.
+
+### 6.13 Revocation after resolution
+
+The checks of steps 2 and 5 run before the downstream credential exists, and a revocation can
+become visible to the broker after they pass. A revocation applies to every downstream operation
+the broker has not issued when the revocation becomes visible to it, including the operations of a
+resolution that has already passed step 5.
+
+Before each downstream operation of step 8, the broker MUST repeat the checks of step 2 (the cached
+CRL, under the freshness bound of Section 6.12) and step 5 (the grant revocation list, with the
+cascade of Section 6.9) for the grant being exercised. Both checks read local state, so repeating
+them adds no network dependency. If the grant is revoked, the broker MUST NOT issue the operation,
+MUST end the ephemeral worker, where one exists, and discard the downstream credential, and MUST
+return the opaque denial of Section 6.6, with the reason in the audit log. An approval returned by
+the escalation hook of Section 6.10, a place in a queue, and a deferred start do not carry
+authorization across a revocation: the repeated checks apply when the operation resumes.
+
+A broker SHOULD NOT use a downstream credential after the grant it was obtained under has expired.
+Where the downstream issuer supports token revocation (RFC 7009), a broker SHOULD revoke an
+outstanding downstream credential when the grant it was obtained under is revoked. An operator
+SHOULD configure the downstream issuer so that the credentials it issues to the broker live no
+longer than the TTL of the grant tier (AAP-SPEC §4.3).
+
+Outside the revocation guarantee of AAP: a downstream operation already issued when the revocation
+becomes visible to the broker, and the validity, at a downstream authorization server or resource
+server, of a credential the broker cannot revoke. The grant revocation list never leaves the
+operator (Section 6.9), so no downstream sees it.
 
 ---
 
@@ -712,7 +740,7 @@ or policy by probing grant references. The audit log retains full diagnostic det
 
 | Level | Name | Requirements |
 |-------|------|--------------|
-| **1** | Context Hygiene | Grant-reference syntax; the context-hygiene invariant (Section 4); decision/enforcement split with default-deny (Section 3); ATX verification + CRL before resolution (Section 6); presentation binding (Section 6.8); the grant revocation list (Section 6.9); the data clearance rules where a data grant is in effect (Section 6.10); ephemeral-worker confinement; opaque denials; signed audit. At least one CPI mode implemented. |
+| **1** | Context Hygiene | Grant-reference syntax; the context-hygiene invariant (Section 4); decision/enforcement split with default-deny (Section 3); ATX verification + CRL before resolution (Section 6); presentation binding (Section 6.8); the grant revocation list (Section 6.9); revocation after resolution (Section 6.13); the data clearance rules where a data grant is in effect (Section 6.10); ephemeral-worker confinement; opaque denials; signed audit. At least one CPI mode implemented. |
 | **2** | Agile + Negotiated | Level 1 + version negotiation (8.1) + cryptographic agility under the AAP-SPEC §9.5 suite registry (8.2) + safe-ignore claim handling (8.3) + the published discovery document (8.5). |
 | **3** | Federated | Level 2 + full federation-aware policy evaluation (issuer chain, trust level, scan summary) + cross-broker verification of peer broker assertions + jurisdiction enforcement (Section 9). |
 
@@ -783,6 +811,7 @@ Until then, identifiers are managed in this specification.
 ### Informative
 
 - **RFC 6749 / RFC 6750**, OAuth 2.0 and Bearer Token Usage.
+- **RFC 7009**, OAuth 2.0 Token Revocation (Section 6.13).
 - **OpenID Connect Core 1.0.**
 - **W3C DID Core 1.0** and the `did:opena2a` method.
 - **AI Agent Threat Matrix**, https://threats.opena2a.org (techniques T-3002, T-3003, T-3006, T-8002).
