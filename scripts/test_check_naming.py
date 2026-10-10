@@ -171,6 +171,29 @@ class DiscoveryTest(unittest.TestCase):
         self.assertIn("ok    README.md: does not use the name AIM", out.getvalue())
         self.assertNotIn("expanded", out.getvalue())
 
+    def test_read_text_returns_the_text_of_a_utf8_document(self):
+        write(self.root, "a.md", "Café.\n")
+        self.assertEqual(check_naming.read_text(self.root / "a.md"), ("Café.\n", None))
+
+    def test_read_text_names_the_line_of_the_first_byte_that_does_not_decode(self):
+        (self.root / "a.md").write_bytes(b"One.\nTwo.\ncaf\xe9\n")
+        self.assertEqual(check_naming.read_text(self.root / "a.md"), (
+            None,
+            "line 3: not valid UTF-8 (invalid continuation byte at byte 13); "
+            "save the document as UTF-8"))
+
+    def test_document_that_is_not_utf8_fails_without_a_traceback(self):
+        write_required(self.root)
+        (self.root / "NOTES.md").write_bytes(b"# Notes\n\nCaf\xe9.\n")
+        with mock.patch.object(check_naming, "tracked_documents", return_value=None):
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(check_naming.check(self.root), 1)
+        self.assertIn("FAIL  NOTES.md: line 3: not valid UTF-8 (invalid continuation byte "
+                      "at byte 12); save the document as UTF-8", out.getvalue().splitlines())
+        # The documents after it are still checked.
+        self.assertIn("ok    README.md: does not use the name AIM", out.getvalue())
+
     def test_main_exit_code_follows_the_failure_count(self):
         for failures, code in ((0, 0), (1, 1), (3, 1)):
             with self.subTest(failures=failures):

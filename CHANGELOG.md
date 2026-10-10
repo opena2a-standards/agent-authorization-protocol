@@ -113,6 +113,23 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   6.3. `.gitignore` lists `secrets.json` with the other secret-file patterns, and
   `scripts/test_gitignore.py` checks the patterns with `git check-ignore`. Editorial: no
   requirement changes.
+- A Markdown document that is not valid UTF-8 fails each check that reads it with a `FAIL`
+  line naming the line of the first byte that does not decode, as
+  `scripts/check_status_claims.py` already did, and `scripts/validate_examples.py` no
+  longer stops with a `UnicodeDecodeError` traceback at the first such document.
+  `check_naming.py`, `check_raw_html.py`, `check_spelling.py`,
+  `check_section_citations.py`, `check_references.py`, `check_requirement_references.py`
+  and `check_status_claims.py` read their documents through one function,
+  `check_naming.read_text`, and the documents and checks that follow still run. A document
+  that a mapped example is read from stops `validate_examples.py` on one `error:` line
+  with the same reason.
+- The broker profile lists AIP among its normative references, as AAP-SPEC.md does, and no
+  longer among its informative ones. The MUST NOT of Section 6.8 (a broker that can obtain
+  neither verification key does not accept a network presentation) depends on the key
+  registered for the agent DID under AIP, and a reference that must be read to implement
+  a requirement is normative. `scripts/check_requirement_references.py` reads references
+  named by RFC number and does not see this one. No requirement changes: the counts of
+  MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both documents are unchanged.
 
 ### Added
 
@@ -121,21 +138,27 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   becomes visible to the broker after them does to an operation the broker has not issued,
   to an operation waiting on the escalation hook of Section 6.10 or in a queue, or to a
   downstream credential obtained before it. Before each downstream operation of step 8 the
-  broker MUST repeat every check whose outcome can change after a resolution has passed
-  it, all of which read local state and the clock: the validity window of the ATX and the
-  cached CRL under the freshness bound of Section 6.12 (step 2), the grant revocation list
-  (step 5), and the expiry of the grant itself. If any of them fails, whether the agent's
-  ATX is on the CRL, the cached CRL is older than the bound for the grant's tier, the
-  grant is revoked, or the ATX or the grant has expired, the broker MUST NOT issue the
-  operation, MUST end the ephemeral worker, where one exists, and discard the downstream
-  credential, and MUST return the opaque denial of Section 6.6. An approval, a place in a
-  queue and a deferred start carry no authorization across a revocation or an expiry.
-  Because the expiry of the grant is a repeated check, a downstream credential is not used
-  after its grant has expired, whatever lifetime its issuer gave it. A broker SHOULD revoke
-  a downstream credential at an issuer that supports RFC 7009 when the grant is revoked,
-  and an operator SHOULD keep the lifetime of a downstream credential within the TTL of
-  the grant tier. An operation already issued, and the validity at a downstream of a
-  credential the broker cannot revoke, are stated as outside the revocation guarantee.
+  broker MUST repeat the following checks, whose outcome can change after a resolution has
+  passed them and all of which read local state and the clock: the validity window of the
+  ATX and the cached CRL under the freshness bound of Section 6.12 (step 2), the grant
+  revocation list (step 5), and the expiry of the grant itself. The list is closed. The
+  `created` and `nonce` checks of the HTTP binding and the challenge check of the A2A and
+  MCP bindings (step 3) belong to one presentation and are checked once, since repeating
+  them would fail every operation after the first, and policy (step 6) is not evaluated
+  again: a policy change reaches an outstanding grant through the grant revocation list.
+  If any of the repeated checks fails, whether the agent's ATX is on the CRL, the cached
+  CRL is older than the bound for the grant's tier, the grant is revoked, or the ATX or
+  the grant has expired, the broker MUST NOT issue the operation, MUST end the ephemeral
+  worker, where one exists, and discard the downstream credential, and MUST return the
+  opaque denial of Section 6.6. An approval, a place in a queue and a deferred start carry
+  no authorization across a revocation or an expiry. Because the expiry of the grant is a
+  repeated check, a downstream credential is not used for an operation issued after its
+  grant has expired, whatever lifetime its issuer gave it. A broker SHOULD revoke a
+  downstream credential at an issuer that supports RFC 7009 when the grant is revoked, and
+  an operator SHOULD keep the lifetime of a downstream credential within the TTL of the
+  grant tier. An operation already issued when the revocation becomes visible to the
+  broker or when the grant expires, and the validity at a downstream of a credential the
+  broker cannot revoke, are stated as outside the revocation and expiry guarantees.
   Section 6 step 2 points to Section 6.13 from its ATX revocation sentence, the Level 1
   row of Section 13 lists it, the implementation status note of Section 14 lists it
   outside the surface that section describes, and the broker profile lists RFC 7009 among
@@ -143,6 +166,17 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   reading it. AAP-SPEC Section 7.3 states the same in two sentences that carry no
   requirement keyword. The broker profile gains three MUST, one MUST NOT and two SHOULD;
   the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in AAP-SPEC.md are unchanged.
+- AAP-SPEC Section 5.3 bounds the lifetime of a delegation by the delegator's grant: a DA's
+  `exp` MUST NOT be later than its delegator's `exp`. The minting broker enforces the bound
+  at mint time and a verifier that can resolve the delegator's grant MUST re-check it, as
+  for `scope`, `trust_class` and `authorization_details`; in a chain the bound holds link
+  by link. Section 5 bounded what a DA carries and not how long it lives, so a DA minted
+  with an `exp` later than that of its delegator's CGT kept passing the expiry check that
+  broker profile Section 6.13 repeats, which reads the `exp` of the grant being exercised,
+  after the CGT had expired. With the bound that check covers every grant in the `act`
+  chain, and Section 6.13 says so. Each generated DA fixture carries the `exp` of its CGT,
+  so no fixture changes. AAP-SPEC.md gains one MUST NOT and one MUST; the counts of MUST,
+  MUST NOT, SHOULD, SHOULD NOT and MAY in the broker profile are unchanged.
 - `scripts/check_requirement_references.py` fails on an RFC that a Markdown document lists
   only under its informative references and cites in a sentence with a requirement
   keyword (MUST, SHOULD, MAY and the others of RFC 2119, in capitals), since a reference
@@ -153,6 +187,27 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   capital letter, at a blank line, and before a heading, a list item or a table row. Each
   finding names the line and the keywords. It runs in CI through
   `scripts/validate_examples.py`.
+- `scripts/check_requirement_references.py` reads citations and Markdown structure more
+  closely. A citation is "RFC" or "RFCs" and a number, with each further number joined to
+  it by a comma, a slash, "and" or "or" ("RFCs 6749 and 6750", "RFC 6749 and 6750"), in a
+  sentence and in the label of a reference entry, and the full stop of "e.g.", "i.e.",
+  "cf.", "vs." or "viz." does not end a sentence, so "SHOULD revoke it at the issuer, e.g.
+  RFC 7009 revocation" fails. It does not read as prose a code span, an HTML comment, an
+  indented code block (a line indented four or more spaces past the margin, or past the
+  text of the list item that holds it, that does not continue a paragraph), or a fenced
+  code block, whose fence closes only on a fence of the same character and at least the
+  same length. A longer fence can therefore hold a shorter one, and an odd number of fence
+  lines before the References section no longer hides that section, which made the check
+  pass the whole document unread. A heading is a unit by itself and is not joined to the
+  line after it, and a thematic break or a setext underline ends a unit. An RFC named only
+  for contrast passes: a citation inside a phrase that begins with "unlike", "in contrast
+  to", "in contrast with", "as opposed to", "rather than" or "instead of" and ends at the
+  next comma, semicolon, colon or requirement keyword ("Unlike an RFC 6750 bearer token, a
+  CGT MUST be bound to a key."), unless a relative clause follows the phrase; each failure
+  line names that wording. The unit tests pin each of these, and six properties that no
+  test covered: a sentence that ends at "?" or "!", an opening quote or bracket before the
+  capital, the splits before a heading, a numbered list item and a table row, and a fence
+  inside the References section.
 - Section 11 lists the conformance suite, [AAP-CONFORMANCE], as an informative reference,
   as the -02 Internet-Draft does; the specification cites its reference verifiers and
   `conformance.json`. Editorial: no requirement changes.

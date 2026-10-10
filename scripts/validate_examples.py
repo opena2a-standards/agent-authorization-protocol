@@ -62,7 +62,10 @@ SCRIPTS = ROOT / "scripts"
 
 
 def extract_block(md_path: pathlib.Path, heading: str) -> str:
-    lines = md_path.read_text(encoding="utf-8").splitlines()
+    text, error = check_naming.read_text(md_path)
+    if error:
+        raise SystemExit(f"error: {md_path}: {error}")
+    lines = text.splitlines()
     try:
         start = next(i for i, line in enumerate(lines) if line.strip() == heading)
     except StopIteration:

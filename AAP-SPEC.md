@@ -433,6 +433,12 @@ delegator's. The minting broker enforces subsetting at mint time; a verifier tha
 resolve the delegator's grant MUST re-check it. The same holds for
 `authorization_details` under the attenuation relation of §5.4.
 
+A DA's `exp` MUST NOT be later than its delegator's `exp`, so a delegation does not
+outlive the grant it was delegated from. The minting broker enforces the bound at mint
+time; a verifier that can resolve the delegator's grant MUST re-check it. In a chain
+(nested `act`) the bound holds link by link, so a DA expires no later than any grant in
+its chain.
+
 Example (generated; `orders-reader` delegates read access to `reporting-bot`):
 
 ```text
@@ -688,9 +694,9 @@ opaque denial of broker profile §6.6. A broker repeats this check, the ATX revo
 validity window checks, and the grant's expiry before each downstream operation of a
 resolution that has already passed them, and neither an approval nor a queued or deferred
 start carries authorization across a revocation or an expiry (broker profile §6.13). A
-downstream operation already issued when the revocation becomes visible to the broker, and
-the validity at a downstream of a credential the broker cannot revoke, are outside this
-guarantee. The list is local: it never leaves
+downstream operation already issued when the revocation becomes visible to the broker or
+when the grant expires, and the validity at a downstream of a credential the broker cannot
+revoke, are outside this guarantee. The list is local: it never leaves
 the operator, is
 never fetched from a hosted service, and needs no federation transport. That is what keeps
 it inside Zero Failures (broker profile §11). An entry MAY carry an expiry no earlier than

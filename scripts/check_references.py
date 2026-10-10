@@ -34,6 +34,8 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 
+import check_naming
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 SPEC = "AAP-SPEC.md"
@@ -136,11 +138,15 @@ def submitted_renders(changelog: str) -> set[str]:
 
 
 def render_submitted(root: pathlib.Path, render_name: str) -> bool:
-    """Return whether a released section of the changelog in root records the render as submitted."""
+    """Return whether a released section of the changelog in root records the render as submitted.
+
+    A changelog that is not valid UTF-8 records nothing: the render is then the next render.
+    """
     changelog = root / CHANGELOG
     if not changelog.is_file():
         return False
-    return pathlib.Path(render_name).stem in submitted_renders(changelog.read_text(encoding="utf-8"))
+    text, error = check_naming.read_text(changelog)
+    return error is None and pathlib.Path(render_name).stem in submitted_renders(text)
 
 
 def render_status(render_name: str, submitted: bool) -> str:
@@ -251,7 +257,13 @@ def check(root: pathlib.Path = ROOT) -> int:
     if render_name is None:
         print("FAIL  reference classes: no draft-fane-opena2a-aap-NN.xml found")
         return 1
-    md_entries = markdown_references((root / SPEC).read_text(encoding="utf-8"))
+    texts = {}
+    for name in (SPEC, *([CHANGELOG] if (root / CHANGELOG).is_file() else [])):
+        texts[name], error = check_naming.read_text(root / name)
+        if error:
+            print(f"FAIL  reference classes: {name}: {error}")
+            return 1
+    md_entries = markdown_references(texts[SPEC])
     if not md_entries:
         print(f"FAIL  reference classes: no References section entries found in {SPEC}")
         return 1
@@ -259,8 +271,7 @@ def check(root: pathlib.Path = ROOT) -> int:
     if not render_entries:
         print(f"FAIL  reference classes: no references found in {render_name}")
         return 1
-    changelog = root / CHANGELOG
-    recorded = recorded_classes(changelog.read_text(encoding="utf-8")) if changelog.is_file() else {}
+    recorded = recorded_classes(texts[CHANGELOG]) if CHANGELOG in texts else {}
     failures, summary = compare(
         md_entries, render_entries, recorded, render_name, render_submitted(root, render_name)
     )

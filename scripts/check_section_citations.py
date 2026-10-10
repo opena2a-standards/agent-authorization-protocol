@@ -287,13 +287,20 @@ def check(root: pathlib.Path = ROOT) -> int:
             if not path.is_file():
                 print(f"FAIL  section citations: {doc.text} not found")
                 return 1
-            headings[doc.text] = section_numbers(path.read_text(encoding="utf-8"))
+            text, error = check_naming.read_text(path)
+            if error:
+                print(f"FAIL  section citations: {doc.text}: {error}")
+                return 1
+            headings[doc.text] = section_numbers(text)
 
     parts = []
     for name in check_naming.documents(root):
         if not name.endswith(".md") or NOT_CHECKED.fullmatch(name):
             continue
-        text = (root / name).read_text(encoding="utf-8")
+        text, error = check_naming.read_text(root / name)
+        if error:
+            failures.append(f"{name}: {error}")
+            continue
         cites = citations(name, text)
         failures += unresolved(cites, headings)
         failures += unnamed_texts(cites, reference_entries(text))
