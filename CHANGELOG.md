@@ -121,20 +121,38 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   becomes visible to the broker after them does to an operation the broker has not issued,
   to an operation waiting on the escalation hook of Section 6.10 or in a queue, or to a
   downstream credential obtained before it. Before each downstream operation of step 8 the
-  broker MUST repeat both checks, which read local state; if the grant is revoked it MUST
-  NOT issue the operation, MUST end the ephemeral worker and discard the downstream
+  broker MUST repeat every check whose outcome can change after a resolution has passed
+  it, all of which read local state and the clock: the validity window of the ATX and the
+  cached CRL under the freshness bound of Section 6.12 (step 2), the grant revocation list
+  (step 5), and the expiry of the grant itself. If any of them fails, whether the agent's
+  ATX is on the CRL, the cached CRL is older than the bound for the grant's tier, the
+  grant is revoked, or the ATX or the grant has expired, the broker MUST NOT issue the
+  operation, MUST end the ephemeral worker, where one exists, and discard the downstream
   credential, and MUST return the opaque denial of Section 6.6. An approval, a place in a
-  queue and a deferred start carry no authorization across a revocation. A broker SHOULD
-  NOT use a downstream credential after its grant has expired and SHOULD revoke it at an
-  issuer that supports RFC 7009 when the grant is revoked, and an operator SHOULD keep the
-  lifetime of a downstream credential within the TTL of the grant tier. An operation
-  already issued, and the validity at a downstream of a credential the broker cannot
-  revoke, are stated as outside the revocation guarantee. Section 6 step 2 points to
-  Section 6.13 from its ATX revocation sentence, the Level 1 row of Section 13 lists it,
-  and the broker profile lists RFC 7009 among its informative references. AAP-SPEC Section
-  7.3 states the same in two sentences that carry no requirement keyword. The broker
-  profile gains three MUST, one MUST NOT, two SHOULD and one SHOULD NOT; the counts of
-  MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in AAP-SPEC.md are unchanged.
+  queue and a deferred start carry no authorization across a revocation or an expiry.
+  Because the expiry of the grant is a repeated check, a downstream credential is not used
+  after its grant has expired, whatever lifetime its issuer gave it. A broker SHOULD revoke
+  a downstream credential at an issuer that supports RFC 7009 when the grant is revoked,
+  and an operator SHOULD keep the lifetime of a downstream credential within the TTL of
+  the grant tier. An operation already issued, and the validity at a downstream of a
+  credential the broker cannot revoke, are stated as outside the revocation guarantee.
+  Section 6 step 2 points to Section 6.13 from its ATX revocation sentence, the Level 1
+  row of Section 13 lists it, the implementation status note of Section 14 lists it
+  outside the surface that section describes, and the broker profile lists RFC 7009 among
+  its normative references, since its SHOULD in Section 6.13 cannot be implemented without
+  reading it. AAP-SPEC Section 7.3 states the same in two sentences that carry no
+  requirement keyword. The broker profile gains three MUST, one MUST NOT and two SHOULD;
+  the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in AAP-SPEC.md are unchanged.
+- `scripts/check_requirement_references.py` fails on an RFC that a Markdown document lists
+  only under its informative references and cites in a sentence with a requirement
+  keyword (MUST, SHOULD, MAY and the others of RFC 2119, in capitals), since a reference
+  that must be read to implement a requirement is a normative reference. It reads every
+  Markdown document with a References section sorted into Normative and Informative
+  lists, takes the RFC numbers in the label of each entry, and does not read the
+  References section itself or fenced code blocks; a sentence ends at a full stop before a
+  capital letter, at a blank line, and before a heading, a list item or a table row. Each
+  finding names the line and the keywords. It runs in CI through
+  `scripts/validate_examples.py`.
 - Section 11 lists the conformance suite, [AAP-CONFORMANCE], as an informative reference,
   as the -02 Internet-Draft does; the specification cites its reference verifiers and
   `conformance.json`. Editorial: no requirement changes.

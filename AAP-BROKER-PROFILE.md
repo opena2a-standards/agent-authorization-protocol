@@ -455,16 +455,22 @@ become visible to the broker after they pass. A revocation applies to every down
 the broker has not issued when the revocation becomes visible to it, including the operations of a
 resolution that has already passed step 5.
 
-Before each downstream operation of step 8, the broker MUST repeat the checks of step 2 (the cached
-CRL, under the freshness bound of Section 6.12) and step 5 (the grant revocation list, with the
-cascade of Section 6.9) for the grant being exercised. Both checks read local state, so repeating
-them adds no network dependency. If the grant is revoked, the broker MUST NOT issue the operation,
-MUST end the ephemeral worker, where one exists, and discard the downstream credential, and MUST
-return the opaque denial of Section 6.6, with the reason in the audit log. An approval returned by
-the escalation hook of Section 6.10, a place in a queue, and a deferred start do not carry
-authorization across a revocation: the repeated checks apply when the operation resumes.
+Before each downstream operation of step 8, the broker MUST repeat, for the grant being exercised,
+every check whose outcome can change after a resolution has passed it: from step 2, the validity
+window of the ATX and the cached CRL, under the freshness bound of Section 6.12; from step 5, the
+grant revocation list, with the cascade of Section 6.9; and the expiry of the grant itself (its
+`exp`, within the clock-skew bound of step 2). The signature(s) and suite verified at step 2 do not
+change and need not be repeated. These checks read local state and the clock, so repeating them
+adds no network dependency. If any repeated check fails (the agent's ATX is on the CRL, the cached
+CRL is older than the Section 6.12 bound for the grant's tier, the grant is revoked, or the ATX or
+the grant has expired), the broker MUST NOT issue the operation, MUST end the ephemeral worker,
+where one exists, and discard the downstream credential, and MUST return the opaque denial of
+Section 6.6, with the reason in the audit log. An approval returned by the escalation hook of
+Section 6.10, a place in a queue, and a deferred start do not carry authorization across a
+revocation or an expiry: the repeated checks apply when the operation resumes.
 
-A broker SHOULD NOT use a downstream credential after the grant it was obtained under has expired.
+Because the expiry of the grant is among the repeated checks, a downstream credential is not used
+after the grant it was obtained under has expired, whatever lifetime the downstream issuer gave it.
 Where the downstream issuer supports token revocation (RFC 7009), a broker SHOULD revoke an
 outstanding downstream credential when the grant it was obtained under is revoked. An operator
 SHOULD configure the downstream issuer so that the credentials it issues to the broker live no
@@ -770,10 +776,11 @@ implementation's repository. The library provides:
 **Implementation status.** The list above is the whole of the surface this section describes. Outside
 that list are: the presentation binding step of Section 6.8 (a `cnf` member in the minted claim
 set); the grant revocation list of Section 6.9; the data clearance rules of Section 6.10 (reading a
-data sensitivity label, and projecting or masking a result by label); `authorization_details` and
-`aap_crit` in the minted claim set; and the policy compile step of Section 7.3. Whether a given
-release of the reference implementation provides any of them is recorded in its own repository,
-where each is checkable in the `src/broker` and `src/grant` directories and in the changelog.
+data sensitivity label, and projecting or masking a result by label); the revocation after
+resolution rules of Section 6.13; `authorization_details` and `aap_crit` in the minted claim set;
+and the policy compile step of Section 7.3. Whether a given release of the reference implementation
+provides any of them is recorded in its own repository, where each is checkable in the `src/broker`
+and `src/grant` directories and in the changelog.
 
 The developer surface is the existing AIM `@agent.perform_action` decorator: an agent references a
 grant, the SDK talks to the broker daemon, the broker does the rest.
@@ -799,6 +806,7 @@ Until then, identifiers are managed in this specification.
 - **RFC 2119 / RFC 8174**, Key words for requirement levels.
 - **RFC 3986**, Uniform Resource Identifier (URI): Generic Syntax.
 - **RFC 8693**, OAuth 2.0 Token Exchange.
+- **RFC 7009**, OAuth 2.0 Token Revocation (the downstream credential revocation of Section 6.13).
 - **RFC 9396**, OAuth 2.0 Rich Authorization Requests (the `authorization_details` claim).
 - **RFC 7800**, Proof-of-Possession Key Semantics for JSON Web Tokens (the `cnf` claim).
 - **RFC 9421**, HTTP Message Signatures (the HTTP presentation proof, Section 6.8).
@@ -811,7 +819,6 @@ Until then, identifiers are managed in this specification.
 ### Informative
 
 - **RFC 6749 / RFC 6750**, OAuth 2.0 and Bearer Token Usage.
-- **RFC 7009**, OAuth 2.0 Token Revocation (Section 6.13).
 - **OpenID Connect Core 1.0.**
 - **W3C DID Core 1.0** and the `did:opena2a` method.
 - **AI Agent Threat Matrix**, https://threats.opena2a.org (techniques T-3002, T-3003, T-3006, T-8002).

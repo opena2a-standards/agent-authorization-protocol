@@ -684,12 +684,13 @@ revoked even when its own `jti` is not.
 
 The list MUST be checked at **every** resolution (broker profile §6, step 5), after the
 ATX and CRL checks and before policy evaluation, and a listed token MUST produce the
-opaque denial of broker profile §6.6. A broker repeats this check and the ATX revocation
-check before each downstream operation of a resolution that has already passed them, and
-neither an approval nor a queued or deferred start carries authorization across a
-revocation (broker profile §6.13). A downstream operation already issued when the
-revocation becomes visible to the broker, and the validity at a downstream of a credential
-the broker cannot revoke, are outside this guarantee. The list is local: it never leaves
+opaque denial of broker profile §6.6. A broker repeats this check, the ATX revocation and
+validity window checks, and the grant's expiry before each downstream operation of a
+resolution that has already passed them, and neither an approval nor a queued or deferred
+start carries authorization across a revocation or an expiry (broker profile §6.13). A
+downstream operation already issued when the revocation becomes visible to the broker, and
+the validity at a downstream of a credential the broker cannot revoke, are outside this
+guarantee. The list is local: it never leaves
 the operator, is
 never fetched from a hosted service, and needs no federation transport. That is what keeps
 it inside Zero Failures (broker profile §11). An entry MAY carry an expiry no earlier than

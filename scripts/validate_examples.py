@@ -15,7 +15,9 @@ this revision" or "this writing", an unscoped "no implementation", "no
 reference implementation" or "none of the implementations", and a status stated
 with "yet", such as "not yet" or "no reference implementation yet"),
 check_references.py (AAP-SPEC.md and its newest Internet-Draft render agree
-on reference classes), check_section_citations.py (each citation it reads, a
+on reference classes), check_requirement_references.py (no sentence with a
+requirement keyword cites an RFC its document lists only as informative),
+check_section_citations.py (each citation it reads, a
 family document named next to a section number, resolves and says which text it
 means), check_raw_html.py (no HTML tag, such as an angle-bracket placeholder,
 in Markdown prose) and check_spelling.py (American spelling of the -our and -ise
@@ -29,7 +31,8 @@ pattern, required) carry the contract.
 Exit code 0 = all schemas well-formed, all mapped examples valid, every
 document expands the name AIM at first use, the specification, README.md and
 schemas/README.md use none of the wordings check_status_claims.py rejects, the specification
-and its newest render agree on reference classes, every citation
+and its newest render agree on reference classes, no requirement cites an
+informative-only RFC, every citation
 check_section_citations.py reads resolves, no Markdown prose carries an HTML
 tag, every document uses the American spelling check_spelling.py reads, and
 every unit test passes.
@@ -44,6 +47,7 @@ import check_naming
 import check_raw_html
 import check_status_claims
 import check_references
+import check_requirement_references
 import check_section_citations
 import check_spelling
 
@@ -142,6 +146,7 @@ def main() -> int:
     failures += check_naming.check()
     failures += check_status_claims.check()
     failures += check_references.check()
+    failures += check_requirement_references.check()
     failures += check_section_citations.check()
     failures += check_raw_html.check()
     failures += check_spelling.check()
@@ -153,6 +158,7 @@ def main() -> int:
     print(
         "\nall schemas and mapped examples valid; first use of AIM expanded; "
         "no rejected implementation-status wording; reference classes agree; "
+        "no requirement cites an informative-only RFC; "
         "section citations resolve; no HTML tag in Markdown prose; American spelling; "
         "unit tests pass"
     )
