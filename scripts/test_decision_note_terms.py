@@ -84,28 +84,41 @@ GATE_REWRITE = (
 # What marks a changelog entry as one the tests read: the path of this file
 # with a backtick directly before it and directly after it.
 PATH_IN_BACKTICKS = "`scripts/test_decision_note_terms.py`"
-# A noun or a phrase of CREDITED_APPROVAL. A sentence of a changelog entry that
-# names one is read as a sentence on the approval check.
-APPROVAL_TERM = re.compile(
-    r"\b(?i:go-aheads?|approvals?|sign-offs?|gates?"
+# A noun or a phrase CREDITED_RECOMMENDATION and CREDITED_APPROVAL find in any
+# letter case: the five nouns, singular or plural, and the three phrases.
+ANY_CASE_TERM = re.compile(
+    r"\b(?i:recommendations?|go-aheads?|approvals?|sign-offs?|gates?"
     r"|requested from|requested of|approved by)\b"
 )
+# What a changelog sentence on QUALIFIED_THREAT_MODEL names. That check is
+# case-sensitive: its abbreviation is two or more capital letters.
+THREAT_MODEL = re.compile(r"(?i)\bthreat model\b")
 CASE_SENSITIVE = re.compile(r"(?i)\b(?:is|are) case[- ]sensitive\b")
-# What a failure on such a sentence adds: where a true statement on another
-# check goes.
+# What a failure on a sentence that says case-sensitive adds: where the one
+# statement the tests pass goes.
 CASE_SENSITIVE_REWRITE = (
-    "the approval check finds its nouns and phrases in any letter case; a"
-    " statement that another check is case-sensitive goes in a sentence that"
-    " names none of them"
+    "the checks find their five nouns and three phrases in any letter case; a"
+    " statement that the check on an abbreviation before threat model is"
+    " case-sensitive goes in a sentence that names threat model and none of them"
 )
 # The statement of the rule on a possessive before gate. The pattern reads A to
 # Z, so the statement goes on "A to Z", with or without a comma before it.
 CAPITAL_LETTER = "starts with a capital letter"
 CAPITAL_LETTER_NOT_A_TO_Z = re.compile(rf"{CAPITAL_LETTER}(?!,? A to Z\b)")
-# What a changelog sentence on the entries the tests read says, and how it
+# A changelog sentence that has both says a common noun with a capital letter
+# is found before gate. An entry is read on its own, so such a sentence names
+# the letters the pattern reads as well.
+COMMON_NOUN_WITH_A_CAPITAL = ("common noun", "capital letter")
+A_TO_Z = re.compile(r"\bA to Z\b")
+# What a changelog sentence on the entries the tests read names, and how it
 # names PATH_IN_BACKTICKS.
-EACH_ENTRY_READ = "read each entry under [Unreleased]"
+UNRELEASED = "[Unreleased]"
 BETWEEN_BACKTICKS = "directly between two backticks"
+# What the failure says when no sentence of the entries read names UNRELEASED.
+NO_SENTENCE_ON_THE_ENTRIES_READ = (
+    f"no sentence of an entry read names {UNRELEASED}; the sentence that says"
+    f' which entries the tests read names it and has "{BETWEEN_BACKTICKS}"'
+)
 
 
 def notes():
@@ -398,11 +411,18 @@ def sentences(entry):
 
 
 def case_sensitive_claims(entry):
-    """The sentences of `entry` that name an APPROVAL_TERM and match CASE_SENSITIVE."""
+    """The sentences of `entry` that match CASE_SENSITIVE, but for one on threat model.
+
+    A sentence on threat model names THREAT_MODEL and no ANY_CASE_TERM. A
+    sentence that names neither is returned as one that names an ANY_CASE_TERM
+    is: it can speak of the check the sentence before it names ("Its match is
+    case-sensitive").
+    """
     return [
         sentence
         for sentence in sentences(entry)
-        if APPROVAL_TERM.search(sentence) and CASE_SENSITIVE.search(sentence)
+        if CASE_SENSITIVE.search(sentence)
+        and (ANY_CASE_TERM.search(sentence) or not THREAT_MODEL.search(sentence))
     ]
 
 
@@ -410,6 +430,22 @@ def capital_letter_claims(entry):
     """The sentences of `entry` that state CAPITAL_LETTER and do not go on "A to Z"."""
     return [
         sentence for sentence in sentences(entry) if CAPITAL_LETTER_NOT_A_TO_Z.search(sentence)
+    ]
+
+
+def common_noun_statements(entry):
+    """The sentences of `entry` that have each of COMMON_NOUN_WITH_A_CAPITAL."""
+    return [
+        sentence
+        for sentence in sentences(entry)
+        if all(words in sentence for words in COMMON_NOUN_WITH_A_CAPITAL)
+    ]
+
+
+def common_noun_claims(entry):
+    """The common_noun_statements() of `entry` that do not have A_TO_Z."""
+    return [
+        sentence for sentence in common_noun_statements(entry) if not A_TO_Z.search(sentence)
     ]
 
 
@@ -450,14 +486,103 @@ class ChangelogEntriesTest(unittest.TestCase):
             with self.subTest(not_read=entry):
                 self.assertEqual(entries_read(changelog_with(entry)), [])
 
-    def test_a_sentence_on_each_entry_read_names_the_backticks(self):
-        for entry in changelog_entries():
-            for sentence in sentences(entry):
-                if EACH_ENTRY_READ in sentence:
-                    with self.subTest(sentence=sentence):
-                        self.assertIn(BETWEEN_BACKTICKS, sentence)
+    def assert_the_entries_read_are_stated_with_the_backticks(self, entries):
+        """Fail on a sentence of `entries` that names UNRELEASED and not the backticks.
 
-    def test_no_sentence_on_the_approval_check_in_an_entry_read_says_case_sensitive(self):
+        Fail as well when no sentence of `entries` names UNRELEASED.
+        """
+        stated = [
+            sentence for entry in entries for sentence in sentences(entry) if UNRELEASED in sentence
+        ]
+        self.assertNotEqual(stated, [], NO_SENTENCE_ON_THE_ENTRIES_READ)
+        self.assertEqual(
+            [sentence for sentence in stated if BETWEEN_BACKTICKS not in sentence],
+            [],
+            f'write "{BETWEEN_BACKTICKS}"',
+        )
+
+    def test_a_sentence_on_each_entry_read_names_the_backticks(self):
+        self.assert_the_entries_read_are_stated_with_the_backticks(changelog_entries())
+
+    def test_a_reworded_or_missing_sentence_on_the_entries_read_fails(self):
+        stated = (
+            f"- Tests of {PATH_IN_BACKTICKS} read each entry under {UNRELEASED} that has the"
+            f" path {BETWEEN_BACKTICKS}."
+        )
+        self.assert_the_entries_read_are_stated_with_the_backticks([stated])
+        # A sentence that names the section in other words names the backticks too.
+        for reworded in (
+            f"- Tests of {PATH_IN_BACKTICKS} read every entry under {UNRELEASED} that"
+            " contains the code span.",
+            f"- Tests of {PATH_IN_BACKTICKS} read the entries of {UNRELEASED} that name it.",
+        ):
+            with self.subTest(fails=reworded):
+                with self.assertRaises(AssertionError) as raised:
+                    self.assert_the_entries_read_are_stated_with_the_backticks([stated, reworded])
+                self.assertIn(f'write "{BETWEEN_BACKTICKS}"', str(raised.exception))
+        # No sentence names the section: the test fails, where it passed.
+        for entries in ([], [f"- {PATH_IN_BACKTICKS} finds one more form. No note changes."]):
+            with self.subTest(fails=entries):
+                with self.assertRaises(AssertionError) as raised:
+                    self.assert_the_entries_read_are_stated_with_the_backticks(entries)
+                self.assertIn(NO_SENTENCE_ON_THE_ENTRIES_READ, str(raised.exception))
+
+    def test_a_sentence_ends_where_the_split_is_described(self):
+        first = f"- {PATH_IN_BACKTICKS} finds go-ahead in any letter case."
+        # A period and then whitespace end a sentence before a capital letter A to
+        # Z, a backtick, a straight double quotation mark and an opening
+        # parenthesis.
+        for second in (
+            "The patterns are unchanged.",
+            "`XY threat model` is found.",
+            '"XY threat model" is found.',
+            "(The patterns are unchanged.)",
+        ):
+            with self.subTest(split_before=second[0]):
+                self.assertEqual(sentences(f"{first} {second}"), [first, second])
+                self.assertEqual(sentences(f"{first}\n  {second}"), [first, second])
+        # They end none before a lower-case letter, a digit, a capital letter
+        # outside A to Z, a curly or a single quotation mark or an opening
+        # bracket.
+        for second in (
+            "the patterns are unchanged.",
+            "24 tests pass.",
+            "Émile's gate is not found.",
+            "“XY threat model” is found.",
+            "'XY threat model' is found.",
+            "[XY] threat model is not found.",
+        ):
+            with self.subTest(no_split_before=second[0]):
+                self.assertEqual(sentences(f"{first} {second}"), [f"{first} {second}"])
+        # Nor is a sentence ended by a period with no whitespace after it, or by
+        # whitespace with another character than a period before it.
+        for entry in (
+            "- The suffix of scripts/x.Py is not read.",
+            "- Is go-ahead found? The patterns are unchanged.",
+            "- The check finds go-ahead; The patterns are unchanged.",
+            '- The check finds "go-ahead." The patterns are unchanged.',
+            "- The check finds go-ahead (in any letter case.) The patterns are unchanged.",
+        ):
+            with self.subTest(one_sentence=entry):
+                self.assertEqual(sentences(entry), [entry])
+        # The tests read the sentences apart: a statement on threat model after a
+        # sentence that names go-ahead passes with each of the four at its start,
+        # and fails where the two are one sentence.
+        for second in (
+            "The check on an abbreviation before threat model is case-sensitive.",
+            "`XY threat model` is found and `xy threat model` is not: the check is"
+            " case-sensitive.",
+            '"XY threat model" is found and "xy threat model" is not: the check is'
+            " case-sensitive.",
+            "(The check on an abbreviation before threat model is case-sensitive.)",
+        ):
+            with self.subTest(read_apart=second):
+                self.assertEqual(case_sensitive_claims(f"{first} {second}"), [])
+        unsplit = f"{first} the check on an abbreviation before threat model is case-sensitive."
+        self.assertEqual(case_sensitive_claims(unsplit), [unsplit])
+
+    def test_a_sentence_of_an_entry_read_says_case_sensitive_only_on_threat_model(self):
+        self.assertIsNotNone(CREDITED_RECOMMENDATION.search("on the group's RECOMMENDATION"))
         for phrase in ("with Xyz's Go-Ahead", "REQUESTED FROM Xyz", "with Xyz's GATE"):
             with self.subTest(phrase=phrase):
                 self.assertIsNotNone(CREDITED_APPROVAL.search(phrase))
@@ -465,9 +590,10 @@ class ChangelogEntriesTest(unittest.TestCase):
             with self.subTest(entry=entry[:80]):
                 self.assertEqual(case_sensitive_claims(entry), [], CASE_SENSITIVE_REWRITE)
 
-    def test_a_sentence_that_names_no_approval_term_may_say_case_sensitive(self):
+    def test_a_sentence_says_case_sensitive_only_with_threat_model_and_no_term(self):
         # The check on an abbreviation before threat model is case-sensitive, so
-        # an entry can say so in a sentence that names no approval term.
+        # an entry can say so in a sentence that names threat model, in any letter
+        # case, and no noun or phrase the checks find in any letter case.
         self.assertIsNotNone(QUALIFIED_THREAT_MODEL.search("- XYZ threat model: tokens"))
         self.assertIsNone(QUALIFIED_THREAT_MODEL.search("- xyz threat model: tokens"))
         on_threat_model = "The check on an abbreviation before threat model is case-sensitive."
@@ -475,14 +601,17 @@ class ChangelogEntriesTest(unittest.TestCase):
             f"- {PATH_IN_BACKTICKS}: the check on an abbreviation before threat model"
             " is case-sensitive.",
             f"- {PATH_IN_BACKTICKS} finds go-ahead in any letter case. {on_threat_model}",
+            f"- {PATH_IN_BACKTICKS} changed. The matches before Threat Model ARE Case Sensitive.",
         ):
             with self.subTest(passes=entry):
                 self.assertEqual(case_sensitive_claims(entry), [])
-        # Each noun and phrase of the approval check marks a sentence as one on
-        # that check, in any letter case and, for a noun, in the plural.
-        nouns = ("go-ahead", "approval", "sign-off", "gate")
+        # Each of the five nouns and the three phrases is found in any letter
+        # case, so a sentence that names one fails: in any letter case, for a noun
+        # in the plural as well, and with threat model named beside it.
+        nouns = ("recommendation", "go-ahead", "approval", "sign-off", "gate")
         phrases = ("requested from", "requested of", "approved by")
-        for found in (*(f"with Xyz's {noun}" for noun in nouns), *phrases):
+        self.assertIsNotNone(CREDITED_RECOMMENDATION.search(f"on the group's {nouns[0]}"))
+        for found in (*(f"with Xyz's {noun}" for noun in nouns[1:]), *phrases):
             with self.subTest(found=found):
                 self.assertIsNotNone(CREDITED_APPROVAL.search(found))
         for term in (*nouns, *(f"{noun}s" for noun in nouns), *phrases):
@@ -490,19 +619,30 @@ class ChangelogEntriesTest(unittest.TestCase):
                 f"The match of {term} is case-sensitive.",
                 f"The match of {term.upper()} IS Case Sensitive.",
                 f'The matches of "{term}" and the like are case-sensitive.',
+                f"The match of {term}, as the one before threat model, is case-sensitive.",
             ):
                 with self.subTest(fails=sentence):
                     self.assertEqual(
                         case_sensitive_claims(f"- {PATH_IN_BACKTICKS} changed. {sentence}"),
                         [sentence],
                     )
+        # A sentence that names neither fails as well: it can speak of the check
+        # the sentence before it names.
+        for sentence in ("Its match is case-sensitive.", "It is case-sensitive."):
+            with self.subTest(fails=sentence):
+                self.assertEqual(
+                    case_sensitive_claims(
+                        f"- {PATH_IN_BACKTICKS} finds go-ahead in any letter case. {sentence}"
+                    ),
+                    [sentence],
+                )
         # The patterns read characters, not grammar: a sentence that names a term
-        # fails whatever it calls case-sensitive, and one that names none passes.
-        both = "- The approval check is unchanged, and the other check is case-sensitive."
+        # fails whatever it calls case-sensitive, and one that names threat model
+        # and no term passes whatever it calls case-sensitive.
+        both = "- The approval check is unchanged, and the check on threat model is case-sensitive."
         self.assertEqual(case_sensitive_claims(both), [both])
-        self.assertEqual(
-            case_sensitive_claims("- The check finds go-ahead. It is case-sensitive."), []
-        )
+        other = "- The check on threat model is unchanged, and the other check is case-sensitive."
+        self.assertEqual(case_sensitive_claims(other), [])
 
     def test_an_entry_read_that_lists_gate_names_the_capital_letter(self):
         self.assertIsNone(CREDITED_APPROVAL.search("the verifier's gate rejects it"))
@@ -540,6 +680,46 @@ class ChangelogEntriesTest(unittest.TestCase):
         for sentence in (f"{stated}.", f"{stated}, before gate.", f"{stated}, A to Zeta."):
             with self.subTest(fails=sentence):
                 self.assertEqual(capital_letter_claims(f"- {sentence}"), [f"- {sentence}"])
+
+    def test_a_common_noun_with_a_capital_letter_is_stated_with_a_to_z(self):
+        # A common noun before gate is found as a name is only when its first
+        # letter is one of A to Z ("É" is E with an acute accent).
+        self.assertIsNotNone(CREDITED_APPROVAL.search("Verifier's gate rejects a missing family"))
+        self.assertIsNone(CREDITED_APPROVAL.search("Église's gate rejects a missing family"))
+        self.assertTrue("É".isupper())
+        # Each sentence of an entry read that says such a noun is found names
+        # those letters, and at least one sentence says it.
+        entries = changelog_entries()
+        self.assertTrue(any(common_noun_statements(entry) for entry in entries))
+        for entry in entries:
+            with self.subTest(entry=entry[:80]):
+                self.assertEqual(
+                    common_noun_claims(entry), [], 'write "capital letter, A to Z"'
+                )
+        found = "a common noun with a capital letter"
+        for sentence in (
+            f"The check finds {found}, A to Z, before gate.",
+            "The capital letter, A to Z, is the only sign of a name, so a common noun"
+            " written with one is found.",
+            # A sentence with one of the two is not read as such a statement.
+            "A common noun in lower case before gate is not found.",
+            "A sentence ends before a capital letter.",
+        ):
+            with self.subTest(passes=sentence):
+                self.assertEqual(
+                    common_noun_claims(f"- {PATH_IN_BACKTICKS} changed. {sentence}"), []
+                )
+        for sentence in (
+            f"The check finds {found} before gate.",
+            "The capital letter is the only sign of a name, so a common noun written"
+            " with one is found.",
+            f"The check finds {found}, A to Zeta, before gate.",
+        ):
+            with self.subTest(fails=sentence):
+                self.assertEqual(
+                    common_noun_claims(f"- {PATH_IN_BACKTICKS} changed. {sentence}"),
+                    [sentence],
+                )
 
 
 class StrippedDocstringsTest(unittest.TestCase):

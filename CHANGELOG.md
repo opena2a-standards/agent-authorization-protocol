@@ -385,8 +385,8 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   letter as an abbreviation or required three. The pattern and the decision notes are
   unchanged.
 - The description of `scripts/test_decision_note_terms.py` states a limit of its check on a
-  possessive before gate: the capital letter is the only sign of a name it reads, so a
-  common noun written with one is found as a name is ("Xyz's gate"), at the start of a
+  possessive before gate: the capital letter, A to Z, is the only sign of a name it reads,
+  so a common noun written with one is found as a name is ("Xyz's gate"), at the start of a
   sentence or a list item ("Verifier's gate rejects a missing family") and in a heading in
   title case. A note writes such a noun in lower case, with a word before it where it would
   start a sentence ("The verifier's gate"), and the failure of the test on a possessive
@@ -411,14 +411,15 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   ("The verifier's gate rejects a missing family"), and the printed rewrite must carry
   ("The verifier's gate"). Rewriting or removing that sentence passed all 14 tests before;
   it now fails one. The patterns and the decision notes are unchanged.
-- That test now pins the whole paragraph, word for word, as a paragraph of the
-  description, and checks each of its clauses against the patterns: a common noun with a
-  capital letter before gate is found at the start of a sentence, after one, in a list item
-  and in a heading in title case. Rewording a clause outside the four pinned phrases
-  ("prints that rewrite" to "prints nothing", "at the start of a sentence or a list item"
-  to "in the middle of a sentence or a table cell", "is found as a name is" to "is never
-  found"), or adding a sentence to the paragraph, passed all 15 tests before; each now
-  fails one. The patterns, the description and the decision notes are unchanged.
+- That test in `scripts/test_decision_note_terms.py` now pins the whole paragraph, word for
+  word, as a paragraph of the description, and checks each of its clauses against the
+  patterns: a common noun with a capital letter, A to Z, before gate is found at the start
+  of a sentence, after one, in a list item and in a heading in title case. Rewording a
+  clause outside the four pinned phrases ("prints that rewrite" to "prints nothing", "at
+  the start of a sentence or a list item" to "in the middle of a sentence or a table cell",
+  "is found as a name is" to "is never found"), or adding a sentence to the paragraph,
+  passed all 15 tests before; each now fails one. The patterns, the description and the
+  decision notes are unchanged.
 - The entry on the ML-DSA-65 decision note that records when option (B) was adopted
   describes the approval check of `scripts/test_decision_note_terms.py` as the later entry
   on that test does. It said a word ending in 's before gate fails the test and that the
@@ -427,13 +428,14 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   "requested from" in any letter case ("with Xyz's Go-Ahead", "REQUESTED FROM Xyz"). Tests
   in the same file read each entry under [Unreleased] that has the path
   `scripts/test_decision_note_terms.py` directly between two backticks. One fails when a
-  sentence of such an entry has case-sensitive directly after is or are and names a noun
-  or a phrase of the approval check. Another fails when a sentence of such an entry has the
-  lower-case word gate and at least one of the lower-case words go-ahead, approval and
-  sign-off, and does not contain "capital letter". These tests split an entry into
-  sentences only where a period and then whitespace come directly before a capital letter
-  A to Z, a backtick, a straight double quotation mark or an opening parenthesis. The
-  patterns and the decision notes are unchanged.
+  sentence of such an entry has case-sensitive directly after is or are, unless the
+  sentence names threat model and none of the nouns and phrases the checks find in any
+  letter case. Another fails when a sentence of such an entry has the lower-case word gate
+  and at least one of the lower-case words go-ahead, approval and sign-off, and does not
+  contain "capital letter". These tests split an entry into sentences only where a period
+  and then whitespace come directly before a capital letter A to Z, a backtick, a straight
+  double quotation mark or an opening parenthesis. The patterns and the decision notes are
+  unchanged.
 - The resolution flow of `examples/orders-db-exchange.md` marks the three steps the v1
   reference implementation does not perform as drawn, with a `v1:` note in the form the
   policy sample uses for `jurisdiction`: version negotiation (step 2) is marked as a
@@ -470,16 +472,17 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   with a hyphen or a space and in any letter case, reads sentences. It failed on those
   words directly after is or are anywhere in an entry it read, so an entry could not say
   what is true of another check. The check on an abbreviation before "threat model" is
-  case-sensitive ("xyz threat model" is not found). Of the sentences of an entry, the test
-  now fails only on one that has those words directly after is or are and names a noun or
-  a phrase of the approval check, in any letter case: go-ahead, approval, sign-off or gate,
-  singular or plural, "requested from", "requested of" or "approved by"; a sentence ends
-  only where the earlier entry says, where a period and then whitespace come directly
-  before a capital letter A to Z, a backtick, a straight double quotation mark or an
-  opening parenthesis. The test reads characters, not grammar: a sentence that names one
-  of them fails whatever it calls case-sensitive, and a sentence that names none passes.
-  Its failure says where a statement on another check goes. The patterns and the decision
-  notes are unchanged.
+  case-sensitive ("xyz threat model" is not found). Of the sentences of an entry that have
+  those words directly after is or are, the test now passes only one that names threat
+  model and none of the nouns and phrases the checks find in any letter case:
+  recommendation, go-ahead, approval, sign-off or gate, singular or plural, "requested
+  from", "requested of" or "approved by"; a sentence ends only where the earlier entry
+  says, where a period and then whitespace come directly before a capital letter A to Z, a
+  backtick, a straight double quotation mark or an opening parenthesis. The test reads
+  characters, not grammar: a sentence that names one of them fails whatever it calls
+  case-sensitive, and a sentence that names threat model and none of them passes whatever
+  it calls case-sensitive. Its failure says where a statement on the check on threat model
+  goes. The patterns and the decision notes are unchanged.
 - Two descriptions of which changelog entries the tests of
   `scripts/test_decision_note_terms.py` read match what the tests look for. The earlier
   entry said they read each entry under [Unreleased] "that contains the code span", and the
@@ -490,7 +493,50 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   describe that selection, and the docstring of the test class and the names of two tests
   speak of an entry that is read, where they spoke of any entry. A new test pins the
   selection with each of those forms, and another fails when a sentence of an entry read
-  has "read each entry under [Unreleased]" and not "directly between two backticks".
+  names [Unreleased] and does not have "directly between two backticks", or when no
+  sentence of an entry read names [Unreleased].
+- The changelog test of `scripts/test_decision_note_terms.py` on case-sensitive no longer
+  passes a sentence because it names none of the nouns and phrases of the approval check.
+  An entry could name go-ahead in one sentence and call its match case-sensitive in the
+  next ("Its match"), or say the same of the check on recommendation, a noun the test did
+  not list, and every test passed. A sentence that has those words directly after is or
+  are now passes only when it names threat model, in any letter case, and none of the five
+  nouns and three phrases the checks find in any letter case, recommendation among them.
+  The entry above on that test said "a sentence that names none passes"; it and the entry
+  that first described the test now state this rule. The failure says that a statement on
+  the check on an abbreviation before threat model goes in such a sentence. The test still
+  reads characters, not grammar: a sentence that names threat model and none of them
+  passes whatever it calls case-sensitive. The patterns and the decision notes are
+  unchanged.
+- Two more entries above give the letters the pattern of
+  `scripts/test_decision_note_terms.py` reads where they say that a common noun with a
+  capital letter, A to Z, before gate is found: the entry on the limit the description
+  states and the entry on the test that pins the whole paragraph. They named a capital
+  letter without that range, and a common noun whose first letter is a capital outside A
+  to Z is not found ("Église's gate rejects a missing family"). The second of the two now
+  names the file with its path directly between two backticks, so the tests read it; it
+  named only "That test". A new test fails when a sentence of an entry read has "common
+  noun" and "capital letter" and not "A to Z", and when no sentence of an entry read has
+  the first two. The pattern, the description and the decision notes are unchanged.
+- A test of `scripts/test_decision_note_terms.py` pins where its changelog tests end a
+  sentence: where a period and then whitespace come directly before a capital letter A to
+  Z, a backtick, a straight double quotation mark or an opening parenthesis. No test
+  covered the last three, and a split that read only a capital letter A to
+  Z there passed all 24 tests; it now fails one. The test has a phrase for each of the
+  four, for a lower-case letter, a digit, a capital letter outside A to Z, a curly and a
+  single quotation mark and an opening bracket, before which no sentence ends, and for a
+  period with no whitespace after it and whitespace with no period directly before it. It
+  also checks that a statement on threat model after a sentence that names go-ahead passes
+  the test on case-sensitive with each of the four at its start. The split is unchanged.
+- The test of `scripts/test_decision_note_terms.py` on the changelog sentence that says
+  which entries the tests read fails when no sentence of an entry read says it. It read
+  only a sentence with the words "read each entry under" before the name of the section
+  and passed when none had them, so the sentence in the entry above could be reworded
+  ("read every entry", "that contains the code span") with every test passing. It now
+  reads each sentence of an entry read that names [Unreleased] and fails when one does not
+  have "directly between two backticks", or when no sentence names the section. The entry
+  above that described the test states this, and a new test pins both failures. The
+  patterns and the decision notes are unchanged.
 
 ### Added
 
