@@ -11,7 +11,6 @@ binding added to Section 8.5 without a worked example fails here. CI runs these
 tests through validate_examples.py.
 """
 
-import pathlib
 import re
 import unittest
 

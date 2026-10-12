@@ -271,6 +271,25 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   Editorial: no requirement changes. `scripts/test_decision_ttl_range.py` checks that the
   range runs from the BAC's 60-second TTL (Section 6.1) to the longest TTL tier of Section
   4.3, named by its tier.
+- The policy binding for `grant://orders-db` in broker profile Section 7.1 carries
+  `audience: https://api.orders.internal`, as the binding in
+  `examples/orders-db-exchange.md` does. At commit `660af0d` the policy loader of the
+  reference implementation refuses a `resolve` clause in which `providerId`, `scope` or
+  `audience` is not a non-empty string, so it still refused the Section 7.1 binding once
+  `provider` and `ttl` were respelled as the comments on those lines say. The keys of the
+  grammar are unchanged. `scripts/test_resolve_key_spelling.py` fails when either binding,
+  read in the reference spelling, lacks one of those three keys. Editorial: no requirement
+  changes.
+- The reference implementation paragraph of `AAP-SPEC.md` names `authorization_details` and
+  `aap_crit` in the minted claim set among the parts outside the implemented surface. The
+  implementation status note of broker profile Section 14 lists them, without a section
+  number, and the paragraph left them out. `scripts/test_reference_status.py` compared
+  section numbers only; it also reads the items that note lists without a section number
+  and fails when the paragraph does not name each name such an item carries. Editorial: no
+  requirement changes.
+- `scripts/test_examples_bindings.py` no longer imports `pathlib`, which it did not use.
+  `scripts/test_unused_imports.py` fails when a script in `scripts/` imports a name it
+  never reads, and runs in CI through `scripts/validate_examples.py`.
 
 ### Added
 

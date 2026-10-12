@@ -12,7 +12,9 @@ clause of each binding and check that every key the loader does not accept
 carries a comment naming the key it does, that a respelled entry keeps its
 value, and that a note under the binding names the accepted keys and the commit
 they were read at, so a key added to the grammar or to the set fails until the
-documents are changed with it.
+documents are changed with it. The loader also refuses a `resolve` clause that
+lacks `providerId`, `scope` or `audience`, so the tests check that each binding
+carries all three once it is respelled.
 
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
@@ -36,6 +38,10 @@ NOTES = {
 REFERENCE_KEYS = ("mode", "providerId", "scope", "audience", "ttlSeconds")
 REFERENCE_COMMIT = "660af0d"
 REFERENCE_SOURCE = "src/broker/grant-policy.ts"
+
+# The keys the reference policy loader requires in a `resolve` clause: it refuses a clause in
+# which one of them is not a non-empty string. Read from REFERENCE_SOURCE at REFERENCE_COMMIT.
+REQUIRED_KEYS = ("providerId", "scope", "audience")
 
 # The keys of the policy grammar that the reference loader spells differently.
 RESPELLED = {"provider": "providerId", "ttl": "ttlSeconds"}
@@ -99,6 +105,12 @@ def refused_keys(entries):
     return [key for key, _ in reference_spelling(entries) if key not in REFERENCE_KEYS]
 
 
+def missing_keys(entries):
+    """The keys the reference loader requires that the respelled clause lacks or leaves empty."""
+    spelled = dict(reference_spelling(entries))
+    return [key for key in REQUIRED_KEYS if not spelled.get(key)]
+
+
 def seconds(duration):
     """The number of seconds of a duration such as `300s`, as the loader's integer is written."""
     return re.fullmatch(r"(\d+)s", duration)[1]
@@ -118,6 +130,14 @@ class ResolveKeySpellingTest(unittest.TestCase):
         for name in NOTES:
             with self.subTest(document=name):
                 self.assertEqual(refused_keys(resolve_entries(binding(name))), [])
+
+    def test_no_required_key_is_missing_in_the_reference_spelling(self):
+        for name in NOTES:
+            with self.subTest(document=name):
+                self.assertEqual(missing_keys(resolve_entries(binding(name))), [])
+
+    def test_required_keys_are_among_the_accepted_keys(self):
+        self.assertTrue(set(REQUIRED_KEYS) <= set(REFERENCE_KEYS))
 
     def test_only_the_respelled_keys_are_annotated(self):
         for name in NOTES:
@@ -179,6 +199,16 @@ class ResolveKeySpellingTest(unittest.TestCase):
         misspelled = UNANNOTATED.replace(
             "ONLY here\n", "ONLY here (reference loader: providerID)\n")
         self.assertEqual(refused_keys(resolve_entries(misspelled)), ["providerID", "ttl"])
+
+    def test_binding_without_a_required_key_is_detected(self):
+        annotated = UNANNOTATED.replace(
+            "ONLY here\n", "ONLY here (reference loader: providerId)\n")
+        self.assertEqual(missing_keys(resolve_entries(annotated)), [])
+        without = annotated.replace("    audience: https://api.orders.internal\n", "")
+        self.assertEqual(missing_keys(resolve_entries(without)), ["audience"])
+        empty = annotated.replace("scope: orders.read\n", "scope: # none\n")
+        self.assertEqual(missing_keys(resolve_entries(empty)), ["scope"])
+        self.assertEqual(missing_keys(resolve_entries(UNANNOTATED)), ["providerId"])
 
     def test_clause_that_is_not_key_value_entries_is_not_read_as_empty(self):
         with self.assertRaises(AssertionError):
