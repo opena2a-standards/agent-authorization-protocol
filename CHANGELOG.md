@@ -297,6 +297,18 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   reasoning are unchanged. `scripts/test_decision_note_terms.py` checks that no note in
   `decisions/` credits a recommendation to a group by a possessive or qualifies a threat
   model with an abbreviation. Editorial: no requirement changes.
+- `examples/transport-bindings.md` agrees with broker profile Section 8.5. Its HTTP section
+  said the ATX travels in a request header "as in ATP"; it now names the
+  `Agent-Trust-Credential` header and cites the ATX specification for it
+  (`atx-spec/core.md` Sections 1.2 and 3.2). Its A2A agent card section, its heading, the
+  card in its message sequence, the first item of what the broker reads, and the summary
+  table row placed the ATX in the card's `atp` object; each now names the `atx` field
+  (`atx-spec/core.md` Section 3.2), and the section says that the `atp` object of the same
+  card (`ATP-SPEC.md` Section 3.4) carries the agent's DID and trust proof, not the ATX.
+  The entry under Added that introduced the example is corrected the same way. Informative:
+  no requirement changes. `scripts/test_transport_bindings.py` now also reads the example
+  and checks the header citation, the `atx` field in the agent card section and the summary
+  table, and that no sentence of the example places the ATX in the `atp` object.
 
 ### Added
 
@@ -447,7 +459,7 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   "exercise", "improvisation") pass. README.md now spells "honor" the American way, as the
   rest of the repository does. It runs in CI through `scripts/validate_examples.py`.
 - `examples/transport-bindings.md`, a worked example of each initial binding of broker
-  profile Section 8.5: the HTTP `Agent-Trust-Credential` header, the `atp` object of an A2A
+  profile Section 8.5: the HTTP `Agent-Trust-Credential` header, the `atx` field of an A2A
   agent card and the reference in an MCP server manifest. For each it shows where the ATX
   travels, the proof of presenter identity of Section 6.8 (an RFC 9421 HTTP Message
   Signature, or a signed challenge), and what the broker reads before it evaluates policy.
