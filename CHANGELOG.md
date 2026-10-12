@@ -460,10 +460,10 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/test_worked_example_status.py` checks that each of the three steps carries its
   note, that the paragraph cites for each step a broker profile section whose text defines
   that step, that the citation check reads every section number in the paragraph, written
-  after "Section", "Sections", "§" or "§§" (the markers the citation check reads, so a
-  "§99" without the broker profile's name fails it), and that the Section 14 note names the
-  audit signature; `scripts/test_reference_status.py` checks that the AAP-SPEC paragraph
-  cites Section 6.7.
+  after "Section", "Sections", "§" or "§§" or listed after such a number (the markers and
+  lists the citation check reads, so a "§99" or a "Sections 99" without the broker
+  profile's name fails it), and that the Section 14 note names the audit signature;
+  `scripts/test_reference_status.py` checks that the AAP-SPEC paragraph cites Section 6.7.
 - Three entries above state the rule of `scripts/test_decision_note_terms.py` on a
   possessive before gate with the letters its pattern reads: the word "starts with a
   capital letter, A to Z", as the description of the tests says. They named a capital
@@ -571,6 +571,17 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   "capital letter", and that the sentence that says such a noun is found before gate has
   both and "A to Z". A new test pins that failure and the failure on a sentence that has
   both and not "A to Z". The patterns and the decision notes are unchanged.
+- `scripts/test_worked_example_status.py` counts each section number of a list in the
+  paragraph after the resolution flow of `examples/orders-db-exchange.md`, reading a list
+  after "Sections" or "§§" as `scripts/check_section_citations.py` does ("Sections 6.8 and
+  6.9", "§7, §11"). It counted only the first number of a list, so a named list could hide
+  an unnamed number: "broker profile Sections 6.8 and 6.9. Step 4 is Section 6.9." passed
+  the comparison with the numbers the citation check reads, although that check does not
+  read the unnamed "Section 6.9", and "broker profile Sections 6.8 and 6.9." failed it,
+  although that check reads both. The first now fails and the second passes, in each of
+  three list forms a new test pins. The paragraph cites no list, so the test passes on it
+  as before; the entry above that describes the test says that lists are counted. The
+  citation check is unchanged.
 
 ### Added
 

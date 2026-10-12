@@ -14,9 +14,10 @@ profile section that defines it: the first broker profile section the paragraph
 names after "(step N)" has a numbered heading, and its text, up to the next
 heading, holds a phrase that defines the step (the heading "Versioning and
 negotiation" for step 2, which Section 13, the conformance table, does not
-hold). Each section number in the paragraph, written after "Section" or "§",
-is written next to the broker profile's name, so check_section_citations.py,
-which reads a number only there, reads every one.
+hold). Each section number in the paragraph, written after "Section",
+"Sections", "§" or "§§" or listed after such a number ("Sections 6.8 and 6.9"),
+is in a citation next to the broker profile's name, so
+check_section_citations.py, which reads a number only there, reads every one.
 
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
@@ -59,8 +60,10 @@ STEP_SECTION = re.compile(
     r"\(step (\d+)\)(?:(?!\(step ).)*?\b[Bb]roker profile Section (\d+(?:\.\d+)*)"
 )
 # A section number written after "Section", "Sections", "§" or "§§", the markers
-# check_section_citations.py reads ("§99" is a section number too).
-SECTION_NUMBER = re.compile(r"(?:\bSections?\s+|§§?\s*)(\d+(?:\.\d+)*)")
+# check_section_citations.py reads ("§99" is a section number too), and each
+# later number of its list ("Sections 6.8 and 6.9", "§7, §11"), read by the
+# grammar that check reads a list with.
+SECTION_NUMBERS = re.compile(check_section_citations.NUMBERS)
 
 
 def flow_steps():
@@ -110,7 +113,13 @@ def profile_section(number):
 
 def written_section_numbers(paragraph):
     """Every section number written in `paragraph`, named or not."""
-    return sorted(SECTION_NUMBER.findall(paragraph))
+    return sorted(
+        number
+        for match in SECTION_NUMBERS.finditer(paragraph)
+        for number in check_section_citations.NUMBER.findall(
+            match.group("plural") or match.group("single")
+        )
+    )
 
 
 def read_section_numbers(paragraph):
@@ -166,6 +175,34 @@ class WorkedExampleStatusTest(unittest.TestCase):
         for sign in ("§99", "§ 99", "§§99"):
             with self.subTest(sign=sign):
                 unnamed = paragraph.replace("targets Level 1.", f"targets Level 1 ({sign}).")
+                self.assertIn("99", written_section_numbers(unnamed))
+                self.assertNotIn("99", read_section_numbers(unnamed))
+                self.assertNotEqual(
+                    read_section_numbers(unnamed), written_section_numbers(unnamed)
+                )
+
+    def test_each_number_of_a_section_list_is_counted(self):
+        # A named list is read in full, so the comparison passes on it; an
+        # unnamed number after it is not read, so the comparison must fail.
+        for listed in ("Sections 6.8 and 6.9", "§§6.8 and 6.9", "§§ 6.8, 6.9"):
+            with self.subTest(listed=listed):
+                named = f"The flow follows broker profile {listed}."
+                self.assertEqual(written_section_numbers(named), ["6.8", "6.9"])
+                self.assertEqual(read_section_numbers(named), written_section_numbers(named))
+                hidden = f"{named} Step 4 is Section 6.9."
+                self.assertEqual(written_section_numbers(hidden), ["6.8", "6.9", "6.9"])
+                self.assertNotEqual(
+                    read_section_numbers(hidden), written_section_numbers(hidden)
+                )
+
+    def test_a_section_number_written_after_the_word_section_is_counted(self):
+        # "Sections 99" without the broker profile's name is not read by the
+        # citation check either; the paragraph itself writes only "Section N".
+        paragraph = status_paragraph()
+        self.assertIn("targets Level 1.", paragraph)
+        for word in ("Section 99", "Sections 99"):
+            with self.subTest(word=word):
+                unnamed = paragraph.replace("targets Level 1.", f"targets Level 1 ({word}).")
                 self.assertIn("99", written_section_numbers(unnamed))
                 self.assertNotIn("99", read_section_numbers(unnamed))
                 self.assertNotEqual(
