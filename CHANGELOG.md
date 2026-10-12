@@ -316,7 +316,9 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/test_trust_class_grammar.py` and `scripts/test_validate_examples.py` skip the
   tests that need the package, where a run by path without the package failed to load them.
   The second import reports only an error the first did not raise, so one cause has one
-  message. The check runs in CI through `scripts/validate_examples.py`.
+  message; on an interpreter without the package, the first import's message for a file
+  that fails because `jsonschema` is not found carries the advice to skip with
+  `unittest.skipUnless`. The check runs in CI through `scripts/validate_examples.py`.
 - The ML-DSA-65 decision note no longer credits its recommendation to a group it does not
   define or names a role by an abbreviation. Its status line says the decision proceeded
   with the option the ESCALATION section recommends, option (B) is marked "recommended",
