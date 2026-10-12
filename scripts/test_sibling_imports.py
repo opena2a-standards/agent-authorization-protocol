@@ -201,6 +201,25 @@ def failure_without_jsonschema(path, root):
     return failure_message(name, error, sibling_scripts(path)) + WITHOUT_JSONSCHEMA
 
 
+def read_description():
+    """The description of these tests, read from this file as __doc__ holds it.
+
+    The file is parsed with optimize=0: on Python 3.14, ast.parse also drops
+    the docstrings when they are stripped (python3 -OO, PYTHONOPTIMIZE=2).
+    """
+    path = pathlib.Path(__file__)
+    source = path.read_text(encoding="utf-8")
+    tree = compile(source, path, "exec", ast.PyCF_ONLY_AST, dont_inherit=True, optimize=0)
+    return ast.get_docstring(tree, clean=False)
+
+
+# __doc__ is None when docstrings are stripped (python3 -OO, PYTHONOPTIMIZE=2).
+# The test that checks the description reads __doc__, so it is read from this
+# file instead.
+if __doc__ is None:
+    __doc__ = read_description()
+
+
 class SiblingImportsTest(unittest.TestCase):
     FAILS = "python3 -m unittest scripts/test_fixture.py fails with "
     # A sibling script that exits when it is imported, and one that does so without the package.
@@ -509,6 +528,23 @@ class SiblingImportsTest(unittest.TestCase):
                 self.assertIn(self.FOUND_NOT_IMPORTED, text)
                 # The check does not import the script whether or not the test is skipped.
                 self.assertNotIn("fails to import where the test that imports it is skipped", text)
+
+
+class StrippedDocstringsTest(unittest.TestCase):
+    def test_the_description_read_from_this_file_is_the_docstring(self):
+        self.assertEqual(read_description(), __doc__)
+
+    def test_the_description_is_read_when_docstrings_are_stripped(self):
+        # python3 -OO and PYTHONOPTIMIZE=2 set __doc__ to None; the test that reads
+        # the description still runs and passes.
+        here = pathlib.Path(__file__).resolve()
+        test = (f"{here.stem}.SiblingImportsTest."
+                "test_description_and_changelog_say_a_sibling_that_fails_to_import_is_not_reported")
+        result = subprocess.run(
+            [sys.executable, "-B", "-E", "-OO", "-m", "unittest", test],
+            cwd=here.parent, capture_output=True, text=True, timeout=120)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Ran 1 test", result.stderr)
 
 
 if __name__ == "__main__":

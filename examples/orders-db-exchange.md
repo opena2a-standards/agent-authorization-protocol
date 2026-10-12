@@ -78,10 +78,11 @@ The scoped downstream token exists only inside the broker's ephemeral worker (st
 enters the agent process or context. A denial at any step returns the same opaque typed error.
 
 A `v1:` note marks a step the v1 reference implementation does not perform as drawn, in the form
-the policy sample uses for `jurisdiction`. Version negotiation (step 2) is a requirement of
-conformance Level 2 in the broker profile (Section 13), and the v1 reference targets Level 1. The
-broker profile describes a rotating signing key (step 4, Section 11) and requires a signed audit
-log (step 7, Section 6.7); its Section 14 lists what the reference implementation provides.
+the policy sample uses for `jurisdiction`. Version negotiation (step 2) is defined in broker
+profile Section 8.1 and is a requirement of conformance Level 2 (broker profile Section 13); the
+v1 reference targets Level 1. A rotating signing key (step 4) is described in broker profile
+Section 11, and a signed audit log (step 7) is required by broker profile Section 6.7. Broker
+profile Section 14 lists what the reference implementation provides.
 
 ## 4. RFC 8693 request the broker makes (illustrative)
 
