@@ -404,6 +404,13 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   passes. A new test runs it with `-OO` in a subprocess, and another checks that the
   description read from the file is the docstring. The checks and the description are
   unchanged.
+- `scripts/test_sibling_imports.py` parses its source with `optimize=0` to read its
+  description, because on Python 3.14 the parse drops the docstrings when they are stripped.
+  The validation workflow runs Python 3.12, where the parse keeps them, so the `-OO` test
+  passed there without `optimize=0` and only a Python 3.14 run failed. A new test reads the
+  description through a parse that drops stripped docstrings as Python 3.14 does, so the
+  removal of `optimize=0` fails on every version. The checks and the description are
+  unchanged.
 - A test in `scripts/test_decision_note_terms.py` pins the paragraph of its description on a
   possessive before gate: the description must carry the sentence "The capital letter is
   the only sign of a name the tests read", the two examples found as a name ("Verifier's

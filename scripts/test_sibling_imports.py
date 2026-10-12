@@ -32,6 +32,7 @@ Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
 
 import ast
+import builtins
 import os
 import pathlib
 import re
@@ -533,6 +534,28 @@ class SiblingImportsTest(unittest.TestCase):
 class StrippedDocstringsTest(unittest.TestCase):
     def test_the_description_read_from_this_file_is_the_docstring(self):
         self.assertEqual(read_description(), __doc__)
+
+    def test_the_description_is_read_where_the_parse_drops_stripped_docstrings(self):
+        # On Python 3.14 a parse with ast.PyCF_ONLY_AST drops the docstrings when they
+        # are stripped, unless it is given optimize=0. The validation workflow runs an
+        # earlier Python, where the parse keeps them, so the -OO run below passes there
+        # without optimize=0. This parse drops them as Python 3.14 does, on any version.
+        real_compile = builtins.compile
+
+        def parse(source, filename, mode, flags=0, dont_inherit=False, optimize=-1, **kwargs):
+            tree = real_compile(source, filename, mode, flags, dont_inherit, optimize, **kwargs)
+            # optimize=-1 is the level of the interpreter, here that of python3 -OO.
+            if isinstance(tree, ast.AST) and (2 if optimize == -1 else optimize) >= 2:
+                for node in ast.walk(tree):
+                    if (isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef,
+                                          ast.AsyncFunctionDef))
+                            and ast.get_docstring(node, clean=False) is not None):
+                        del node.body[0]
+            return tree
+
+        with mock.patch.object(builtins, "compile", parse):
+            description = read_description()
+        self.assertEqual(description, __doc__)
 
     def test_the_description_is_read_when_docstrings_are_stripped(self):
         # python3 -OO and PYTHONOPTIMIZE=2 set __doc__ to None; the test that reads
