@@ -9,12 +9,26 @@ negotiation is also marked as a conformance Level 2 requirement (broker profile
 Section 13). The implementation status note of broker profile Section 14 names
 the signature on audit records among what its list does not describe.
 
+The paragraph after the flow cites, for each of the three steps, the broker
+profile section that defines it: the first broker profile section the paragraph
+names after "(step N)" has a numbered heading, and its text, up to the next
+heading, holds a phrase that defines the step (the heading "Versioning and
+negotiation" for step 2, which Section 13, the conformance table, does not
+hold). Each section number in the paragraph is written next to the broker
+profile's name, so check_section_citations.py, which reads a number only there,
+reads every one.
+
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
 
 import pathlib
 import re
+import sys
 import unittest
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+import check_section_citations  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 EXAMPLE = ROOT / "examples" / "orders-db-exchange.md"
@@ -30,6 +44,21 @@ UNPERFORMED = {
     "rotating delegated key": ("v1:",),
     "signed audit": ("v1:",),
 }
+
+# Each step the paragraph after the flow cites, and the phrases of the text of
+# the broker profile section that defines it.
+DEFINED_BY = {
+    2: ("Versioning and negotiation",),
+    4: ("IdP signing key", "rotates"),
+    7: ("signed audit log",),
+}
+STATUS_PARAGRAPH = "A `v1:` note marks"
+# "(step 4) is described in broker profile Section 11": a step and the first
+# broker profile section named after it, before the next step.
+STEP_SECTION = re.compile(
+    r"\(step (\d+)\)(?:(?!\(step ).)*?\b[Bb]roker profile Section (\d+(?:\.\d+)*)"
+)
+SECTION_NUMBER = re.compile(r"\bSections? (\d+(?:\.\d+)*)")
 
 
 def flow_steps():
@@ -59,6 +88,24 @@ def implementation_status_note():
     return " ".join(note[:note.index("\n\n")].split())
 
 
+def status_paragraph():
+    """The paragraph after the flow that cites the sections, line breaks read as spaces."""
+    text = EXAMPLE.read_text(encoding="utf-8")
+    start = text.index(STATUS_PARAGRAPH)
+    return " ".join(text[start:text.index("\n\n", start)].split())
+
+
+def profile_section(number):
+    """The heading and text of broker profile Section `number` up to the next heading, or None."""
+    lines = PROFILE.read_text(encoding="utf-8").splitlines()
+    heading = re.compile(rf"#+ {re.escape(number)}\.? ")
+    start = next((i for i, line in enumerate(lines) if heading.match(line)), None)
+    if start is None:
+        return None
+    end = next((i for i in range(start + 1, len(lines)) if lines[i].startswith("#")), len(lines))
+    return " ".join(" ".join(lines[start:end]).split())
+
+
 class WorkedExampleStatusTest(unittest.TestCase):
     def test_flow_has_seven_numbered_steps(self):
         self.assertEqual(sorted(flow_steps()), list(range(1, 8)))
@@ -76,6 +123,29 @@ class WorkedExampleStatusTest(unittest.TestCase):
         note = implementation_status_note()
         self.assertIn("Outside that list are:", note)
         self.assertRegex(note, r"signature on audit records of Section 6\.7")
+
+    def test_each_unperformed_step_cites_the_section_that_defines_it(self):
+        cited = {int(step): number for step, number in STEP_SECTION.findall(status_paragraph())}
+        for step, phrases in DEFINED_BY.items():
+            with self.subTest(step=step):
+                self.assertIn(step, cited, f"no broker profile section is cited for step {step}")
+                section = profile_section(cited[step])
+                self.assertIsNotNone(section, f"the broker profile has no Section {cited[step]}")
+                for phrase in phrases:
+                    self.assertTrue(
+                        phrase in section,
+                        f"Section {cited[step]} does not hold {phrase!r}, which defines step {step}",
+                    )
+
+    def test_the_citation_check_reads_each_section_number_of_the_paragraph(self):
+        paragraph = status_paragraph()
+        read = [
+            number
+            for cite in check_section_citations.citations(EXAMPLE.name, paragraph)
+            if cite.doc.text == PROFILE.name
+            for number in cite.numbers
+        ]
+        self.assertEqual(sorted(read), sorted(SECTION_NUMBER.findall(paragraph)))
 
 
 if __name__ == "__main__":

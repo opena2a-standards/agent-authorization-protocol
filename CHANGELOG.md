@@ -398,6 +398,12 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   they now pass. A new test runs them with `-OO` in a subprocess, and another checks that the
   description read from the file is the docstring. The patterns, the description and the
   decision notes are unchanged.
+- `scripts/test_sibling_imports.py` also reads its description from its source file into
+  `__doc__` when docstrings are stripped, as `scripts/test_decision_note_terms.py` does. A
+  `python3 -OO` run raised `AttributeError` in the test that checks the description; it now
+  passes. A new test runs it with `-OO` in a subprocess, and another checks that the
+  description read from the file is the docstring. The checks and the description are
+  unchanged.
 - A test in `scripts/test_decision_note_terms.py` pins the paragraph of its description on a
   possessive before gate: the description must carry the sentence "The capital letter is
   the only sign of a name the tests read", the two examples found as a name ("Verifier's
@@ -433,15 +439,20 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   policy sample uses for `jurisdiction`: version negotiation (step 2) is marked as a
   conformance Level 2 requirement and not performed, the broker's signing key (step 4) as
   held in memory and not rotated, and the audit record (step 7) as written and not signed.
-  A paragraph after the flow names the broker profile section that defines each. The
-  implementation status note of broker profile Section 14 adds the signature on audit
+  A paragraph after the flow names the broker profile section that defines each (Section
+  8.1 for version negotiation, Section 11 for the rotating signing key, Section 6.7 for the
+  signed audit log) and Section 13 for the Level 2 requirement, writing the broker profile's
+  name next to each number so that `scripts/check_section_citations.py` resolves every one.
+  The implementation status note of broker profile Section 14 adds the signature on audit
   records of Section 6.7 to what its list does not describe, and the reference
   implementation paragraph of `AAP-SPEC.md` cites it (broker profile §6.7) with the other
   parts outside that surface. Editorial: no requirement changes, and the counts of MUST,
   MUST NOT, SHOULD, SHOULD NOT and MAY in the three documents are unchanged.
   `scripts/test_worked_example_status.py` checks that each of the three steps carries its
-  note and that the Section 14 note names the audit signature;
-  `scripts/test_reference_status.py` checks that the AAP-SPEC paragraph cites Section 6.7.
+  note, that the paragraph cites for each step a broker profile section whose text defines
+  that step, that the citation check reads every section number in the paragraph, and that
+  the Section 14 note names the audit signature; `scripts/test_reference_status.py` checks
+  that the AAP-SPEC paragraph cites Section 6.7.
 - Three entries above state the rule of `scripts/test_decision_note_terms.py` on a
   possessive before gate with the letters its pattern reads: the word "starts with a
   capital letter, A to Z", as the description of the tests says. They named a capital
