@@ -193,6 +193,14 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   the pattern those verifiers match, and the suite's `conformance.json` as the record of
   that pattern. `scripts/test_readme_tokens.py` reads each token's payload and checks that
   the README names the tokens on each side. No requirement, schema or token changes.
+- The reference implementation paragraph of `AAP-SPEC.md` no longer credits the reference
+  implementation with the whole resolution flow of broker profile Section 6. It names the
+  verification, policy, minting, exchange and worker steps, and cites the implementation
+  status note of broker profile Section 14 for the parts outside the implemented surface:
+  presentation binding (6.8), the grant revocation list (6.9), the data clearance rules
+  (6.10), revocation after resolution (6.13) and the policy compile step (7.3).
+  `scripts/test_reference_status.py` reads the sections that note names and checks that
+  the paragraph cites each of them and the note. Editorial: no requirement changes.
 
 ### Added
 
