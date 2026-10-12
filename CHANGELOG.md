@@ -392,6 +392,12 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   start a sentence ("The verifier's gate"), and the failure of the test on a possessive
   before gate now prints that rewrite. The forms found are unchanged, and each case named
   here has a test phrase. No decision note changes.
+- When docstrings are stripped (`python3 -OO`, `PYTHONOPTIMIZE=2`), `__doc__` is `None`, and
+  `scripts/test_decision_note_terms.py` now reads its description from its source file into
+  `__doc__`. Such a run raised `AttributeError` in the two tests that check the description;
+  they now pass. A new test runs them with `-OO` in a subprocess, and another checks that the
+  description read from the file is the docstring. The patterns, the description and the
+  decision notes are unchanged.
 - A test in `scripts/test_decision_note_terms.py` pins the paragraph of its description on a
   possessive before gate: the description must carry the sentence "The capital letter is
   the only sign of a name the tests read", the two examples found as a name ("Verifier's
