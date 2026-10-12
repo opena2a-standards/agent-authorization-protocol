@@ -107,7 +107,7 @@ This is deliverable 3 in the reference implementation, the artifact that demonst
 ## Threat-matrix mapping
 
 This flow neutralizes the substrate for AI Agent Threat Matrix techniques
-[T-3002](https://threats.opena2a.org/techniques/T-3002) (Environment Variable Exposure),
+[T-3002](https://threats.opena2a.org/techniques/T-3002) (Environment Variable Leakage),
 [T-3003](https://threats.opena2a.org/techniques/T-3003) (Tool Response Credential Capture),
 [T-3006](https://threats.opena2a.org/techniques/T-3006) (Context Window Credential Leak), and
 [T-8002](https://threats.opena2a.org/techniques/T-8002) (HTTP Callback exfiltration): a compromised

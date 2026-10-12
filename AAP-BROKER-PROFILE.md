@@ -724,7 +724,7 @@ Agent Threat Matrix (https://threats.opena2a.org). By construction, no credentia
 agent context, which removes the substrate those techniques operate on. AAP references the following
 technique IDs (resolve the canonical titles from the live taxonomy):
 
-- **T-3002, Environment Variable Exposure.** AAP keeps secrets out of the agent's environment;
+- **T-3002, Environment Variable Leakage.** AAP keeps secrets out of the agent's environment;
   there is no env var for an agent or a compromised tool to read.
 - **T-3003, Tool Response Credential Capture.** The broker returns only operation results, never a
   credential, so there is nothing to capture in a tool response that crosses the context.

@@ -240,6 +240,12 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   suggested a second channel that does not exist. `scripts/test_contact_addresses.py`
   fails on any line of a document that names the same address twice. It runs in CI
   through `scripts/validate_examples.py`.
+- `examples/orders-db-exchange.md` and `AAP-BROKER-PROFILE.md` (Section 12.1) name AI Agent
+  Threat Matrix technique T-3002 "Environment Variable Leakage", the name its page carries;
+  they named it "Environment Variable Exposure". `scripts/test_threat_matrix_names.py` holds
+  the matrix's name for each of the four techniques the two documents cite (T-3002, T-3003,
+  T-3006, T-8002) and fails when a citation names one otherwise. Editorial: no requirement
+  changes.
 
 ### Added
 
