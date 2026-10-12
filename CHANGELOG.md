@@ -235,6 +235,35 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/test_sdk_sample.py` parses the sample and checks that every name the decorated
   function reads is defined, that the function obtains the handle, and that it calls only
   `request` with that method's parameters. Editorial: no requirement changes.
+- `CONTRIBUTING.md` names one address for security findings and coordinated disclosure,
+  info@opena2a.org. The line named that address on both sides of an "or", which
+  suggested a second channel that does not exist. `scripts/test_contact_addresses.py`
+  fails on any line of a document that names the same address twice. It runs in CI
+  through `scripts/validate_examples.py`.
+- `examples/orders-db-exchange.md` and `AAP-BROKER-PROFILE.md` (Section 12.1) name AI Agent
+  Threat Matrix technique T-3002 "Environment Variable Leakage", the name its page carries;
+  they named it "Environment Variable Exposure". `scripts/test_threat_matrix_names.py` holds
+  the matrix's name for each of the four techniques the two documents cite (T-3002, T-3003,
+  T-3006, T-8002) and fails when a citation names one otherwise. Editorial: no requirement
+  changes.
+- Section 9.4 names ATX and ATP, not AIP, as the specifications that cite its signature
+  gate for their own signature arrays. ATX `core.md` and `ATP-SPEC.md` cite AAP Section
+  9.4; `AIP-SPEC.md` does not mention it. The 0.5.1-draft entry below is corrected the
+  same way. `scripts/test_signature_gate_citers.py` checks that the Section 9.4 sentence
+  names exactly the specifications recorded as citing it. Editorial: no requirement
+  changes, and the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are unchanged.
+- Broker profile Section 8.5 cites the specification that defines each of two transport
+  bindings. The `Agent-Trust-Credential` header was attributed to ATP, whose `ATP-SPEC.md`
+  does not name it; the ATX specification does (`atx-spec/core.md` Sections 1.2 and 3.2),
+  and the HTTP binding cites it. The A2A agent card binding placed the ATX under the `atp`
+  object of the card; that object (ATP Section 3.4) has the members `did`, `trustProof`
+  and `trustAuthorityDid`, and the ATX specification reads the credential from the `atx`
+  field of the card (`atx-spec/core.md` Section 3.2), which the binding now names. The MCP
+  manifest binding is unchanged. No requirement changes: the counts of MUST, MUST NOT,
+  SHOULD, SHOULD NOT and MAY in both documents are unchanged.
+  `scripts/test_transport_bindings.py` reads the list of Section 8.5 and checks both
+  citations, the `atx` field, and that the agent card binding does not place the ATX in
+  the `atp` object.
 
 ### Added
 
@@ -407,8 +436,9 @@ revision there and carries 0.4.0-draft. The broker profile moves to 0.4.1-draft 
 
 - Section 9.4 is marked as the one home of the family signature gate (every declared
   entry verifies; an ML-DSA-65 entry requires a verifying EdDSA entry; otherwise
-  `HYBRID_INCOMPLETE`), which ATX, ATP and AIP now cite. The broker profile's validity
-  window cites the family clock-skew bound in ATP Section 10.2.
+  `HYBRID_INCOMPLETE`), which ATX and ATP cite. This release's Section 9.4, and
+  `draft-fane-opena2a-aap-02`, also name AIP as citing it; AIP does not. The broker
+  profile's validity window cites the family clock-skew bound in ATP Section 10.2.
 - The `trust_class` example uses a domain-prefixed namespace (`acme.com/orders:read`), the
   AIP Section 4.1 grammar; a bare unreserved namespace is not a valid capability.
   Section 4.2 states that both aap-conformance reference verifiers match `trust_class`

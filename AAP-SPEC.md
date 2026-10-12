@@ -844,8 +844,8 @@ eyJhbGciOiJNTC1EU0EtNjUiLCJ0eXAiOiJKV1QiLCJraWQiOiJicm9rZXItcHFjLTEifQ.eyJpc3MiO
 <!-- opena2a-definition: signature-family-gate -->
 This section is the one home of the family signature gate: every declared signature entry
 MUST verify, and an artifact that declares an ML-DSA-65 entry MUST also carry a verifying
-Ed25519 (EdDSA) entry, otherwise it is rejected as `HYBRID_INCOMPLETE`. ATX, ATP and AIP
-cite this rule for their own signature arrays rather than restate it.
+Ed25519 (EdDSA) entry, otherwise it is rejected as `HYBRID_INCOMPLETE`. ATX and ATP cite
+this rule for their own signature arrays rather than restate it.
 
 Where more than one signature is required — the hybrid post-quantum profile of §8.2 —
 the token is carried as JWS General JSON Serialization (RFC 7515 §7.2.1), pinned by

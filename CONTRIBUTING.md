@@ -23,7 +23,7 @@ We especially welcome:
 
 - Open an issue or pull request on this repository.
 - Or email info@opena2a.org with "co-author" in the subject line.
-- For security findings or coordinated disclosure, email info@opena2a.org or info@opena2a.org.
+- For security findings or coordinated disclosure, email info@opena2a.org.
 
 Small fixes (typos, broken links, clarifications) can go straight to a pull request. For anything that changes the protocol surface, the broker profile, or the credential-provider modes, open an issue first so the change can be discussed before implementation work begins.
 
