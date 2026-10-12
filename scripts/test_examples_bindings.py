@@ -11,10 +11,14 @@ binding added to Section 8.5 without a worked example fails here. CI runs these
 tests through validate_examples.py.
 """
 
+import pathlib
 import re
+import sys
 import unittest
 
-import check_naming
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+import check_naming  # noqa: E402
 
 ROOT = check_naming.ROOT
 PROFILE = ROOT / "AAP-BROKER-PROFILE.md"
