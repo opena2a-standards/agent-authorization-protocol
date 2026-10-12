@@ -421,6 +421,20 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   where a period and then whitespace come directly before a capital letter A to Z, a
   backtick, a straight double quotation mark or an opening parenthesis. The patterns and
   the decision notes are unchanged.
+- The resolution flow of `examples/orders-db-exchange.md` marks the three steps the v1
+  reference implementation does not perform as drawn, with a `v1:` note in the form the
+  policy sample uses for `jurisdiction`: version negotiation (step 2) is marked as a
+  conformance Level 2 requirement and not performed, the broker's signing key (step 4) as
+  held in memory and not rotated, and the audit record (step 7) as written and not signed.
+  A paragraph after the flow names the broker profile section that defines each. The
+  implementation status note of broker profile Section 14 adds the signature on audit
+  records of Section 6.7 to what its list does not describe, and the reference
+  implementation paragraph of `AAP-SPEC.md` cites it (broker profile §6.7) with the other
+  parts outside that surface. Editorial: no requirement changes, and the counts of MUST,
+  MUST NOT, SHOULD, SHOULD NOT and MAY in the three documents are unchanged.
+  `scripts/test_worked_example_status.py` checks that each of the three steps carries its
+  note and that the Section 14 note names the audit signature;
+  `scripts/test_reference_status.py` checks that the AAP-SPEC paragraph cites Section 6.7.
 
 ### Added
 

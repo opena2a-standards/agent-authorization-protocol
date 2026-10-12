@@ -59,21 +59,29 @@ repository, in `src/broker/grant-policy.ts`.
 ```
 agent ──grant://orders-db + ATX──▶ broker (unix socket)
                                    │ 1. verify ATX: sig + suite + expiry + cached CRL  (AIM path)
-                                   │ 2. negotiate AAP version
+                                   │ 2. negotiate AAP version  (conformance Level 2; v1: not performed)
                                    │ 3. evaluate policy → mode=exchange, scope=orders.read  (default-deny)
                                    │ 4. mint broker assertion from ATX claims (subject, acme.com/orders:read, ttl)
                                    │       signed with broker's rotating delegated key
+                                   │       (v1: key held in memory, not rotated)
                                    │ 5. RFC 8693 token exchange ▶ orders-idp
                                    │       grant_type=urn:ietf:params:oauth:grant-type:token-exchange
                                    │       subject_token=<broker assertion>  scope=orders.read
                                    │    ◀ scoped downstream access token (lives only here)
                                    │ 6. ephemeral worker runs the query with the scoped token
                                    │ 7. signed audit: verify + decision + exchange + result
+                                   │       (v1: audit record written, not signed)
 agent ◀──────── rows only ────────┘
 ```
 
 The scoped downstream token exists only inside the broker's ephemeral worker (step 6). It never
 enters the agent process or context. A denial at any step returns the same opaque typed error.
+
+A `v1:` note marks a step the v1 reference implementation does not perform as drawn, in the form
+the policy sample uses for `jurisdiction`. Version negotiation (step 2) is a requirement of
+conformance Level 2 in the broker profile (Section 13), and the v1 reference targets Level 1. The
+broker profile describes a rotating signing key (step 4, Section 6.8) and requires a signed audit
+log (step 7, Section 6.7); its Section 14 lists what the reference implementation provides.
 
 ## 4. RFC 8693 request the broker makes (illustrative)
 
