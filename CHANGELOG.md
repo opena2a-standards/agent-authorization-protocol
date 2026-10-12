@@ -246,6 +246,12 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   the matrix's name for each of the four techniques the two documents cite (T-3002, T-3003,
   T-3006, T-8002) and fails when a citation names one otherwise. Editorial: no requirement
   changes.
+- Section 9.4 names ATX and ATP, not AIP, as the specifications that cite its signature
+  gate for their own signature arrays. ATX `core.md` and `ATP-SPEC.md` cite AAP Section
+  9.4; `AIP-SPEC.md` does not mention it. The 0.5.1-draft entry below is corrected the
+  same way. `scripts/test_signature_gate_citers.py` checks that the Section 9.4 sentence
+  names exactly the specifications recorded as citing it. Editorial: no requirement
+  changes, and the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are unchanged.
 
 ### Added
 
@@ -418,8 +424,9 @@ revision there and carries 0.4.0-draft. The broker profile moves to 0.4.1-draft 
 
 - Section 9.4 is marked as the one home of the family signature gate (every declared
   entry verifies; an ML-DSA-65 entry requires a verifying EdDSA entry; otherwise
-  `HYBRID_INCOMPLETE`), which ATX, ATP and AIP now cite. The broker profile's validity
-  window cites the family clock-skew bound in ATP Section 10.2.
+  `HYBRID_INCOMPLETE`), which ATX and ATP cite. This release's Section 9.4, and
+  `draft-fane-opena2a-aap-02`, also name AIP as citing it; AIP does not. The broker
+  profile's validity window cites the family clock-skew bound in ATP Section 10.2.
 - The `trust_class` example uses a domain-prefixed namespace (`acme.com/orders:read`), the
   AIP Section 4.1 grammar; a bare unreserved namespace is not a valid capability.
   Section 4.2 states that both aap-conformance reference verifiers match `trust_class`
