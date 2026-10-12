@@ -527,7 +527,7 @@ class ChangelogEntriesTest(unittest.TestCase):
                     self.assert_the_entries_read_are_stated_with_the_backticks(entries)
                 self.assertIn(NO_SENTENCE_ON_THE_ENTRIES_READ, str(raised.exception))
 
-    def test_a_sentence_ends_only_where_the_split_is_described(self):
+    def test_a_sentence_ends_where_the_split_is_described(self):
         first = f"- {PATH_IN_BACKTICKS} finds go-ahead in any letter case."
         # A period and then whitespace end a sentence before a capital letter A to
         # Z, a backtick, a straight double quotation mark and an opening
@@ -541,9 +541,9 @@ class ChangelogEntriesTest(unittest.TestCase):
             with self.subTest(split_before=second[0]):
                 self.assertEqual(sentences(f"{first} {second}"), [first, second])
                 self.assertEqual(sentences(f"{first}\n  {second}"), [first, second])
-        # They end none before another character: a lower-case letter, a digit,
-        # a capital letter outside A to Z, a curly or a single quotation mark, an
-        # opening bracket.
+        # They end none before a lower-case letter, a digit, a capital letter
+        # outside A to Z, a curly or a single quotation mark or an opening
+        # bracket.
         for second in (
             "the patterns are unchanged.",
             "24 tests pass.",

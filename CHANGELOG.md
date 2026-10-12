@@ -520,8 +520,8 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   the first two. The pattern, the description and the decision notes are unchanged.
 - A test of `scripts/test_decision_note_terms.py` pins where its changelog tests end a
   sentence: where a period and then whitespace come directly before a capital letter A to
-  Z, a backtick, a straight double quotation mark or an opening parenthesis, and nowhere
-  else. No test covered the last three, and a split that read only a capital letter A to
+  Z, a backtick, a straight double quotation mark or an opening parenthesis. No test
+  covered the last three, and a split that read only a capital letter A to
   Z there passed all 24 tests; it now fails one. The test has a phrase for each of the
   four, for a lower-case letter, a digit, a capital letter outside A to Z, a curly and a
   single quotation mark and an opening bracket, before which no sentence ends, and for a
