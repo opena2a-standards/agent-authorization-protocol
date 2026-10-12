@@ -2,7 +2,7 @@
 
 ## Resolving Agent Trust Into Resource Access Without Exposing Credentials
 
-**Version:** 0.4.1-draft
+**Version:** 0.4.1-draft plus unreleased changes (see [Unreleased] in [CHANGELOG.md](./CHANGELOG.md))
 **Authors:** OpenA2A
 **Date:** October 2026
 **Status:** Draft companion to [`AAP-SPEC.md`](./AAP-SPEC.md). Intended for the IETF Internet-Draft.

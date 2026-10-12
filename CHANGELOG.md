@@ -212,6 +212,19 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/test_resolve_key_spelling.py` reads the `resolve` clause of both bindings and
   fails on a key the loader does not accept that carries no such comment. Editorial: no
   requirement changes.
+- The version line of AAP-SPEC.md reads "0.5.1-draft plus unreleased changes (see
+  [Unreleased] in CHANGELOG.md)", and that of the broker profile "0.4.1-draft plus
+  unreleased changes" in the same form. Both documents carried their released label while
+  the entries in this section changed their requirements, so a reader comparing main with
+  `draft-fane-opena2a-aap-02` found different requirements under the same version. The
+  Status section of `README.md` names 0.5.1-draft and 0.4.1-draft as the last released
+  versions and says that the text on main moves ahead of them between releases. At a
+  release both lines move to the new versions without the suffix. Editorial: no
+  requirement changes, and the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both
+  documents are unchanged. `scripts/check_version_labels.py` fails when the [Unreleased]
+  section records a change and a version line lacks the suffix, when the section records
+  none and a line carries it, and when the version AAP-SPEC.md names is not that of the
+  newest released section. It runs in CI through `scripts/validate_examples.py`.
 
 ### Added
 
