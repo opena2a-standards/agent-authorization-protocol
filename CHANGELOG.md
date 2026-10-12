@@ -235,6 +235,11 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/test_sdk_sample.py` parses the sample and checks that every name the decorated
   function reads is defined, that the function obtains the handle, and that it calls only
   `request` with that method's parameters. Editorial: no requirement changes.
+- `CONTRIBUTING.md` names one address for security findings and coordinated disclosure,
+  info@opena2a.org. The line named that address on both sides of an "or", which
+  suggested a second channel that does not exist. `scripts/test_contact_addresses.py`
+  fails on any line of a document that names the same address twice. It runs in CI
+  through `scripts/validate_examples.py`.
 
 ### Added
 
