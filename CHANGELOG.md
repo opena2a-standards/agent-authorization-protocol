@@ -460,9 +460,10 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/test_worked_example_status.py` checks that each of the three steps carries its
   note, that the paragraph cites for each step a broker profile section whose text defines
   that step, that the citation check reads every section number in the paragraph, written
-  after "Section", "Sections", "§" or "§§" or listed after such a number (the markers and
-  lists the citation check reads, so a "§99" or a "Sections 99" without the broker
-  profile's name fails it), and that the Section 14 note names the audit signature;
+  after "Section", "Sections", "§" or "§§" or listed after such a number (the markers the
+  citation check reads, so a "§99" or a "Sections 99" without the broker profile's name
+  fails it, as does a number listed without its own marker after "Section" or "§", which
+  that check does not read), and that the Section 14 note names the audit signature;
   `scripts/test_reference_status.py` checks that the AAP-SPEC paragraph cites Section 6.7.
 - Three entries above state the rule of `scripts/test_decision_note_terms.py` on a
   possessive before gate with the letters its pattern reads: the word "starts with a
@@ -574,14 +575,35 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 - `scripts/test_worked_example_status.py` counts each section number of a list in the
   paragraph after the resolution flow of `examples/orders-db-exchange.md`, reading a list
   after "Sections" or "§§" as `scripts/check_section_citations.py` does ("Sections 6.8 and
-  6.9", "§7, §11"). It counted only the first number of a list, so a named list could hide
-  an unnamed number: "broker profile Sections 6.8 and 6.9. Step 4 is Section 6.9." passed
-  the comparison with the numbers the citation check reads, although that check does not
-  read the unnamed "Section 6.9", and "broker profile Sections 6.8 and 6.9." failed it,
-  although that check reads both. The first now fails and the second passes, in each of
-  three list forms a new test pins. The paragraph cites no list, so the test passes on it
-  as before; the entry above that describes the test says that lists are counted. The
-  citation check is unchanged.
+  6.9", "§§6.8, 6.9"). It counted only the first number of a list, so a named list could
+  hide an unnamed number: "broker profile Sections 6.8 and 6.9. Step 4 is Section 6.9."
+  passed the comparison with the numbers the citation check reads, although that check
+  does not read the unnamed "Section 6.9", and "broker profile Sections 6.8 and 6.9."
+  failed it, although that check reads both. The first now fails and the second passes, in
+  each of three list forms a new test pins. Counting with the grammar of that check also
+  counts the other numbers it reads: a number written without a space after "Section" or
+  "Sections" ("Section8"), a number after "Section" or "Sections" joined to the word before
+  it ("appliesSections 77"), and a number with a letter suffix, counted as "6.8a" where the
+  test counted "6.8". The paragraph cites no list and none of these forms, so the test
+  passes on it as before; the entry above that describes the test says that lists are
+  counted. The citation check is unchanged.
+- `scripts/test_worked_example_status.py` counts once a section number that two
+  citations of the broker profile read, and counts a number listed without its own marker
+  after "Section" or "§". The comparison took every number of every citation
+  `scripts/check_section_citations.py` returns, and that check returns two citations of
+  "broker profile Sections 6.8 and 6.9 of the broker profile", one for the name before the
+  numbers and one for the name after them. So that phrase followed by "Step 4 is Section
+  6.8 and step 5 is Section 6.9." passed the comparison, although that check reads neither
+  unnamed number, and the phrase alone failed it, although that check reads both. After
+  "Section" or "§" that check reads a later number of a list only when it has its own
+  marker, and the test counted with the same grammar, so neither read the 6.9 of "broker
+  profile Section 6.8 and 6.9" and the comparison passed. The test now compares where each
+  number is written with where that check reads one, and counts each later number of a list
+  after any of the four markers. The first phrase with the unnamed numbers and "broker
+  profile Section 6.8 and 6.9" now fail, the phrase alone passes, and new tests pin each,
+  with the same for one number and for "§" lists. Each citation the check returns also
+  records where its numbers start; what the check reads and reports is unchanged. The
+  paragraph is unchanged and the test passes on it.
 
 ### Added
 

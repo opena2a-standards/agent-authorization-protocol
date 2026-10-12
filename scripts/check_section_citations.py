@@ -129,6 +129,7 @@ class Citation:
     numbers: tuple[str, ...]
     names_text: bool  # the citation itself names the text file
     quote: str
+    offsets: tuple[int, ...] = ()  # where each of numbers starts in the text
 
 
 def classify(name: str) -> tuple[Document, bool]:
@@ -150,7 +151,8 @@ def citations(file: str, text: str) -> list[Citation]:
                 names_text or doc.name == "broker profile"
             ):
                 continue
-            numbers = match.group("plural") or match.group("single")
+            group = "plural" if match.group("plural") else "single"
+            numbers = match.group(group)
             found.setdefault(
                 match.start(),
                 Citation(
@@ -160,6 +162,7 @@ def citations(file: str, text: str) -> list[Citation]:
                     tuple(NUMBER.findall(numbers)),
                     names_text,
                     " ".join(match.group(0).split()),
+                    tuple(match.start(group) + n.start() for n in NUMBER.finditer(numbers)),
                 ),
             )
     return [found[start] for start in sorted(found)]
