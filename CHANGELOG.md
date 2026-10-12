@@ -309,6 +309,12 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   reasoning are unchanged. `scripts/test_decision_note_terms.py` checks that no note in
   `decisions/` credits a recommendation to a group by a possessive or qualifies a threat
   model with an abbreviation. Editorial: no requirement changes.
+- The ML-DSA-65 decision note records when option (B) was adopted and when the -01
+  resubmission condition was set (2026-07-16) without naming who approved them, and its
+  ESCALATION heading no longer names who was asked. The decision and its reasoning are
+  unchanged. `scripts/test_decision_note_terms.py` also checks that no note in
+  `decisions/` credits a go-ahead, gate, approval or sign-off to someone by a possessive or
+  says from whom something was requested. Editorial: no requirement changes.
 - `examples/transport-bindings.md` agrees with broker profile Section 8.5. Its HTTP section
   said the ATX travels in a request header "as in ATP"; it now names the
   `Agent-Trust-Credential` header and cites the ATX specification for it

@@ -3,7 +3,7 @@
 **Date:** 2026-07-16
 **Status:** Decided. The one escalated knob (see ESCALATION) proceeded with the option
 that section recommends — option (B), `EdDSA` default on foreign-interop paths through an
-adoption window — with Abdel's go-ahead to continue (2026-07-16). Flipping to (A)
+adoption window — on 2026-07-16. Flipping to (A)
 remains a one-sentence §9.3 change plus the broker's foreign-lane default; the
 re-evaluation triggers in ESCALATION stand either way.
 **Trigger:** RFC 9964 ("ML-DSA for JOSE and COSE", Standards Track, May 2026) registers
@@ -105,7 +105,7 @@ JOSE"). The gate condition is satisfied; the row flips or the spec is stale.
   gain; the General JSON profile is standard JWS today and degrades gracefully if
   a composite registration later appears (a new registry row, per §9.5).
 
-## ESCALATION (the one contested knob — ratification requested from Abdel)
+## ESCALATION (the one contested knob)
 
 **Does the RECOMMENDED default suite on the foreign-interop compact lane flip to
 ML-DSA-65 now, or stay EdDSA through an adoption window?**
@@ -140,4 +140,4 @@ foreign-lane default (a one-line change either way).
   categories (the latter implements §8.1's jti-replay MUST, previously
   unimplemented).
 - draft-fane-opena2a-aap resubmits as -01 only after all of the above lands
-  (Abdel's gate, 2026-07-16).
+  (a condition set on 2026-07-16).
