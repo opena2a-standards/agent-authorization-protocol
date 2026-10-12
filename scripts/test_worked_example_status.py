@@ -14,10 +14,10 @@ profile section that defines it: the first broker profile section the paragraph
 names after "(step N)" has a numbered heading, and its text, up to the next
 heading, holds a phrase that defines the step (the heading "Versioning and
 negotiation" for step 2, which Section 13, the conformance table, does not
-hold). Each section number in the paragraph, written after "Section" or "§" or
-listed after such a number ("Sections 6.8 and 6.9"), is in a citation next to
-the broker profile's name, so check_section_citations.py, which reads a number
-only there, reads every one.
+hold). Each section number in the paragraph, written after "Section",
+"Sections", "§" or "§§" or listed after such a number ("Sections 6.8 and 6.9"),
+is in a citation next to the broker profile's name, so
+check_section_citations.py, which reads a number only there, reads every one.
 
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
@@ -193,6 +193,20 @@ class WorkedExampleStatusTest(unittest.TestCase):
                 self.assertEqual(written_section_numbers(hidden), ["6.8", "6.9", "6.9"])
                 self.assertNotEqual(
                     read_section_numbers(hidden), written_section_numbers(hidden)
+                )
+
+    def test_a_section_number_written_after_the_word_section_is_counted(self):
+        # "Sections 99" without the broker profile's name is not read by the
+        # citation check either; the paragraph itself writes only "Section N".
+        paragraph = status_paragraph()
+        self.assertIn("targets Level 1.", paragraph)
+        for word in ("Section 99", "Sections 99"):
+            with self.subTest(word=word):
+                unnamed = paragraph.replace("targets Level 1.", f"targets Level 1 ({word}).")
+                self.assertIn("99", written_section_numbers(unnamed))
+                self.assertNotIn("99", read_section_numbers(unnamed))
+                self.assertNotEqual(
+                    read_section_numbers(unnamed), written_section_numbers(unnamed)
                 )
 
 
