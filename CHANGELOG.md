@@ -252,6 +252,13 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   same way. `scripts/test_signature_gate_citers.py` checks that the Section 9.4 sentence
   names exactly the specifications recorded as citing it. Editorial: no requirement
   changes, and the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are unchanged.
+- `scripts/test_signature_gate_citers.py` also reads the Section 9.4 sentence in the XML
+  source of every Internet-Draft after the filed revisions -00 to -02 and fails when the
+  sentence is missing or does not name exactly ATX and ATP. The text render is generated
+  from that source. `draft-fane-opena2a-aap-02` is left as filed: its sentence still reads
+  "ATX, ATP and AIP cite this rule", as the 0.5.1-draft entry records, and the test pins
+  that reading. A `draft-fane-opena2a-aap-03` source passes only with "ATX and ATP cite
+  this rule". Editorial: no requirement changes.
 - Broker profile Section 8.5 cites the specification that defines each of two transport
   bindings. The `Agent-Trust-Credential` header was attributed to ATP, whose `ATP-SPEC.md`
   does not name it; the ATX specification does (`atx-spec/core.md` Sections 1.2 and 3.2),
