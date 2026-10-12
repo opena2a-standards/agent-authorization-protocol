@@ -362,6 +362,27 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   there's, here's, what's, who's and let's are not read as possessives. Each form has a
   test phrase, so removing "approval" or "sign-off" from the pattern fails a test where
   all five tests passed. No decision note changes.
+- The description of `scripts/test_decision_note_terms.py` no longer says its tests find
+  the listed forms and no others. It names the two forms that credit no one and are found
+  where a possessive would be: a word ending in s and closed by a straight or curly
+  quotation mark ("the 'editors' approval"), and a contraction other than it's, that's,
+  there's, here's, what's, who's and let's ("she's the approval"). A test checks that the
+  patterns find both and that the description names them. The patterns and the decision
+  notes are unchanged.
+- `scripts/test_decision_note_terms.py` pins the two-letter minimum of its check on an
+  abbreviation before "threat model". Its test phrases now include two capital letters,
+  which are found ("XY threat model"), and one, which is not ("A threat model"). With a
+  three-letter phrase alone, the test did not fail when the pattern read one capital
+  letter as an abbreviation or required three. The pattern and the decision notes are
+  unchanged.
+- The description of `scripts/test_decision_note_terms.py` states a limit of its check on a
+  possessive before gate: the capital letter is the only sign of a name it reads, so a
+  common noun written with one is found as a name is ("Xyz's gate"), at the start of a
+  sentence or a list item ("Verifier's gate rejects a missing family") and in a heading in
+  title case. A note writes such a noun in lower case, with a word before it where it would
+  start a sentence ("The verifier's gate"), and the failure of the test on a possessive
+  before gate now prints that rewrite. The forms found are unchanged, and each case named
+  here has a test phrase. No decision note changes.
 
 ### Added
 
