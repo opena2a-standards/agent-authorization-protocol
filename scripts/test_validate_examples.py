@@ -24,6 +24,7 @@ import check_requirement_references  # noqa: E402
 import check_status_claims  # noqa: E402
 import check_section_citations  # noqa: E402
 import check_spelling  # noqa: E402
+import check_version_labels  # noqa: E402
 import validate_examples  # noqa: E402
 
 PASSING = "import unittest\n\nclass T(unittest.TestCase):\n    def test_ok(self):\n        pass\n"
@@ -86,7 +87,8 @@ class RunUnitTestsTest(unittest.TestCase):
 
 class MainTest(unittest.TestCase):
     def run_main(self, unit_test_failures, status_claim_failures=0,
-                 section_citation_failures=0, raw_html_failures=0, spelling_failures=0):
+                 section_citation_failures=0, raw_html_failures=0, spelling_failures=0,
+                 version_label_failures=0):
         out = io.StringIO()
         with mock.patch.object(validate_examples, "run_unit_tests",
                                return_value=unit_test_failures) as run, \
@@ -99,6 +101,8 @@ class MainTest(unittest.TestCase):
                                   return_value=raw_html_failures) as raw_html, \
                 mock.patch.object(check_spelling, "check",
                                   return_value=spelling_failures) as spelling, \
+                mock.patch.object(check_version_labels, "check",
+                                  return_value=version_label_failures) as version_labels, \
                 contextlib.redirect_stdout(out):
             code = validate_examples.main()
         run.assert_called_once_with()
@@ -106,6 +110,7 @@ class MainTest(unittest.TestCase):
         cite.assert_called_once_with()
         raw_html.assert_called_once_with()
         spelling.assert_called_once_with()
+        version_labels.assert_called_once_with()
         return code, out.getvalue()
 
     def test_unit_test_failure_fails_validation(self):
@@ -128,6 +133,11 @@ class MainTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("1 failure(s)", out)
 
+    def test_version_label_failure_fails_validation(self):
+        code, out = self.run_main(0, version_label_failures=1)
+        self.assertEqual(code, 1)
+        self.assertIn("1 failure(s)", out)
+
     def test_passing_unit_tests_pass_validation(self):
         code, out = self.run_main(0)
         self.assertEqual(code, 0)
@@ -145,7 +155,7 @@ class NotUtf8Test(unittest.TestCase):
 
     CHECKS = (check_naming, check_status_claims, check_references,
               check_requirement_references, check_section_citations, check_raw_html,
-              check_spelling)
+              check_spelling, check_version_labels)
     REASON = "not valid UTF-8 (invalid continuation byte at byte"
 
     def setUp(self):
@@ -210,7 +220,8 @@ class NotUtf8Test(unittest.TestCase):
         path = self.root / "CHANGELOG.md"
         path.write_bytes(path.read_bytes() + b"caf\xe9\n")
         results = self.run_checks()
-        for module in (check_naming, check_references, check_raw_html, check_spelling):
+        for module in (check_naming, check_references, check_raw_html, check_spelling,
+                       check_version_labels):
             failures, out = results[module]
             with self.subTest(check=module.__name__):
                 self.assertGreaterEqual(failures, 1, out)

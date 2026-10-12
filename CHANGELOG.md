@@ -185,6 +185,56 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/check_section_citations.py` reads the references from that root. Each check
   parses the render once; it parsed it twice, once to prove it well-formed and once to
   read its references. The output of both checks is unchanged.
+- `README.md` no longer calls the tokens in `examples/tokens/` "the valid token bytes". The
+  aap-conformance Node and Python verifiers at commit `99e213a` match `trust_class` against
+  `^[a-z0-9_-]+:[a-z0-9_-]+$` alone, so they accept `ait-v1.jwt`, `bac-v1.jwt` and
+  `bac-v1.session.jwt` and reject the seven CGT and DA tokens, which carry the
+  domain-prefixed `acme.com/orders:read`. The second use case names the tokens on each side,
+  the pattern those verifiers match, and the suite's `conformance.json` as the record of
+  that pattern. `scripts/test_readme_tokens.py` reads each token's payload and checks that
+  the README names the tokens on each side. No requirement, schema or token changes.
+- The reference implementation paragraph of `AAP-SPEC.md` no longer credits the reference
+  implementation with the whole resolution flow of broker profile Section 6. It names the
+  verification, policy, minting, exchange and worker steps, and cites the implementation
+  status note of broker profile Section 14 for the parts outside the implemented surface:
+  presentation binding (6.8), the grant revocation list (6.9), the data clearance rules
+  (6.10), revocation after resolution (6.13) and the policy compile step (7.3).
+  `scripts/test_reference_status.py` reads the sections that note names and checks that
+  the paragraph cites each of them and the note. Editorial: no requirement changes.
+- The policy binding for `grant://orders-db` in `examples/orders-db-exchange.md` and in
+  broker profile Section 7.1 names the reference implementation's spelling of the two
+  `resolve` keys its policy loader refuses as the grammar writes them: a comment on the
+  `provider` line gives `providerId`, and a comment on the `ttl: 300s` line gives
+  `ttlSeconds: 300`. A note under each binding lists the keys the loader accepts at commit
+  `660af0d` (`mode`, `providerId`, `scope`, `audience`, `ttlSeconds`) and names
+  `src/broker/grant-policy.ts` in the reference implementation's repository as the record
+  for a given release. The keys of the grammar are unchanged.
+  `scripts/test_resolve_key_spelling.py` reads the `resolve` clause of both bindings and
+  fails on a key the loader does not accept that carries no such comment. Editorial: no
+  requirement changes.
+- The version line of AAP-SPEC.md reads "0.5.1-draft plus unreleased changes (see
+  [Unreleased] in CHANGELOG.md)", and that of the broker profile "0.4.1-draft plus
+  unreleased changes" in the same form. Both documents carried their released label while
+  the entries in this section changed their requirements, so a reader comparing main with
+  `draft-fane-opena2a-aap-02` found different requirements under the same version. The
+  Status section of `README.md` names 0.5.1-draft and 0.4.1-draft as the last released
+  versions and says that the text on main moves ahead of them between releases. At a
+  release both lines move to the new versions without the suffix. Editorial: no
+  requirement changes, and the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both
+  documents are unchanged. `scripts/check_version_labels.py` fails when the [Unreleased]
+  section records a change and a version line lacks the suffix, when the section records
+  none and a line carries it, and when the version AAP-SPEC.md names is not that of the
+  newest released section. It runs in CI through `scripts/validate_examples.py`.
+- The SDK sample in `examples/orders-db-exchange.md` called `db.query(...)` with a SQL
+  string on a `db` name the AIM Python SDK does not provide, so the sample did not run as
+  written. The function now declares the `grant` parameter through which the
+  `@agent.perform_action` decorator passes the broker-backed handle, and calls the handle's
+  one method, `grant.request("GET", "/orders", query={"customer": customer_id})`. A
+  paragraph after the sample states that `aim_sdk.current_grant()` returns the same handle
+  and that `request` carries a logical HTTP operation to the broker.
+  `scripts/test_sdk_sample.py` parses the sample and checks that every name the decorated
+  function reads is defined, that the function obtains the handle, and that it calls only
+  `request` with that method's parameters. Editorial: no requirement changes.
 
 ### Added
 
@@ -334,6 +384,17 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   write. Words whose American spelling ends in -our or -ise ("hour", "detour", "advertise",
   "exercise", "improvisation") pass. README.md now spells "honor" the American way, as the
   rest of the repository does. It runs in CI through `scripts/validate_examples.py`.
+- `examples/transport-bindings.md`, a worked example of each initial binding of broker
+  profile Section 8.5: the HTTP `Agent-Trust-Credential` header, the `atp` object of an A2A
+  agent card and the reference in an MCP server manifest. For each it shows where the ATX
+  travels, the proof of presenter identity of Section 6.8 (an RFC 9421 HTTP Message
+  Signature, or a signed challenge), and what the broker reads before it evaluates policy.
+  README.md described `examples/` as covering transport bindings while the directory held
+  none; its entry now names each worked example and what it covers. Informative: no
+  requirement changes, and the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both
+  documents are unchanged. `scripts/test_examples_bindings.py` fails when a binding that
+  Section 8.5 lists has no heading in a Markdown file in `examples/`, and runs in CI through
+  `scripts/validate_examples.py`.
 
 ## [0.5.1-draft] - 2026-10-02
 

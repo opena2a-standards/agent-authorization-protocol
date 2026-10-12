@@ -20,9 +20,12 @@ requirement keyword cites an RFC its document lists only as informative),
 check_section_citations.py (each citation it reads, a
 family document named next to a section number, resolves and says which text it
 means), check_raw_html.py (no HTML tag, such as an angle-bracket placeholder,
-in Markdown prose) and check_spelling.py (American spelling of the -our and -ise
-word families in every Markdown document and Internet-Draft source), and runs
-the unit tests in scripts/ (test_*.py), so CI runs them.
+in Markdown prose), check_spelling.py (American spelling of the -our and -ise
+word families in every Markdown document and Internet-Draft source) and
+check_version_labels.py (the version line of AAP-SPEC.md and of the broker
+profile says "plus unreleased changes" while the [Unreleased] section of
+CHANGELOG.md records a change), and runs the unit tests in scripts/
+(test_*.py), so CI runs them.
 
 Formats (date-time, uuid) are treated as annotations, not assertions, matching
 library defaults across implementations; structural keywords (type, enum,
@@ -34,8 +37,9 @@ schemas/README.md use none of the wordings check_status_claims.py rejects, the s
 and its newest render agree on reference classes, no requirement cites an
 informative-only RFC, every citation
 check_section_citations.py reads resolves, no Markdown prose carries an HTML
-tag, every document uses the American spelling check_spelling.py reads, and
-every unit test passes.
+tag, every document uses the American spelling check_spelling.py reads, each
+version line says whether main carries unreleased changes, and every unit test
+passes.
 """
 
 import json
@@ -50,6 +54,7 @@ import check_references
 import check_requirement_references
 import check_section_citations
 import check_spelling
+import check_version_labels
 
 try:
     from jsonschema import Draft202012Validator
@@ -153,6 +158,7 @@ def main() -> int:
     failures += check_section_citations.check()
     failures += check_raw_html.check()
     failures += check_spelling.check()
+    failures += check_version_labels.check()
     failures += run_unit_tests()
 
     if failures:
@@ -163,7 +169,7 @@ def main() -> int:
         "no rejected implementation-status wording; reference classes agree; "
         "no requirement cites an informative-only RFC; "
         "section citations resolve; no HTML tag in Markdown prose; American spelling; "
-        "unit tests pass"
+        "version lines name the unreleased changes; unit tests pass"
     )
     return 0
 

@@ -2,7 +2,7 @@
 
 ## Scoped, Attested Authorization for AI Agent Systems
 
-**Version:** 0.5.1-draft
+**Version:** 0.5.1-draft plus unreleased changes (see [Unreleased] in [CHANGELOG.md](./CHANGELOG.md))
 **Authors:** OpenA2A
 **Date:** October 2026
 **Intended status:** Standards Track (IETF Internet-Draft; named individual authors will be attributed at Internet-Draft submission per IETF convention)
@@ -35,11 +35,15 @@ AAP has two layers:
 
 **Reference implementation.** The AAP broker reference implementation is
 [Secretless](https://github.com/opena2a-org/secretless-ai) (`src/broker/`, `src/grant/`): the
-`grant://` scheme, the resolution flow of §6 of the broker profile, the Credential Provider
-Interface with the Exchange mode (RFC 8693) implemented, credential confinement behind an
-ephemeral worker, and an in-repo end-to-end broker conformance test
-(`src/broker/aap-conformance.test.ts`). It targets broker conformance Level 1 (see
-[`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md) §13-§14). OpenA2A AIM (Agent Identity Management)
+`grant://` scheme, the verification, policy, minting, exchange and worker steps of the
+resolution flow of §6 of the broker profile, the Credential Provider Interface with the Exchange
+mode (RFC 8693) implemented, credential confinement behind an ephemeral worker, and an in-repo
+end-to-end broker conformance test (`src/broker/aap-conformance.test.ts`). It targets broker
+conformance Level 1 (see [`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md) §13-§14). The
+implementation status note of broker profile §14 names the parts of the resolution flow outside
+that surface: presentation binding, the grant revocation list, the data clearance rules and
+revocation after resolution (broker profile §6.8, §6.9, §6.10 and §6.13), and the policy compile
+step (broker profile §7.3). OpenA2A AIM (Agent Identity Management)
 supplies the developer surface the broker profile names (the `@agent.perform_action`
 decorator and 5-step fine-grained authorization) and is the reference implementation for the
 identity and trust layers AAP builds on (AIP, ATX, ATP); AIM does not implement the broker.

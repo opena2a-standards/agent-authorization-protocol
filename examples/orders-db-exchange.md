@@ -13,11 +13,16 @@ from aim_sdk import secure
 agent = secure("orders-reader")
 
 @agent.perform_action(capability="acme.com/orders:read", grant="grant://orders-db")
-def recent_orders(customer_id):
-    # `db` here is provided by the broker-backed result handle.
-    # No connection string, no token, no hostname is ever in scope.
-    return db.query("SELECT * FROM orders WHERE customer_id = ? LIMIT 20", customer_id)
+def recent_orders(customer_id, grant):
+    # `grant` is the broker-backed handle the SDK passes in. It names a logical
+    # operation; no connection string, no token, no hostname is ever in scope.
+    return grant.request("GET", "/orders", query={"customer": customer_id})
 ```
+
+The SDK passes the handle as the `grant` keyword argument when the function declares one, and
+`aim_sdk.current_grant()` returns the same handle. Its one method, `request(method, path, query,
+body)`, carries a logical HTTP operation to the broker, which resolves it; no query written against
+the backend's schema appears in agent code.
 
 Everything the model can see is `grant://orders-db` and the returned rows. It cannot tell that the
 grant resolves through an OAuth token exchange rather than a vaulted secret or a cloud role.
@@ -35,11 +40,19 @@ grant resolves through an OAuth token exchange rather than a vaulted secret or a
     jurisdiction: { in: [us, eu] }                            # v1: parsed, not enforced
   resolve:
     mode: exchange
-    provider: orders-idp        # thin adapter (e.g. Okta), name lives ONLY here
+    provider: orders-idp        # thin adapter (e.g. Okta), name lives ONLY here (reference loader: providerId)
     scope: orders.read
     audience: https://api.orders.internal
-    ttl: 300s
+    ttl: 300s                   # reference loader: ttlSeconds: 300
 ```
+
+**Reference spelling.** The binding above is written in the policy grammar of broker profile §7.1.
+At commit `660af0d` the policy loader of the reference implementation accepts `mode`, `providerId`,
+`scope`, `audience` and `ttlSeconds` in a `resolve` clause and refuses any other key, so it refuses
+the binding as written. It loads the binding once `provider: orders-idp` reads
+`providerId: orders-idp` and `ttl: 300s` reads `ttlSeconds: 300`; the `match` clause loads as
+written. The keys a given release accepts are recorded in the reference implementation's
+repository, in `src/broker/grant-policy.ts`.
 
 ## 3. Resolution flow (Section 6 of the broker profile)
 

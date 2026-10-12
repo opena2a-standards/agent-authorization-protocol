@@ -38,11 +38,11 @@ An agent authorized to buy holds a stored card. It can be argued into a second p
 
 Under AAP the agent holds a Capability Grant Token that names the trust class and scope a broker will honor; the broker denies anything outside a matching policy clause by default; and a Delegation Assertion must stay within its delegator's grant, so a delegated helper gets less, never more. A valid ATX is never permission on its own.
 
-What you can do today: `fixtures/da-compact-scope-superset.json` in the conformance suite rejects a delegation wider than its delegator, `fixtures/cgt-compact-expired.json` rejects an expired grant, and the valid token bytes are in [`examples/tokens/`](./examples/tokens/).
+What you can do today: `fixtures/da-compact-scope-superset.json` in the conformance suite rejects a delegation wider than its delegator, `fixtures/cgt-compact-expired.json` rejects an expired grant, and the token bytes this specification publishes are in [`examples/tokens/`](./examples/tokens/). The suite's Node and Python verifiers at commit `99e213a` accept three of them: `ait-v1.jwt`, `bac-v1.jwt` and `bac-v1.session.jwt`.
 
-Where it stops today: the same daemon limit applies. The tokens can be minted and verified; whether a given release of the daemon resolves a `grant://` reference against them is recorded in the reference implementation's repository.
+Where it stops today: the same daemon limit applies, and the suite's verifiers at commit `99e213a` match `trust_class` against `^[a-z0-9_-]+:[a-z0-9_-]+$` alone. They reject the seven CGT and DA tokens in [`examples/tokens/`](./examples/tokens/) (`cgt-v1.jwt`, `cgt-v1.fgc.jwt`, `cgt-v1.mldsa65.jwt`, `cgt-v1.general.json`, `cgt-v1.hybrid.general.json`, `da-v1.jwt` and `da-v1.fgc.jwt`), which carry the domain-prefixed `acme.com/orders:read` that AAP-SPEC Section 4.2 says a broker should mint; the suite's `conformance.json` records the pattern its verifiers match. The claim schemas in [`schemas/`](./schemas/) accept both forms. The tokens can be minted; whether a given release of the daemon resolves a `grant://` reference against them is recorded in the reference implementation's repository.
 
-Why you can check this yourself: [`AAP-SPEC.md`](./AAP-SPEC.md) and [`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md); the Internet-Draft [draft-fane-opena2a-aap](https://datatracker.ietf.org/doc/draft-fane-opena2a-aap/); [aap-conformance](https://github.com/opena2a-standards/aap-conformance), 44 byte-pinned fixtures with Node and Python verifiers; the published token bytes in [`examples/tokens/`](./examples/tokens/); and the broker library in [Secretless](https://github.com/opena2a-org/secretless-ai) under `src/broker/`.
+Why you can check this yourself: [`AAP-SPEC.md`](./AAP-SPEC.md) and [`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md); the Internet-Draft [draft-fane-opena2a-aap](https://datatracker.ietf.org/doc/draft-fane-opena2a-aap/); [aap-conformance](https://github.com/opena2a-standards/aap-conformance), 44 byte-pinned fixtures with Node and Python verifiers; the published token bytes in [`examples/tokens/`](./examples/tokens/), of which those verifiers at commit `99e213a` accept the three named above; and the broker library in [Secretless](https://github.com/opena2a-org/secretless-ai) under `src/broker/`.
 
 ## Contributing
 
@@ -91,12 +91,15 @@ AAP is defined in two documents:
 
 ## Status
 
-`AAP-SPEC.md` is at `0.5.1-draft`; the companion `AAP-BROKER-PROFILE.md` is at `0.4.1-draft`.
-Authored in the open as an IETF Internet-Draft: `draft-fane-opena2a-aap-02` (the 0.5.1-draft text,
-submitted 2026-10-02) is the current revision on the
-[datatracker](https://datatracker.ietf.org/doc/draft-fane-opena2a-aap/); its source and rendered
-text are in this repository. Each document carries its own version at the top;
-`CHANGELOG.md` records what moved between drafts and which draft revision pairs with which version.
+The last released versions are `0.5.1-draft` of `AAP-SPEC.md` and `0.4.1-draft` of the companion
+`AAP-BROKER-PROFILE.md`. Authored in the open as an IETF Internet-Draft:
+`draft-fane-opena2a-aap-02` (the 0.5.1-draft text, submitted 2026-10-02) is the current revision
+on the [datatracker](https://datatracker.ietf.org/doc/draft-fane-opena2a-aap/); its source and
+rendered text are in this repository. Each document carries its own version at the top. Between
+releases the text on main moves ahead of that version and of the submitted revision, and the
+version line says so ("plus unreleased changes"); the [Unreleased] section of `CHANGELOG.md` lists
+those changes. `CHANGELOG.md` also records what moved between drafts and which draft revision
+pairs with which version.
 
 ## Reference implementation
 
@@ -118,7 +121,9 @@ OpenA2A AIM (Agent Identity Management). See
 
 - [`AAP-SPEC.md`](./AAP-SPEC.md), the AAP token model (AIT/CGT/DA/BAC, federation, revocation).
 - [`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md), the broker & resolution layer.
-- [`examples/`](./examples/), worked examples (resolution flow, policy grammar, transport bindings).
+- [`examples/`](./examples/), worked examples: the resolution flow and a policy grammar clause
+  ([`orders-db-exchange.md`](./examples/orders-db-exchange.md)), and the HTTP, A2A agent card and
+  MCP manifest transport bindings ([`transport-bindings.md`](./examples/transport-bindings.md)).
 
 ## License
 
