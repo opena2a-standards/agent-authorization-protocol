@@ -264,6 +264,13 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/test_transport_bindings.py` reads the list of Section 8.5 and checks both
   citations, the `atx` field, and that the agent card binding does not place the ATX in
   the `atp` object.
+- The ML-DSA-65 decision note states the range of token lifetimes as "60 s BAC to 4 h
+  STANDARD CGT"; it read "60 s BAC to 3600 s AIT", which left out the STANDARD tier of
+  Section 4.3 (4 hours), four times the stated upper end. The note's conclusion, that
+  signatures have no harvest-now-decrypt-later exposure, does not depend on the figure.
+  Editorial: no requirement changes. `scripts/test_decision_ttl_range.py` checks that the
+  range runs from the BAC's 60-second TTL (Section 6.1) to the longest TTL tier of Section
+  4.3, named by its tier.
 
 ### Added
 

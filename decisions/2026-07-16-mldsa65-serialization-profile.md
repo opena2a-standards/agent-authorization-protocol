@@ -79,12 +79,12 @@ JOSE"). The gate condition is satisfied; the row flips or the spec is stale.
   isomorphic to JWS General `signatures[]` entries (§9.4 says so explicitly), and
   ATX PR #215 already migrated away from a combined classical+PQ blob. atcverify's
   gated-AND policy is running in production.
-- CSR threat model: AAP tokens are short-TTL (60 s BAC to 3600 s AIT). Signatures
-  have no harvest-now-decrypt-later exposure; the quantum risk is future forgery of
-  then-live tokens. Hybrid AND-verification buys downgrade resistance and
-  continuity of trust if either algorithm falls (FIPS 204 is two years old;
-  Ed25519 has two decades of cryptanalysis but no PQ resistance) — either break
-  alone forges nothing on hybrid paths.
+- CSR threat model: AAP tokens are short-TTL (60 s BAC to 4 h STANDARD CGT).
+  Signatures have no harvest-now-decrypt-later exposure; the quantum risk is
+  future forgery of then-live tokens. Hybrid AND-verification buys downgrade
+  resistance and continuity of trust if either algorithm falls (FIPS 204 is two
+  years old; Ed25519 has two decades of cryptanalysis but no PQ resistance) —
+  either break alone forges nothing on hybrid paths.
 - RFC 9964 registers no composite algorithms, so JWS-layer hybrid is the only
   standards-conformant vehicle today.
 
