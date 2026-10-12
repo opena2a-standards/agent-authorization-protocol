@@ -252,6 +252,18 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   same way. `scripts/test_signature_gate_citers.py` checks that the Section 9.4 sentence
   names exactly the specifications recorded as citing it. Editorial: no requirement
   changes, and the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are unchanged.
+- Broker profile Section 8.5 cites the specification that defines each of two transport
+  bindings. The `Agent-Trust-Credential` header was attributed to ATP, whose `ATP-SPEC.md`
+  does not name it; the ATX specification does (`atx-spec/core.md` Sections 1.2 and 3.2),
+  and the HTTP binding cites it. The A2A agent card binding placed the ATX under the `atp`
+  object of the card; that object (ATP Section 3.4) has the members `did`, `trustProof`
+  and `trustAuthorityDid`, and the ATX specification reads the credential from the `atx`
+  field of the card (`atx-spec/core.md` Section 3.2), which the binding now names. The MCP
+  manifest binding is unchanged. No requirement changes: the counts of MUST, MUST NOT,
+  SHOULD, SHOULD NOT and MAY in both documents are unchanged.
+  `scripts/test_transport_bindings.py` reads the list of Section 8.5 and checks both
+  citations, the `atx` field, and that the agent card binding does not place the ATX in
+  the `atp` object.
 
 ### Added
 

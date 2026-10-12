@@ -634,8 +634,11 @@ agent card, or an MCP manifest, is a **binding**, not the trust core. AAP define
 separately from the core so new transports get new bindings while the core is untouched. The
 initial bindings are:
 
-- **HTTP**, ATX presented in an `Agent-Trust-Credential` header (as in ATP).
-- **A2A agent card**, ATX embedded under the `atp` object of `/.well-known/agent.json`.
+- **HTTP**, ATX presented in an `Agent-Trust-Credential` header
+  (the ATX specification, `core.md` §1.2 and §3.2).
+- **A2A agent card**, ATX carried in the `atx` field of the agent card at
+  `/.well-known/agent.json` (the ATX specification, `core.md` §3.2). The `atp` object of the
+  same card (ATP Section 3.4) carries the agent's DID and trust proof, not the ATX.
 - **MCP manifest**, ATX referenced from the server manifest.
 
 A broker publishes a discovery document (supported AAP versions, supported suites, the set of
