@@ -564,6 +564,13 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   failed. Such a sentence now fails the test, which has a passing and a failing sentence
   that starts with each of the two. The entry above that first described the test says
   so. The pattern, the description and the decision notes are unchanged.
+- The changelog test of `scripts/test_decision_note_terms.py` on a common noun with a
+  capital letter, A to Z, before gate says what to write when no sentence of an entry read
+  states it. With "common noun" reworded in every entry, it failed with only "False is not
+  true"; the failure now says that no sentence of an entry read has "common noun" and
+  "capital letter", and that the sentence that says such a noun is found before gate has
+  both and "A to Z". A new test pins that failure and the failure on a sentence that has
+  both and not "A to Z". The patterns and the decision notes are unchanged.
 
 ### Added
 

@@ -111,6 +111,13 @@ CAPITAL_LETTER_NOT_A_TO_Z = re.compile(rf"{CAPITAL_LETTER}(?!,? A to Z\b)")
 # such a sentence names the letters the pattern reads as well.
 COMMON_NOUN_WITH_A_CAPITAL = ("common noun", "capital letter")
 A_TO_Z = re.compile(r"\bA to Z\b")
+# What the failure says when no sentence of an entry read has both of
+# COMMON_NOUN_WITH_A_CAPITAL.
+NO_SENTENCE_ON_A_COMMON_NOUN = (
+    'no sentence of an entry read has "common noun" and "capital letter"; the sentence'
+    " that says a common noun with a capital letter is found before gate has both and"
+    ' "A to Z"'
+)
 # What a changelog sentence on the entries the tests read names, and how it
 # names PATH_IN_BACKTICKS.
 UNRELEASED = "[Unreleased]"
@@ -708,6 +715,19 @@ class ChangelogEntriesTest(unittest.TestCase):
             with self.subTest(fails=sentence):
                 self.assertEqual(capital_letter_claims(f"- {sentence}"), [f"- {sentence}"])
 
+    def assert_a_common_noun_is_stated_with_a_to_z(self, entries):
+        """Fail on a common_noun_claims() sentence of `entries`.
+
+        Fail as well when no sentence of `entries` has both of COMMON_NOUN_WITH_A_CAPITAL.
+        """
+        stated = [sentence for entry in entries for sentence in common_noun_statements(entry)]
+        self.assertNotEqual(stated, [], NO_SENTENCE_ON_A_COMMON_NOUN)
+        self.assertEqual(
+            [sentence for entry in entries for sentence in common_noun_claims(entry)],
+            [],
+            'write "capital letter, A to Z"',
+        )
+
     def test_a_common_noun_with_a_capital_letter_is_stated_with_a_to_z(self):
         # A common noun before gate is found as a name is only when its first
         # letter is one of A to Z ("É" is E with an acute accent).
@@ -716,13 +736,7 @@ class ChangelogEntriesTest(unittest.TestCase):
         self.assertTrue("É".isupper())
         # Each sentence of an entry read that says such a noun is found names
         # those letters, and at least one sentence says it.
-        entries = changelog_entries()
-        self.assertTrue(any(common_noun_statements(entry) for entry in entries))
-        for entry in entries:
-            with self.subTest(entry=entry[:80]):
-                self.assertEqual(
-                    common_noun_claims(entry), [], 'write "capital letter, A to Z"'
-                )
+        self.assert_a_common_noun_is_stated_with_a_to_z(changelog_entries())
         found = "a common noun with a capital letter"
         for sentence in (
             f"The check finds {found}, A to Z, before gate.",
@@ -753,6 +767,33 @@ class ChangelogEntriesTest(unittest.TestCase):
                     common_noun_claims(f"- {PATH_IN_BACKTICKS} changed. {sentence}"),
                     [sentence],
                 )
+
+    def test_a_missing_sentence_on_a_common_noun_fails_with_what_to_write(self):
+        stated = (
+            f"- {PATH_IN_BACKTICKS} finds a common noun with a capital letter, A to Z,"
+            " before gate."
+        )
+        self.assert_a_common_noun_is_stated_with_a_to_z([stated])
+        # No sentence has both words: the failure names the missing sentence.
+        for entries in (
+            [],
+            [f"- {PATH_IN_BACKTICKS} finds one more form. No note changes."],
+            [stated.replace("common noun", "common word")],
+            [
+                f"- {PATH_IN_BACKTICKS} finds a common noun before gate.",
+                f"- {PATH_IN_BACKTICKS} finds a word with a capital letter, A to Z.",
+            ],
+        ):
+            with self.subTest(fails=entries):
+                with self.assertRaises(AssertionError) as raised:
+                    self.assert_a_common_noun_is_stated_with_a_to_z(entries)
+                self.assertIn(NO_SENTENCE_ON_A_COMMON_NOUN, str(raised.exception))
+        # A sentence with both and not A to Z: the failure says what to write.
+        without_a_to_z = f"- {PATH_IN_BACKTICKS} finds a common noun with a capital letter."
+        with self.assertRaises(AssertionError) as raised:
+            self.assert_a_common_noun_is_stated_with_a_to_z([stated, without_a_to_z])
+        self.assertIn('write "capital letter, A to Z"', str(raised.exception))
+        self.assertNotIn(NO_SENTENCE_ON_A_COMMON_NOUN, str(raised.exception))
 
 
 class StrippedDocstringsTest(unittest.TestCase):
