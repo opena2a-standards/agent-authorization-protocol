@@ -413,9 +413,14 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   match reads letter case; the test finds a possessive before gate only when its word
   starts with a capital letter, and finds go-ahead, approval, sign-off, gate and "requested
   from" in any letter case ("with Xyz's Go-Ahead", "REQUESTED FROM Xyz"). Tests in the same
-  file read each entry under [Unreleased] that names the file and fail when one calls the
-  match case-sensitive, or names gate with go-ahead, approval or sign-off in a sentence
-  that does not name the capital letter. The patterns and the decision notes are unchanged.
+  file read each entry under [Unreleased] that contains the code span
+  `scripts/test_decision_note_terms.py`. One fails when such an entry has case-sensitive
+  directly after is or are. Another fails when a sentence of such an entry has the
+  lower-case word gate and at least one of the lower-case words go-ahead, approval and
+  sign-off, and does not contain "capital letter"; it splits an entry into sentences only
+  where a period and then whitespace come directly before a capital letter A to Z, a
+  backtick, a straight double quotation mark or an opening parenthesis. The patterns and
+  the decision notes are unchanged.
 
 ### Added
 
