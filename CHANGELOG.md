@@ -308,15 +308,18 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   installed through `PYTHONPATH` is found, and it prints the error without color. The check
   imports each file without running its tests, then looks on `sys.path` for each sibling
   script the file imports inside a function and fails when one is not found. It does not
-  import that script, so a script that fails to import where the test that imports it is
-  skipped is not reported. Inside a function the check reads an `import` or
+  import that script, so a sibling script that is found but fails to import is not reported
+  by the check, whether or not the test that imports it is skipped; the test that imports
+  it reports the error when it runs. Inside a function the check reads an `import` or
   `from ... import` statement and a call of `import_module` or `__import__` that names the
   module with a string literal; it does not read a name the function computes. It imports
   each file a second time with the `jsonschema` package made unavailable:
   `scripts/test_trust_class_grammar.py` and `scripts/test_validate_examples.py` skip the
   tests that need the package, where a run by path without the package failed to load them.
   The second import reports only an error the first did not raise, so one cause has one
-  message. The check runs in CI through `scripts/validate_examples.py`.
+  message; on an interpreter without the package, the first import's message for a file
+  that fails because `jsonschema` is not found carries the advice to skip with
+  `unittest.skipUnless`. The check runs in CI through `scripts/validate_examples.py`.
 - The ML-DSA-65 decision note no longer credits its recommendation to a group it does not
   define or names a role by an abbreviation. Its status line says the decision proceeded
   with the option the ESCALATION section recommends, option (B) is marked "recommended",

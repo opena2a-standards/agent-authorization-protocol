@@ -17,14 +17,16 @@ test calls it, so the file has to put its directory on sys.path when it is
 imported: an insertion inside the function does not count. After the file is
 imported, the tests look on sys.path for each sibling script the file imports
 inside a function and fail as an import of one that is not found does. They do not
-import it: whether a test reaches the import is not known, so a script that fails
-to import where the test that imports it is skipped is no failure. Inside a
+import it: whether a test reaches the import is not known, so a sibling script
+that is found but fails to import is not reported here, whether or not the test
+that imports it is skipped; that test reports the error when it runs. Inside a
 function the tests read an `import` or `from ... import` statement and a call of
 `import_module` or `__import__` that names the module with a string literal; they
 do not read a name the function computes. Each file is imported a second time with
 the `jsonschema` package made unavailable, so a test file that needs the package
 skips its tests where it would fail to load; an error the first import also raises
-is reported once, by the first. CI runs these tests through validate_examples.py.
+is reported once, by the first, which gives the same advice when the module it did
+not find is the package. CI runs these tests through validate_examples.py.
 
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
@@ -60,8 +62,9 @@ SIBLING_NOT_FOUND = "ModuleNotFoundError: No module named 'check_naming'"
 JSONSCHEMA_NOT_FOUND = "ModuleNotFoundError: No module named 'jsonschema'"
 # A module of the package's name that fails as the import of a missing package does.
 NO_JSONSCHEMA = 'raise ModuleNotFoundError("No module named \'jsonschema\'", name="jsonschema")\n'
-WITHOUT_JSONSCHEMA = ("; this import ran with the 'jsonschema' package made unavailable, and a test "
-                      "file that needs the package skips its tests with unittest.skipUnless")
+SKIP_ADVICE = "a test file that needs the package skips its tests with unittest.skipUnless"
+WITHOUT_JSONSCHEMA = f"; this import ran with the 'jsonschema' package made unavailable, and {SKIP_ADVICE}"
+JSONSCHEMA_UNAVAILABLE = f"; the 'jsonschema' package is not available to this interpreter, and {SKIP_ADVICE}"
 # The functions that import the module their first argument, or their `name` argument, names.
 IMPORT_CALLS = ("import_module", "__import__")
 
@@ -163,11 +166,19 @@ def failure_message(name, error, siblings):
 
 
 def failure_by_path(path, root):
-    """What the test file at `path` is told if it fails to import by path from `root`, or None."""
+    """What the test file at `path` is told if it fails to import by path from `root`, or None.
+
+    When the module the import did not find is the `jsonschema` package, the run
+    lacks the package, so `failure_without_jsonschema` raises the same error and
+    reports nothing: the message here says how a test file that needs it skips.
+    """
     error = import_error_by_path(path, root)
     if error is None:
         return None
-    return failure_message(path.relative_to(root).as_posix(), error, sibling_scripts(path))
+    message = failure_message(path.relative_to(root).as_posix(), error, sibling_scripts(path))
+    if error == JSONSCHEMA_NOT_FOUND:
+        message += JSONSCHEMA_UNAVAILABLE
+    return message
 
 
 def failure_without_jsonschema(path, root):
@@ -176,7 +187,8 @@ def failure_without_jsonschema(path, root):
     The import runs with a module of the package's name that fails as a missing
     package does, in a directory put before the PYTHONPATH entries of this run. An
     error the import also raises with the package as this run has it is not
-    reported here: `failure_by_path` reports it, and the package is not its cause.
+    reported here: `failure_by_path` reports it, with the advice to skip when the
+    module not found is the package.
     """
     with tempfile.TemporaryDirectory() as blocked:
         (pathlib.Path(blocked) / "jsonschema.py").write_text(NO_JSONSCHEMA, encoding="utf-8")
@@ -195,6 +207,10 @@ class SiblingImportsTest(unittest.TestCase):
     EXITS = "import sys\n\nsys.exit(2)\n"
     NEEDS_JSONSCHEMA = ("import sys\n\ntry:\n    import jsonschema  # noqa: F401\n"
                         "except ImportError:\n    sys.exit(2)\n")
+    # A sibling script that raises when it is imported.
+    RAISES = "raise RuntimeError('fails to import')\n"
+    # What the description of this file and the changelog say of a sibling script that fails to import.
+    FOUND_NOT_IMPORTED = "a sibling script that is found but fails to import is not reported"
 
     def assert_no_test_file_fails(self, failure):
         tests = sorted(SCRIPTS.glob("test_*.py"))
@@ -246,13 +262,14 @@ class SiblingImportsTest(unittest.TestCase):
         with mock.patch.dict(os.environ, {"PYTHONPATH": python_path}):
             return import_error_by_path(path, root)
 
-    def fixture_failures(self, source, files=()):
+    def fixture_failures(self, source, files=(), package=""):
         """What the fixture for `source` is told by path, and what it is told without `jsonschema`.
 
-        `deps/jsonschema.py` stands for the installed package and PYTHONPATH names
-        `deps`, so the fixture finds the package on an interpreter that lacks it.
+        `deps/jsonschema.py` holds `package` and stands for the package as the run
+        has it, and PYTHONPATH names `deps`: the fixture finds the package on an
+        interpreter that lacks it, and with `NO_JSONSCHEMA` lacks it on one that has it.
         """
-        path, root = self.fixture(source, [("deps/jsonschema.py", ""), *files])
+        path, root = self.fixture(source, [("deps/jsonschema.py", package), *files])
         with mock.patch.dict(os.environ, {"PYTHONPATH": str(root / "deps")}):
             return failure_by_path(path, root), failure_without_jsonschema(path, root)
 
@@ -451,6 +468,10 @@ class SiblingImportsTest(unittest.TestCase):
         self.assertEqual(self.fixture_failures("import jsonschema\n"),
                          (None, self.FAILS + JSONSCHEMA_NOT_FOUND + WITHOUT_JSONSCHEMA))
 
+    def test_file_that_needs_jsonschema_where_the_run_lacks_it_is_told_once_how_to_skip(self):
+        self.assertEqual(self.fixture_failures("import jsonschema\n", package=NO_JSONSCHEMA),
+                         (self.FAILS + JSONSCHEMA_NOT_FOUND + JSONSCHEMA_UNAVAILABLE, None))
+
     def test_file_that_loads_without_jsonschema_fails_neither_way(self):
         source = "try:\n    import jsonschema\nexcept ImportError:\n    jsonschema = None\n"
         self.assertEqual(self.fixture_failures(source), (None, None))
@@ -473,6 +494,21 @@ class SiblingImportsTest(unittest.TestCase):
                   "        self.assertTrue(needs_jsonschema)\n")
         files = [("scripts/needs_jsonschema.py", self.NEEDS_JSONSCHEMA)]
         self.assertEqual(self.fixture_failures(source, files), (None, None))
+
+    def test_sibling_that_fails_to_import_inside_a_test_that_is_not_skipped_fails_neither_way(self):
+        source = (f"import pathlib\nimport sys\nimport unittest\n\n{INSERT}\n\n\n"
+                  "class T(unittest.TestCase):\n    def test_x(self):\n        import raises\n"
+                  "        self.assertTrue(raises)\n")
+        self.assertEqual(self.fixture_failures(source, [("scripts/raises.py", self.RAISES)]), (None, None))
+
+    def test_description_and_changelog_say_a_sibling_that_fails_to_import_is_not_reported(self):
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        for name, text in (("scripts/test_sibling_imports.py", __doc__), ("CHANGELOG.md", changelog)):
+            with self.subTest(document=name):
+                text = " ".join(text.split())
+                self.assertIn(self.FOUND_NOT_IMPORTED, text)
+                # The check does not import the script whether or not the test is skipped.
+                self.assertNotIn("fails to import where the test that imports it is skipped", text)
 
 
 if __name__ == "__main__":
