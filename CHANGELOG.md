@@ -331,9 +331,10 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   resubmission condition was set (2026-07-16) without naming who approved them, and its
   ESCALATION heading no longer names who was asked. The decision and its reasoning are
   unchanged. `scripts/test_decision_note_terms.py` also fails when a note in `decisions/`
-  contains a word ending in 's directly followed by go-ahead, gate, approval or sign-off
-  ("Xyz's go-ahead"), or the phrase "requested from"; the match is case-sensitive.
-  Editorial: no requirement changes.
+  contains a singular possessive directly before go-ahead, approval or sign-off ("Xyz's
+  go-ahead") or, when the word in the possessive starts with a capital letter, before gate
+  ("Xyz's gate"), or the phrase "requested from"; the nouns and the phrase are found in any
+  letter case. Editorial: no requirement changes.
 - `examples/transport-bindings.md` agrees with broker profile Section 8.5. Its HTTP section
   said the ATX travels in a request header "as in ATP"; it now names the
   `Agent-Trust-Credential` header and cites the ATX specification for it
@@ -398,6 +399,28 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   ("The verifier's gate rejects a missing family"), and the printed rewrite must carry
   ("The verifier's gate"). Rewriting or removing that sentence passed all 14 tests before;
   it now fails one. The patterns and the decision notes are unchanged.
+- That test now pins the whole paragraph, word for word, as a paragraph of the
+  description, and checks each of its clauses against the patterns: a common noun with a
+  capital letter before gate is found at the start of a sentence, after one, in a list item
+  and in a heading in title case. Rewording a clause outside the four pinned phrases
+  ("prints that rewrite" to "prints nothing", "at the start of a sentence or a list item"
+  to "in the middle of a sentence or a table cell", "is found as a name is" to "is never
+  found"), or adding a sentence to the paragraph, passed all 15 tests before; each now
+  fails one. The patterns, the description and the decision notes are unchanged.
+- The entry on the ML-DSA-65 decision note that records when option (B) was adopted
+  describes the approval check of `scripts/test_decision_note_terms.py` as the later entry
+  on that test does. It said a word ending in 's before gate fails the test and that the
+  match reads letter case; the test finds a possessive before gate only when its word
+  starts with a capital letter, and finds go-ahead, approval, sign-off, gate and "requested
+  from" in any letter case ("with Xyz's Go-Ahead", "REQUESTED FROM Xyz"). Tests in the same
+  file read each entry under [Unreleased] that contains the code span
+  `scripts/test_decision_note_terms.py`. One fails when such an entry has case-sensitive
+  directly after is or are. Another fails when a sentence of such an entry has the
+  lower-case word gate and at least one of the lower-case words go-ahead, approval and
+  sign-off, and does not contain "capital letter"; it splits an entry into sentences only
+  where a period and then whitespace come directly before a capital letter A to Z, a
+  backtick, a straight double quotation mark or an opening parenthesis. The patterns and
+  the decision notes are unchanged.
 
 ### Added
 
