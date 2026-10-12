@@ -15,7 +15,7 @@ illustrative and are marked as such.
 | Binding | Where the ATX travels | Proof of presenter identity | What the broker reads |
 |---|---|---|---|
 | HTTP | the `Agent-Trust-Credential` request header | an RFC 9421 HTTP Message Signature over the request | the header, `Signature-Input`, `Signature`, `Content-Digest` and the body |
-| A2A agent card | the `atp` object of the agent's `/.well-known/agent.json` | a challenge the broker issues on the A2A channel, signed by the presenter | the card's `atp` object, the signed challenge and the grant reference |
+| A2A agent card | the `atx` field of the agent's `/.well-known/agent.json` | a challenge the broker issues on the A2A channel, signed by the presenter | the card's `atx` field, the signed challenge and the grant reference |
 | MCP manifest | a reference in the MCP server's manifest | a challenge the broker issues on the MCP channel, signed by the presenter | the manifest's reference, the ATX it points to, the signed challenge and the grant reference |
 | Local unix socket, for contrast | the broker's socket | the OS peer credentials of the connecting process | the ATX and grant reference on the socket, and the peer uid and gid |
 
@@ -45,8 +45,9 @@ one in [`orders-db-exchange.md`](./orders-db-exchange.md), whatever the binding.
 
 ## HTTP binding: the `Agent-Trust-Credential` header
 
-The ATX travels in a request header, as in ATP. The proof is an RFC 9421 HTTP Message Signature
-that covers at least `@method`, `@target-uri` and `content-digest`, with a `created` and a `nonce`
+The ATX travels in the `Agent-Trust-Credential` request header, which the ATX specification
+defines (`atx-spec/core.md` §1.2 and §3.2). The proof is an RFC 9421 HTTP Message Signature that
+covers at least `@method`, `@target-uri` and `content-digest`, with a `created` and a `nonce`
 parameter.
 
 ```http
@@ -78,11 +79,13 @@ What the broker reads, in order:
 4. **The body**: the grant reference `grant://orders-db`, which step 6 matches against broker
    policy.
 
-## A2A agent card binding: the `atp` object of `/.well-known/agent.json`
+## A2A agent card binding: the `atx` field of `/.well-known/agent.json`
 
-The ATX travels inside the agent's A2A agent card, under the `atp` object. The card is public, so
-the proof is a signed challenge on the A2A channel. The host, the order of the messages and their
-shapes are illustrative.
+The ATX travels inside the agent's A2A agent card, in the `atx` field, which the ATX specification
+defines (`atx-spec/core.md` §3.2). The `atp` object of the same card (`ATP-SPEC.md` Section 3.4)
+carries the agent's DID and trust proof, not the ATX. The card is public, so the proof is a signed
+challenge on the A2A channel. The host, the order of the messages and their shapes are
+illustrative.
 
 ```text
 1. The broker reads the presenting agent's card (illustrative host):
@@ -92,7 +95,7 @@ shapes are illustrative.
    {
      "name": "orders-reader",
      ...other agent card members...
-     "atp": { ...the ATX, embedded as ATP defines... }
+     "atx": ...the ATX, in the form the ATX specification defines...
    }
 
 2. broker ──challenge: fresh random value, at least 16 bytes, bound to this A2A channel──▶ agent
@@ -101,7 +104,7 @@ shapes are illustrative.
 
 What the broker reads, in order:
 
-1. **The card's `atp` object**: the ATX, verified at step 2 as for HTTP.
+1. **The card's `atx` field**: the ATX, verified at step 2 as for HTTP.
 2. **The signed challenge**: the step 3 proof. The challenge is the one this broker issued on this
    channel and has not been answered before, and the signature verifies under the verification
    key. An agent that copies another agent's ATX into its own card cannot sign for that ATX's key,

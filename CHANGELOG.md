@@ -252,6 +252,13 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   same way. `scripts/test_signature_gate_citers.py` checks that the Section 9.4 sentence
   names exactly the specifications recorded as citing it. Editorial: no requirement
   changes, and the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY are unchanged.
+- `scripts/test_signature_gate_citers.py` also reads the Section 9.4 sentence in the XML
+  source of every Internet-Draft after the filed revisions -00 to -02 and fails when the
+  sentence is missing or does not name exactly ATX and ATP. The text render is generated
+  from that source. `draft-fane-opena2a-aap-02` is left as filed: its sentence still reads
+  "ATX, ATP and AIP cite this rule", as the 0.5.1-draft entry records, and the test pins
+  that reading. A `draft-fane-opena2a-aap-03` source passes only with "ATX and ATP cite
+  this rule". Editorial: no requirement changes.
 - Broker profile Section 8.5 cites the specification that defines each of two transport
   bindings. The `Agent-Trust-Credential` header was attributed to ATP, whose `ATP-SPEC.md`
   does not name it; the ATX specification does (`atx-spec/core.md` Sections 1.2 and 3.2),
@@ -264,6 +271,62 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/test_transport_bindings.py` reads the list of Section 8.5 and checks both
   citations, the `atx` field, and that the agent card binding does not place the ATX in
   the `atp` object.
+- The ML-DSA-65 decision note states the range of token lifetimes as "60 s BAC to 4 h
+  STANDARD CGT"; it read "60 s BAC to 3600 s AIT", which left out the STANDARD tier of
+  Section 4.3 (4 hours), four times the stated upper end. The note's conclusion, that
+  signatures have no harvest-now-decrypt-later exposure, does not depend on the figure.
+  Editorial: no requirement changes. `scripts/test_decision_ttl_range.py` checks that the
+  range runs from the BAC's 60-second TTL (Section 6.1) to the longest TTL tier of Section
+  4.3, named by its tier.
+- The policy binding for `grant://orders-db` in broker profile Section 7.1 carries
+  `audience: https://api.orders.internal`, as the binding in
+  `examples/orders-db-exchange.md` does. At commit `660af0d` the policy loader of the
+  reference implementation refuses a `resolve` clause in which `providerId`, `scope` or
+  `audience` is not a non-empty string, so it still refused the Section 7.1 binding once
+  `provider` and `ttl` were respelled as the comments on those lines say. The keys of the
+  grammar are unchanged. `scripts/test_resolve_key_spelling.py` fails when either binding,
+  read in the reference spelling, lacks one of those three keys. Editorial: no requirement
+  changes.
+- The reference implementation paragraph of `AAP-SPEC.md` names `authorization_details` and
+  `aap_crit` in the minted claim set among the parts outside the implemented surface. The
+  implementation status note of broker profile Section 14 lists them, without a section
+  number, and the paragraph left them out. `scripts/test_reference_status.py` compared
+  section numbers only; it also reads the items that note lists without a section number
+  and fails when the paragraph does not name each name such an item carries. Editorial: no
+  requirement changes.
+- `scripts/test_examples_bindings.py` no longer imports `pathlib`, which it did not use.
+  `scripts/test_unused_imports.py` fails when a script in `scripts/` imports a name it
+  never reads, and runs in CI through `scripts/validate_examples.py`.
+- The ML-DSA-65 decision note no longer credits its recommendation to a group it does not
+  define or names a role by an abbreviation. Its status line says the decision proceeded
+  with the option the ESCALATION section recommends, option (B) is marked "recommended",
+  and the threat-model bullet of RATIONALE reads "Threat model:". The decision and its
+  reasoning are unchanged. `scripts/test_decision_note_terms.py` checks that no note in
+  `decisions/` credits a recommendation to a group by a possessive or qualifies a threat
+  model with an abbreviation. Editorial: no requirement changes.
+- `examples/transport-bindings.md` agrees with broker profile Section 8.5. Its HTTP section
+  said the ATX travels in a request header "as in ATP"; it now names the
+  `Agent-Trust-Credential` header and cites the ATX specification for it
+  (`atx-spec/core.md` Sections 1.2 and 3.2). Its A2A agent card section, its heading, the
+  card in its message sequence, the first item of what the broker reads, and the summary
+  table row placed the ATX in the card's `atp` object; each now names the `atx` field
+  (`atx-spec/core.md` Section 3.2), and the section says that the `atp` object of the same
+  card (`ATP-SPEC.md` Section 3.4) carries the agent's DID and trust proof, not the ATX.
+  The entry under Added that introduced the example is corrected the same way. Informative:
+  no requirement changes. `scripts/test_transport_bindings.py` now also reads the example
+  and checks the header citation, the `atx` field in the agent card section and the summary
+  table, and that no sentence of the example places the ATX in the `atp` object.
+- Section 3.2 states that the issuing Registry named in `iss` sets the AIT lifetime,
+  `exp - iat`, and that this specification sets no upper bound on it, unlike the CGT
+  (Section 4.3), the DA (Section 5.3) and the BAC (Section 6.1). The `iat` / `exp` row
+  described the window only as a "Validity window". The section names what a longer
+  lifetime lengthens: the time for which a verifier accepts an AIT whose trust level or
+  referenced ATX has since changed, and the time for which a receiver tracks its `jti`
+  (Section 8.1). No requirement changes: the counts of MUST, MUST NOT, SHOULD, SHOULD NOT
+  and MAY are unchanged. `scripts/test_ait_lifetime.py` checks that the `iat` / `exp` row
+  of the AIT, CGT and BAC claim tables each states what governs `exp - iat`, and that the
+  3600-second lifetime Section 3.2 cites for its example is the `exp - iat` of
+  `examples/tokens/ait-v1.claims.json` and of the claim set the section prints.
 
 ### Added
 
@@ -414,7 +477,7 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   "exercise", "improvisation") pass. README.md now spells "honor" the American way, as the
   rest of the repository does. It runs in CI through `scripts/validate_examples.py`.
 - `examples/transport-bindings.md`, a worked example of each initial binding of broker
-  profile Section 8.5: the HTTP `Agent-Trust-Credential` header, the `atp` object of an A2A
+  profile Section 8.5: the HTTP `Agent-Trust-Credential` header, the `atx` field of an A2A
   agent card and the reference in an MCP server manifest. For each it shows where the ATX
   travels, the proof of presenter identity of Section 6.8 (an RFC 9421 HTTP Message
   Signature, or a signed challenge), and what the broker reads before it evaluates policy.

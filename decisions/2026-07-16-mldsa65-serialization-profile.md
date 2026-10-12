@@ -1,8 +1,8 @@
 # Decision: ML-DSA-65 activation and hybrid serialization profile
 
 **Date:** 2026-07-16
-**Status:** Decided. The one escalated knob (see ESCALATION) proceeded on the chiefs'
-recommendation — option (B), `EdDSA` default on foreign-interop paths through an
+**Status:** Decided. The one escalated knob (see ESCALATION) proceeded with the option
+that section recommends — option (B), `EdDSA` default on foreign-interop paths through an
 adoption window — with Abdel's go-ahead to continue (2026-07-16). Flipping to (A)
 remains a one-sentence §9.3 change plus the broker's foreign-lane default; the
 re-evaluation triggers in ESCALATION stand either way.
@@ -79,12 +79,12 @@ JOSE"). The gate condition is satisfied; the row flips or the spec is stale.
   isomorphic to JWS General `signatures[]` entries (§9.4 says so explicitly), and
   ATX PR #215 already migrated away from a combined classical+PQ blob. atcverify's
   gated-AND policy is running in production.
-- CSR threat model: AAP tokens are short-TTL (60 s BAC to 3600 s AIT). Signatures
-  have no harvest-now-decrypt-later exposure; the quantum risk is future forgery of
-  then-live tokens. Hybrid AND-verification buys downgrade resistance and
-  continuity of trust if either algorithm falls (FIPS 204 is two years old;
-  Ed25519 has two decades of cryptanalysis but no PQ resistance) — either break
-  alone forges nothing on hybrid paths.
+- Threat model: AAP tokens are short-TTL (60 s BAC to 4 h STANDARD CGT).
+  Signatures have no harvest-now-decrypt-later exposure; the quantum risk is
+  future forgery of then-live tokens. Hybrid AND-verification buys downgrade
+  resistance and continuity of trust if either algorithm falls (FIPS 204 is two
+  years old; Ed25519 has two decades of cryptanalysis but no PQ resistance) —
+  either break alone forges nothing on hybrid paths.
 - RFC 9964 registers no composite algorithms, so JWS-layer hybrid is the only
   standards-conformant vehicle today.
 
@@ -113,7 +113,7 @@ ML-DSA-65 now, or stay EdDSA through an adoption window?**
 - **(A) Flip now:** strongest possible PQ-first posture; today there are ~zero
   deployed foreign consumers of AAP subject_tokens, so "breaking interop" is
   hypothetical and the default is pure spec signaling.
-- **(B) EdDSA default + adoption window (chiefs' recommendation):** the lane exists
+- **(B) EdDSA default + adoption window (recommended):** the lane exists
   *because* foreign verifiers only understand standard JWTs, and in mid-2026 the
   deployed JWT ecosystem (Keycloak, Auth0, Okta, stock jose libraries) verifies
   EdDSA, not a two-month-old RFC. A lane whose default the lane's own targets

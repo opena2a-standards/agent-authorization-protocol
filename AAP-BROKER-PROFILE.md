@@ -520,6 +520,7 @@ Expressed in the (non-normative) policy grammar:
     mode: exchange
     provider: orders-idp           # configuration; never on the wire (reference loader: providerId)
     scope: orders.read
+    audience: https://api.orders.internal
     ttl: 300s                      # reference loader: ttlSeconds: 300
 ```
 
