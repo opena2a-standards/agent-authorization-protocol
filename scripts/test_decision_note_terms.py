@@ -123,8 +123,14 @@ class PatternFormsTest(unittest.TestCase):
     def test_qualified_threat_model_forms(self):
         self.assert_forms(
             QUALIFIED_THREAT_MODEL,
-            matched=("- XYZ threat model: tokens are short",),
-            not_matched=("- Threat model: tokens are short",),
+            matched=(
+                "- XYZ threat model: tokens are short",
+                "- XY threat model: tokens are short",
+            ),
+            not_matched=(
+                "- Threat model: tokens are short",
+                "- A threat model: tokens are short",
+            ),
         )
 
     def test_credited_approval_forms_with_a_possessive(self):

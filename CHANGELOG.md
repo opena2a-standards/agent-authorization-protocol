@@ -369,6 +369,12 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   there's, here's, what's, who's and let's ("she's the approval"). A test checks that the
   patterns find both and that the description names them. The patterns and the decision
   notes are unchanged.
+- `scripts/test_decision_note_terms.py` pins the two-letter minimum of its check on an
+  abbreviation before "threat model". Its test phrases now include two capital letters,
+  which are found ("XY threat model"), and one, which is not ("A threat model"). With a
+  three-letter phrase alone, the test did not fail when the pattern read one capital
+  letter as an abbreviation or required three. The pattern and the decision notes are
+  unchanged.
 
 ### Added
 
