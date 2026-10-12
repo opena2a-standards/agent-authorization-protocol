@@ -13,9 +13,9 @@ from unittest import mock
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 try:
-    import jsonschema  # noqa: F401
+    import jsonschema
 except ImportError:
-    raise unittest.SkipTest("the 'jsonschema' package is required (pip install jsonschema)")
+    jsonschema = None
 
 import check_naming  # noqa: E402
 import check_raw_html  # noqa: E402
@@ -25,7 +25,13 @@ import check_status_claims  # noqa: E402
 import check_section_citations  # noqa: E402
 import check_spelling  # noqa: E402
 import check_version_labels  # noqa: E402
-import validate_examples  # noqa: E402
+
+# validate_examples exits when it is imported without the package, so each test
+# class is skipped there. The file still loads, so it runs when it is named by path.
+NEEDS_JSONSCHEMA = unittest.skipUnless(
+    jsonschema, "the 'jsonschema' package is required (pip install jsonschema)")
+if jsonschema:
+    import validate_examples  # noqa: E402
 
 PASSING = "import unittest\n\nclass T(unittest.TestCase):\n    def test_ok(self):\n        pass\n"
 FAILING = "import unittest\n\nclass T(unittest.TestCase):\n    def test_bad(self):\n        self.fail()\n"
@@ -36,6 +42,7 @@ def forget_path(path):
         sys.path.remove(path)
 
 
+@NEEDS_JSONSCHEMA
 class RunUnitTestsTest(unittest.TestCase):
     def setUp(self):
         self.root = pathlib.Path(tempfile.mkdtemp())
@@ -85,6 +92,7 @@ class RunUnitTestsTest(unittest.TestCase):
         self.assertIn("test_check_spelling", names)
 
 
+@NEEDS_JSONSCHEMA
 class MainTest(unittest.TestCase):
     def run_main(self, unit_test_failures, status_claim_failures=0,
                  section_citation_failures=0, raw_html_failures=0, spelling_failures=0,
@@ -149,6 +157,7 @@ class MainTest(unittest.TestCase):
         self.assertIn("1 failure(s)", out)
 
 
+@NEEDS_JSONSCHEMA
 class NotUtf8Test(unittest.TestCase):
     """Every document check on a copy of the repository's documents that holds a
     Markdown file that is not valid UTF-8: a FAIL line, never a traceback."""

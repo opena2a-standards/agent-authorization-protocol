@@ -18,7 +18,12 @@ import unittest
 try:
     from jsonschema import Draft202012Validator
 except ImportError:
-    raise unittest.SkipTest("the 'jsonschema' package is required (pip install jsonschema)")
+    Draft202012Validator = None
+
+# A test that validates against a schema is skipped where the package is missing.
+# The file still loads, so it runs when it is named by path.
+NEEDS_JSONSCHEMA = unittest.skipUnless(
+    Draft202012Validator, "the 'jsonschema' package is required (pip install jsonschema)")
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -90,6 +95,7 @@ def load(rel):
     return json.loads((ROOT / rel).read_text(encoding="utf-8"))
 
 
+@NEEDS_JSONSCHEMA
 class TrustClassSchemaTest(unittest.TestCase):
     def setUp(self):
         self.validators = {}
@@ -135,6 +141,7 @@ class TrustClassSchemaTest(unittest.TestCase):
 
 
 class TrustClassExamplesTest(unittest.TestCase):
+    @NEEDS_JSONSCHEMA
     def test_committed_claim_sets_carry_the_domain_prefixed_class(self):
         for name, kind in CLAIM_FIXTURES.items():
             with self.subTest(fixture=name):

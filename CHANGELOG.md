@@ -302,9 +302,16 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   other test files in `scripts/` that import a sibling script do, where it raised
   `ModuleNotFoundError`. `scripts/test_sibling_imports.py` imports each test file in
   `scripts/` under the module name that command uses, in a new interpreter started in the
-  repository root with `PYTHONPATH` ignored, and fails with the error the import raised and
-  the line that inserts the directory. It imports each file without running its tests, and
-  runs in CI through `scripts/validate_examples.py`.
+  repository root, and fails with the error the import raised and, when the module it did
+  not find is a sibling script, the line that inserts the directory. The new interpreter is
+  given each `PYTHONPATH` entry of the run except one that is `scripts/`, so a package
+  installed through `PYTHONPATH` is found, and it prints the error without color. The check
+  imports each file without running its tests, then imports each sibling script the file
+  imports inside a function. It imports each file a second time with the `jsonschema`
+  package made unavailable: `scripts/test_trust_class_grammar.py` and
+  `scripts/test_validate_examples.py` skip the tests that need the package, where a run by
+  path without the package failed to load them. The check runs in CI through
+  `scripts/validate_examples.py`.
 - The ML-DSA-65 decision note no longer credits its recommendation to a group it does not
   define or names a role by an abbreviation. Its status line says the decision proceeded
   with the option the ESCALATION section recommends, option (B) is marked "recommended",
