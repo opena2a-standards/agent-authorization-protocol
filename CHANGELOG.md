@@ -290,6 +290,13 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 - `scripts/test_examples_bindings.py` no longer imports `pathlib`, which it did not use.
   `scripts/test_unused_imports.py` fails when a script in `scripts/` imports a name it
   never reads, and runs in CI through `scripts/validate_examples.py`.
+- The ML-DSA-65 decision note no longer credits its recommendation to a group it does not
+  define or names a role by an abbreviation. Its status line says the decision proceeded
+  with the option the ESCALATION section recommends, option (B) is marked "recommended",
+  and the threat-model bullet of RATIONALE reads "Threat model:". The decision and its
+  reasoning are unchanged. `scripts/test_decision_note_terms.py` checks that no note in
+  `decisions/` credits a recommendation to a group by a possessive or qualifies a threat
+  model with an abbreviation. Editorial: no requirement changes.
 
 ### Added
 
