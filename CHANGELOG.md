@@ -185,6 +185,14 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/check_section_citations.py` reads the references from that root. Each check
   parses the render once; it parsed it twice, once to prove it well-formed and once to
   read its references. The output of both checks is unchanged.
+- `README.md` no longer calls the tokens in `examples/tokens/` "the valid token bytes". The
+  aap-conformance Node and Python verifiers at commit `99e213a` match `trust_class` against
+  `^[a-z0-9_-]+:[a-z0-9_-]+$` alone, so they accept `ait-v1.jwt`, `bac-v1.jwt` and
+  `bac-v1.session.jwt` and reject the seven CGT and DA tokens, which carry the
+  domain-prefixed `acme.com/orders:read`. The second use case names the tokens on each side,
+  the pattern those verifiers match, and the suite's `conformance.json` as the record of
+  that pattern. `scripts/test_readme_tokens.py` reads each token's payload and checks that
+  the README names the tokens on each side. No requirement, schema or token changes.
 
 ### Added
 
