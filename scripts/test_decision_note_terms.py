@@ -45,6 +45,7 @@ Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 import ast
 import pathlib
 import re
+import string
 import subprocess
 import sys
 import unittest
@@ -565,6 +566,29 @@ class ChangelogEntriesTest(unittest.TestCase):
         ):
             with self.subTest(one_sentence=entry):
                 self.assertEqual(sentences(entry), [entry])
+        # Each printable ASCII character other than whitespace is read in both
+        # places. Directly after the whitespace, a sentence ends before each
+        # capital letter A to Z and the other three, and before no other
+        # character: no hyphen, asterisk or "<". Directly before it, a sentence
+        # ends after a period and after no other character: no "!" or ":".
+        printable = [character for character in string.printable if not character.isspace()]
+        split_before = string.ascii_uppercase + '`"('
+        for character in printable:
+            second = f"{character}XY is found."
+            for space in (" ", "\n  "):
+                entry = f"{first}{space}{second}"
+                with self.subTest(after_whitespace=character, space=space):
+                    expected = [first, second] if character in split_before else [entry]
+                    self.assertEqual(sentences(entry), expected)
+        for character in printable:
+            entry = f"- The check finds go-ahead{character} The patterns are unchanged."
+            with self.subTest(before_whitespace=character):
+                expected = (
+                    ["- The check finds go-ahead.", "The patterns are unchanged."]
+                    if character == "."
+                    else [entry]
+                )
+                self.assertEqual(sentences(entry), expected)
         # The tests read the sentences apart: a statement on threat model after a
         # sentence that names go-ahead passes with each of the four at its start,
         # and fails where the two are one sentence.

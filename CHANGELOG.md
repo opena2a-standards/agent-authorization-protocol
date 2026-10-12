@@ -546,6 +546,15 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   have "directly between two backticks", or when no sentence names the section. The entry
   above that described the test states this, and a new test pins both failures. The
   patterns and the decision notes are unchanged.
+- The test of `scripts/test_decision_note_terms.py` that pins where its changelog tests end
+  a sentence reads each printable ASCII character other than whitespace on both sides of
+  the whitespace. It read one phrase for each of a few characters, so a split that also
+  ended a sentence before a hyphen, an asterisk or "<", or after "!" or ":", passed all 27
+  tests, as did a split that read only B to Z or only A to Y. For each such character
+  directly after the whitespace, the test now checks that a sentence ends before it when,
+  and only when, it is a capital letter A to Z, a backtick, a straight double quotation
+  mark or an opening parenthesis; for each directly before the whitespace, that a sentence
+  ends after it when, and only when, it is a period. The split is unchanged.
 
 ### Added
 
