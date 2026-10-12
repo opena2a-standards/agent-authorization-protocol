@@ -452,9 +452,11 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   MUST NOT, SHOULD, SHOULD NOT and MAY in the three documents are unchanged.
   `scripts/test_worked_example_status.py` checks that each of the three steps carries its
   note, that the paragraph cites for each step a broker profile section whose text defines
-  that step, that the citation check reads every section number in the paragraph, and that
-  the Section 14 note names the audit signature; `scripts/test_reference_status.py` checks
-  that the AAP-SPEC paragraph cites Section 6.7.
+  that step, that the citation check reads every section number in the paragraph, written
+  after "Section", "Sections", "§" or "§§" (the markers the citation check reads, so a
+  "§99" without the broker profile's name fails it), and that the Section 14 note names the
+  audit signature; `scripts/test_reference_status.py` checks that the AAP-SPEC paragraph
+  cites Section 6.7.
 - Three entries above state the rule of `scripts/test_decision_note_terms.py` on a
   possessive before gate with the letters its pattern reads: the word "starts with a
   capital letter, A to Z", as the description of the tests says. They named a capital
