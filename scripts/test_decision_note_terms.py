@@ -7,7 +7,7 @@ crediting a recommendation by a possessive ("the authors' recommendation"),
 and does not qualify a threat model with an abbreviation ("XYZ threat model").
 A note records what was decided and when, not who approved it or was asked to.
 
-The tests find these forms and no others:
+The tests find these forms:
 
 - a possessive, singular or plural ("the group's", "the editors'"), before
   recommendation, go-ahead, approval or sign-off, either directly or with one
@@ -23,6 +23,13 @@ three phrases in any letter case. The apostrophe is straight or curly. The
 contractions it's, that's, there's, here's, what's, who's and let's are not
 read as possessives. Line breaks are read as spaces, so a phrase split across
 two lines is found.
+
+The patterns read characters, not grammar, so the tests also find two forms
+that credit no one, each where a possessive would be found: a word ending in
+s and closed by a quotation mark, straight or curly, which is read as a plural
+possessive ("the 'editors' approval"), and a contraction other than the seven
+above, which is read as a singular possessive ("she's the approval"). A note
+that carries one rewords it.
 
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
@@ -197,6 +204,30 @@ class PatternFormsTest(unittest.TestCase):
                     f"{word.capitalize()}’s the gate",
                 ),
             )
+
+    def test_forms_that_credit_no_one_are_found_and_described(self):
+        description = " ".join(__doc__.split())
+        for phrase in ("the 'editors' approval", "she's the approval"):
+            with self.subTest(phrase=phrase):
+                self.assertIsNotNone(CREDITED_APPROVAL.search(phrase))
+                self.assertIn(phrase, description)
+        self.assert_forms(
+            CREDITED_APPROVAL,
+            matched=(
+                "he quoted the ‘editors’ approval",
+                "he quoted the 'editors' final approval",
+                "He's the gate",
+            ),
+            not_matched=(),
+        )
+        self.assert_forms(
+            CREDITED_RECOMMENDATION,
+            matched=(
+                "he quoted the 'authors' recommendation",
+                "she's the recommendation",
+            ),
+            not_matched=(),
+        )
 
 
 if __name__ == "__main__":
