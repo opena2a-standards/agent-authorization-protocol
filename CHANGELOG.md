@@ -308,8 +308,9 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   installed through `PYTHONPATH` is found, and it prints the error without color. The check
   imports each file without running its tests, then looks on `sys.path` for each sibling
   script the file imports inside a function and fails when one is not found. It does not
-  import that script, so a script that fails to import where the test that imports it is
-  skipped is not reported. Inside a function the check reads an `import` or
+  import that script, so a sibling script that is found but fails to import is not reported
+  by the check, whether or not the test that imports it is skipped; the test that imports
+  it reports the error when it runs. Inside a function the check reads an `import` or
   `from ... import` statement and a call of `import_module` or `__import__` that names the
   module with a string literal; it does not read a name the function computes. It imports
   each file a second time with the `jsonschema` package made unavailable:

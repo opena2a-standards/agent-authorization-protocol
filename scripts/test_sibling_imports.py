@@ -17,8 +17,9 @@ test calls it, so the file has to put its directory on sys.path when it is
 imported: an insertion inside the function does not count. After the file is
 imported, the tests look on sys.path for each sibling script the file imports
 inside a function and fail as an import of one that is not found does. They do not
-import it: whether a test reaches the import is not known, so a script that fails
-to import where the test that imports it is skipped is no failure. Inside a
+import it: whether a test reaches the import is not known, so a sibling script
+that is found but fails to import is not reported here, whether or not the test
+that imports it is skipped; that test reports the error when it runs. Inside a
 function the tests read an `import` or `from ... import` statement and a call of
 `import_module` or `__import__` that names the module with a string literal; they
 do not read a name the function computes. Each file is imported a second time with
@@ -206,6 +207,10 @@ class SiblingImportsTest(unittest.TestCase):
     EXITS = "import sys\n\nsys.exit(2)\n"
     NEEDS_JSONSCHEMA = ("import sys\n\ntry:\n    import jsonschema  # noqa: F401\n"
                         "except ImportError:\n    sys.exit(2)\n")
+    # A sibling script that raises when it is imported.
+    RAISES = "raise RuntimeError('fails to import')\n"
+    # What the description of this file and the changelog say of a sibling script that fails to import.
+    FOUND_NOT_IMPORTED = "a sibling script that is found but fails to import is not reported"
 
     def assert_no_test_file_fails(self, failure):
         tests = sorted(SCRIPTS.glob("test_*.py"))
@@ -489,6 +494,21 @@ class SiblingImportsTest(unittest.TestCase):
                   "        self.assertTrue(needs_jsonschema)\n")
         files = [("scripts/needs_jsonschema.py", self.NEEDS_JSONSCHEMA)]
         self.assertEqual(self.fixture_failures(source, files), (None, None))
+
+    def test_sibling_that_fails_to_import_inside_a_test_that_is_not_skipped_fails_neither_way(self):
+        source = (f"import pathlib\nimport sys\nimport unittest\n\n{INSERT}\n\n\n"
+                  "class T(unittest.TestCase):\n    def test_x(self):\n        import raises\n"
+                  "        self.assertTrue(raises)\n")
+        self.assertEqual(self.fixture_failures(source, [("scripts/raises.py", self.RAISES)]), (None, None))
+
+    def test_description_and_changelog_say_a_sibling_that_fails_to_import_is_not_reported(self):
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        for name, text in (("scripts/test_sibling_imports.py", __doc__), ("CHANGELOG.md", changelog)):
+            with self.subTest(document=name):
+                text = " ".join(text.split())
+                self.assertIn(self.FOUND_NOT_IMPORTED, text)
+                # The check does not import the script whether or not the test is skipped.
+                self.assertNotIn("fails to import where the test that imports it is skipped", text)
 
 
 if __name__ == "__main__":
