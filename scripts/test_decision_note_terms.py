@@ -259,6 +259,23 @@ class PatternFormsTest(unittest.TestCase):
                 ),
             )
 
+    def test_a_capital_letter_before_gate_is_read_as_a_name_and_described(self):
+        description = " ".join(__doc__.split())
+        self.assertIn(
+            "The capital letter is the only sign of a name the tests read", description
+        )
+        # A name in lower case is not found; a common noun with a capital letter is.
+        self.assertIsNone(CREDITED_APPROVAL.search("after this lands (xyz's gate)"))
+        for phrase in ("Verifier's gate rejects a missing family", "The Verifier's Gate"):
+            with self.subTest(phrase=phrase):
+                self.assertIsNotNone(CREDITED_APPROVAL.search(phrase))
+                self.assertIn(phrase, description)
+        rewrite = "The verifier's gate rejects a missing family"
+        self.assertIsNone(CREDITED_APPROVAL.search(rewrite))
+        self.assertIn(rewrite, description)
+        # The description says the failure prints that rewrite.
+        self.assertIn("(\"The verifier's gate\")", GATE_REWRITE)
+
     def test_forms_that_credit_no_one_are_found_and_described(self):
         description = " ".join(__doc__.split())
         for phrase in ("the 'editors' approval", "she's the approval"):

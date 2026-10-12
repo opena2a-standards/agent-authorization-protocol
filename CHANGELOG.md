@@ -388,6 +388,13 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   start a sentence ("The verifier's gate"), and the failure of the test on a possessive
   before gate now prints that rewrite. The forms found are unchanged, and each case named
   here has a test phrase. No decision note changes.
+- A test in `scripts/test_decision_note_terms.py` pins the paragraph of its description on a
+  possessive before gate: the description must carry the sentence "The capital letter is
+  the only sign of a name the tests read", the two examples found as a name ("Verifier's
+  gate rejects a missing family", "The Verifier's Gate") and the rewrite that is not found
+  ("The verifier's gate rejects a missing family"), and the printed rewrite must carry
+  ("The verifier's gate"). Rewriting or removing that sentence passed all 14 tests before;
+  it now fails one. The patterns and the decision notes are unchanged.
 
 ### Added
 
