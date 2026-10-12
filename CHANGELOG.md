@@ -225,6 +225,16 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   section records a change and a version line lacks the suffix, when the section records
   none and a line carries it, and when the version AAP-SPEC.md names is not that of the
   newest released section. It runs in CI through `scripts/validate_examples.py`.
+- The SDK sample in `examples/orders-db-exchange.md` called `db.query(...)` with a SQL
+  string on a `db` name the AIM Python SDK does not provide, so the sample did not run as
+  written. The function now declares the `grant` parameter through which the
+  `@agent.perform_action` decorator passes the broker-backed handle, and calls the handle's
+  one method, `grant.request("GET", "/orders", query={"customer": customer_id})`. A
+  paragraph after the sample states that `aim_sdk.current_grant()` returns the same handle
+  and that `request` carries a logical HTTP operation to the broker.
+  `scripts/test_sdk_sample.py` parses the sample and checks that every name the decorated
+  function reads is defined, that the function obtains the handle, and that it calls only
+  `request` with that method's parameters. Editorial: no requirement changes.
 
 ### Added
 

@@ -13,11 +13,16 @@ from aim_sdk import secure
 agent = secure("orders-reader")
 
 @agent.perform_action(capability="acme.com/orders:read", grant="grant://orders-db")
-def recent_orders(customer_id):
-    # `db` here is provided by the broker-backed result handle.
-    # No connection string, no token, no hostname is ever in scope.
-    return db.query("SELECT * FROM orders WHERE customer_id = ? LIMIT 20", customer_id)
+def recent_orders(customer_id, grant):
+    # `grant` is the broker-backed handle the SDK passes in. It names a logical
+    # operation; no connection string, no token, no hostname is ever in scope.
+    return grant.request("GET", "/orders", query={"customer": customer_id})
 ```
+
+The SDK passes the handle as the `grant` keyword argument when the function declares one, and
+`aim_sdk.current_grant()` returns the same handle. Its one method, `request(method, path, query,
+body)`, carries a logical HTTP operation to the broker, which resolves it; no query written against
+the backend's schema appears in agent code.
 
 Everything the model can see is `grant://orders-db` and the returned rows. It cannot tell that the
 grant resolves through an OAuth token exchange rather than a vaulted secret or a cloud role.
