@@ -18,6 +18,14 @@ The tests find these forms:
 - "requested from", "requested of" and "approved by";
 - two or more capital letters directly before "threat model".
 
+The capital letter is the only sign of a name the tests read, so a common noun
+written with one before gate is found as a name is: at the start of a sentence
+or a list item ("Verifier's gate rejects a missing family") and in a heading
+in title case ("The Verifier's Gate"). A note writes such a noun in lower
+case, with a word before it where it would start a sentence ("The verifier's
+gate rejects a missing family"); the failure of the test on a possessive
+before gate prints that rewrite.
+
 The five nouns are matched in the singular and the plural, and they and the
 three phrases in any letter case. The apostrophe is straight or curly. The
 contractions it's, that's, there's, here's, what's, who's and let's are not
@@ -59,6 +67,16 @@ CREDITED_APPROVAL = re.compile(
     rf"|\b{NOT_A_CONTRACTION}[A-Z]\w*{POSSESSIVE_END}(?i:gates?)\b"
     r"|\b(?i:requested from|requested of|approved by)\b"
 )
+# A form CREDITED_APPROVAL found that is a possessive before gate.
+GATE_FORM = re.compile(r"(?i:gates?)\Z")
+# What a failure on that form adds: a capital letter at the start of a sentence
+# reads as a name, so the writer of a note is told how to write the sentence.
+GATE_REWRITE = (
+    'a possessive before "gate" is read as a credit when its word starts with a'
+    " capital letter, wherever the word stands; write the noun of a verification"
+    " gate in lower case, with a word before it at the start of a sentence"
+    ' ("The verifier\'s gate")'
+)
 
 
 def notes():
@@ -83,10 +101,34 @@ class DecisionNoteTermsTest(unittest.TestCase):
             with self.subTest(note=name):
                 self.assertEqual(QUALIFIED_THREAT_MODEL.findall(text), [])
 
+    def assert_no_credited_approval(self, text):
+        """Fail on the credited approvals in `text`; a gate among them adds its rewrite."""
+        found = CREDITED_APPROVAL.findall(text)
+        gate = any(GATE_FORM.search(form) for form in found)
+        self.assertEqual(found, [], GATE_REWRITE if gate else None)
+
     def test_no_credited_approval_form_is_present(self):
         for name, text in notes().items():
             with self.subTest(note=name):
-                self.assertEqual(CREDITED_APPROVAL.findall(text), [])
+                self.assert_no_credited_approval(text)
+
+    def test_a_gate_that_starts_a_sentence_fails_with_its_rewrite(self):
+        for text in (
+            "Verifier's gate rejects a missing family",
+            "A missing family fails. Verifier’s gates reject it.",
+        ):
+            with self.subTest(text=text):
+                with self.assertRaises(AssertionError) as raised:
+                    self.assert_no_credited_approval(text)
+                self.assertIn(GATE_REWRITE, str(raised.exception))
+
+    def test_the_rewrite_of_a_gate_passes(self):
+        self.assert_no_credited_approval("The verifier's gate rejects a missing family")
+
+    def test_a_form_other_than_a_gate_fails_without_the_rewrite(self):
+        with self.assertRaises(AssertionError) as raised:
+            self.assert_no_credited_approval("option (B) was approved by Xyz")
+        self.assertNotIn(GATE_REWRITE, str(raised.exception))
 
 
 class PatternFormsTest(unittest.TestCase):
@@ -163,8 +205,14 @@ class PatternFormsTest(unittest.TestCase):
                 "resubmits only after this lands (Xyz's final gate)",
                 "resubmits only after this lands (Xyz's Gate)",
                 "resubmits only after this lands (Xyz's gates)",
+                # A common noun written with a capital letter is found as a name is.
+                "Verifier's gate rejects a missing family",
+                "A missing family fails. Verifier's gate rejects it.",
+                "- Verifier's gate: rejects a missing family",
+                "## The Verifier's Gate",
             ),
             not_matched=(
+                "The verifier's gate rejects a missing family",
                 "the verifier's gate rejects a missing family",
                 "the verifier’s family gate rejects a missing family",
                 "both verifiers' gates reject a missing family",
