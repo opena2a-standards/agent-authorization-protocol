@@ -42,8 +42,11 @@ that carries one rewords it.
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
 
+import ast
 import pathlib
 import re
+import subprocess
+import sys
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -85,6 +88,25 @@ def notes():
         path.name: " ".join(path.read_text(encoding="utf-8").split())
         for path in sorted(DECISIONS.glob("*.md"))
     }
+
+
+def read_description():
+    """The description of these tests, read from this file as __doc__ holds it.
+
+    The file is parsed with optimize=0: on Python 3.14, ast.parse also drops
+    the docstrings when they are stripped (python3 -OO, PYTHONOPTIMIZE=2).
+    """
+    path = pathlib.Path(__file__)
+    source = path.read_text(encoding="utf-8")
+    tree = compile(source, path, "exec", ast.PyCF_ONLY_AST, dont_inherit=True, optimize=0)
+    return ast.get_docstring(tree, clean=False)
+
+
+# __doc__ is None when docstrings are stripped (python3 -OO, PYTHONOPTIMIZE=2).
+# The tests that check the description read __doc__, so it is read from this
+# file instead.
+if __doc__ is None:
+    __doc__ = read_description()
 
 
 class DecisionNoteTermsTest(unittest.TestCase):
@@ -356,6 +378,28 @@ class ChangelogEntriesTest(unittest.TestCase):
                 ):
                     with self.subTest(sentence=sentence):
                         self.assertIn("capital letter", sentence)
+
+
+class StrippedDocstringsTest(unittest.TestCase):
+    def test_the_description_read_from_this_file_is_the_docstring(self):
+        self.assertEqual(read_description(), __doc__)
+
+    def test_the_description_is_read_when_docstrings_are_stripped(self):
+        # python3 -OO and PYTHONOPTIMIZE=2 set __doc__ to None; the tests that read
+        # the description still run and pass.
+        here = pathlib.Path(__file__).resolve()
+        tests = [
+            f"{here.stem}.PatternFormsTest.{name}"
+            for name in (
+                "test_a_capital_letter_before_gate_is_read_as_a_name_and_described",
+                "test_forms_that_credit_no_one_are_found_and_described",
+            )
+        ]
+        result = subprocess.run(
+            [sys.executable, "-B", "-E", "-OO", "-m", "unittest", *tests],
+            cwd=here.parent, capture_output=True, text=True, timeout=120)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Ran 2 tests", result.stderr)
 
 
 if __name__ == "__main__":
