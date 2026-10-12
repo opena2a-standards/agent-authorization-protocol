@@ -106,9 +106,9 @@ CASE_SENSITIVE_REWRITE = (
 # Z, so the statement goes on "A to Z", with or without a comma before it.
 CAPITAL_LETTER = "starts with a capital letter"
 CAPITAL_LETTER_NOT_A_TO_Z = re.compile(rf"{CAPITAL_LETTER}(?!,? A to Z\b)")
-# A changelog sentence that has both says a common noun with a capital letter
-# is found before gate. An entry is read on its own, so such a sentence names
-# the letters the pattern reads as well.
+# A changelog sentence that has both, in any letter case, says a common noun
+# with a capital letter is found before gate. An entry is read on its own, so
+# such a sentence names the letters the pattern reads as well.
 COMMON_NOUN_WITH_A_CAPITAL = ("common noun", "capital letter")
 A_TO_Z = re.compile(r"\bA to Z\b")
 # What a changelog sentence on the entries the tests read names, and how it
@@ -435,11 +435,14 @@ def capital_letter_claims(entry):
 
 
 def common_noun_statements(entry):
-    """The sentences of `entry` that have each of COMMON_NOUN_WITH_A_CAPITAL."""
+    """The sentences of `entry` that have each of COMMON_NOUN_WITH_A_CAPITAL, in any letter case.
+
+    A sentence can start with either ("Common nouns with a capital letter").
+    """
     return [
         sentence
         for sentence in sentences(entry)
-        if all(words in sentence for words in COMMON_NOUN_WITH_A_CAPITAL)
+        if all(words in sentence.lower() for words in COMMON_NOUN_WITH_A_CAPITAL)
     ]
 
 
@@ -725,6 +728,9 @@ class ChangelogEntriesTest(unittest.TestCase):
             f"The check finds {found}, A to Z, before gate.",
             "The capital letter, A to Z, is the only sign of a name, so a common noun"
             " written with one is found.",
+            # The two are read in any letter case, so a sentence can start with either.
+            "Common nouns with a capital letter, A to Z, before gate are found as names are.",
+            "Capital letters, A to Z, start the common nouns found before gate.",
             # A sentence with one of the two is not read as such a statement.
             "A common noun in lower case before gate is not found.",
             "A sentence ends before a capital letter.",
@@ -738,6 +744,9 @@ class ChangelogEntriesTest(unittest.TestCase):
             "The capital letter is the only sign of a name, so a common noun written"
             " with one is found.",
             f"The check finds {found}, A to Zeta, before gate.",
+            "Common nouns with a capital letter before gate are found as names are.",
+            "Capital letters start the common nouns found before gate.",
+            "A COMMON NOUN with a CAPITAL LETTER before gate is found.",
         ):
             with self.subTest(fails=sentence):
                 self.assertEqual(

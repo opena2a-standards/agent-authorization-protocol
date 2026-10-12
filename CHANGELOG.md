@@ -525,8 +525,9 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   to Z is not found ("Église's gate rejects a missing family"). The second of the two now
   names the file with its path directly between two backticks, so the tests read it; it
   named only "That test". A new test fails when a sentence of an entry read has "common
-  noun" and "capital letter" and not "A to Z", and when no sentence of an entry read has
-  the first two. The pattern, the description and the decision notes are unchanged.
+  noun" and "capital letter", in any letter case, and not "A to Z", and when no sentence
+  of an entry read has the first two. The pattern, the description and the decision notes
+  are unchanged.
 - A test of `scripts/test_decision_note_terms.py` pins where its changelog tests end a
   sentence: where a period and then whitespace come directly before a capital letter A to
   Z, a backtick, a straight double quotation mark or an opening parenthesis. No test
@@ -555,6 +556,14 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   and only when, it is a capital letter A to Z, a backtick, a straight double quotation
   mark or an opening parenthesis; for each directly before the whitespace, that a sentence
   ends after it when, and only when, it is a period. The split is unchanged.
+- The changelog test of `scripts/test_decision_note_terms.py` on a common noun with a
+  capital letter, A to Z, before gate reads "common noun" and "capital letter" in any
+  letter case. It read only the lower-case words, so an entry read whose sentence starts
+  with either ("Common nouns with a capital letter before gate are found as names are.")
+  passed all 27 tests without A to Z, while the same sentence starting "The common nouns"
+  failed. Such a sentence now fails the test, which has a passing and a failing sentence
+  that starts with each of the two. The entry above that first described the test says
+  so. The pattern, the description and the decision notes are unchanged.
 
 ### Added
 
