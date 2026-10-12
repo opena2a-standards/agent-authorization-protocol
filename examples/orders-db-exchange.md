@@ -80,7 +80,7 @@ enters the agent process or context. A denial at any step returns the same opaqu
 A `v1:` note marks a step the v1 reference implementation does not perform as drawn, in the form
 the policy sample uses for `jurisdiction`. Version negotiation (step 2) is a requirement of
 conformance Level 2 in the broker profile (Section 13), and the v1 reference targets Level 1. The
-broker profile describes a rotating signing key (step 4, Section 6.8) and requires a signed audit
+broker profile describes a rotating signing key (step 4, Section 11) and requires a signed audit
 log (step 7, Section 6.7); its Section 14 lists what the reference implementation provides.
 
 ## 4. RFC 8693 request the broker makes (illustrative)
