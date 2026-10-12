@@ -332,9 +332,9 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   ESCALATION heading no longer names who was asked. The decision and its reasoning are
   unchanged. `scripts/test_decision_note_terms.py` also fails when a note in `decisions/`
   contains a singular possessive directly before go-ahead, approval or sign-off ("Xyz's
-  go-ahead") or, when the word in the possessive starts with a capital letter, before gate
-  ("Xyz's gate"), or the phrase "requested from"; the nouns and the phrase are found in any
-  letter case. Editorial: no requirement changes.
+  go-ahead") or, when the word in the possessive starts with a capital letter, A to Z,
+  before gate ("Xyz's gate"), or the phrase "requested from"; the nouns and the phrase are
+  found in any letter case. Editorial: no requirement changes.
 - `examples/transport-bindings.md` agrees with broker profile Section 8.5. Its HTTP section
   said the ATX travels in a request header "as in ATP"; it now names the
   `Agent-Trust-Credential` header and cites the ATX specification for it
@@ -366,11 +366,11 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   plural possessive directly before the word, and the check on the other three only a
   singular one. "requested of" and "approved by" are found as "requested from" is, each in
   any letter case. A possessive before gate is found only when its word starts with a
-  capital letter ("Xyz's gate"), so a sentence on a verification gate ("the verifier's
-  gate rejects a missing family") no longer fails the test. The contractions it's, that's,
-  there's, here's, what's, who's and let's are not read as possessives. Each form has a
-  test phrase, so removing "approval" or "sign-off" from the pattern fails a test where
-  all five tests passed. No decision note changes.
+  capital letter, A to Z ("Xyz's gate"), so a sentence on a verification gate ("the
+  verifier's gate rejects a missing family") no longer fails the test. The contractions
+  it's, that's, there's, here's, what's, who's and let's are not read as possessives. Each
+  form has a test phrase, so removing "approval" or "sign-off" from the pattern fails a
+  test where all five tests passed. No decision note changes.
 - The description of `scripts/test_decision_note_terms.py` no longer says its tests find
   the listed forms and no others. It names the two forms that credit no one and are found
   where a possessive would be: a word ending in s and closed by a straight or curly
@@ -417,16 +417,17 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   describes the approval check of `scripts/test_decision_note_terms.py` as the later entry
   on that test does. It said a word ending in 's before gate fails the test and that the
   match reads letter case; the test finds a possessive before gate only when its word
-  starts with a capital letter, and finds go-ahead, approval, sign-off, gate and "requested
-  from" in any letter case ("with Xyz's Go-Ahead", "REQUESTED FROM Xyz"). Tests in the same
-  file read each entry under [Unreleased] that contains the code span
-  `scripts/test_decision_note_terms.py`. One fails when such an entry has case-sensitive
-  directly after is or are. Another fails when a sentence of such an entry has the
+  starts with a capital letter, A to Z, and finds go-ahead, approval, sign-off, gate and
+  "requested from" in any letter case ("with Xyz's Go-Ahead", "REQUESTED FROM Xyz"). Tests
+  in the same file read each entry under [Unreleased] that has the path
+  `scripts/test_decision_note_terms.py` directly between two backticks. One fails when a
+  sentence of such an entry has case-sensitive directly after is or are and names a noun
+  or a phrase of the approval check. Another fails when a sentence of such an entry has the
   lower-case word gate and at least one of the lower-case words go-ahead, approval and
-  sign-off, and does not contain "capital letter"; it splits an entry into sentences only
-  where a period and then whitespace come directly before a capital letter A to Z, a
-  backtick, a straight double quotation mark or an opening parenthesis. The patterns and
-  the decision notes are unchanged.
+  sign-off, and does not contain "capital letter". These tests split an entry into
+  sentences only where a period and then whitespace come directly before a capital letter
+  A to Z, a backtick, a straight double quotation mark or an opening parenthesis. The
+  patterns and the decision notes are unchanged.
 - The resolution flow of `examples/orders-db-exchange.md` marks the three steps the v1
   reference implementation does not perform as drawn, with a `v1:` note in the form the
   policy sample uses for `jurisdiction`: version negotiation (step 2) is marked as a
@@ -441,6 +442,44 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/test_worked_example_status.py` checks that each of the three steps carries its
   note and that the Section 14 note names the audit signature;
   `scripts/test_reference_status.py` checks that the AAP-SPEC paragraph cites Section 6.7.
+- Three entries above state the rule of `scripts/test_decision_note_terms.py` on a
+  possessive before gate with the letters its pattern reads: the word "starts with a
+  capital letter, A to Z", as the description of the tests says. They named a capital
+  letter without that range, and a word whose first letter is a capital outside it is not
+  found ("Émile's gate"). The three are the entry on the ML-DSA-65 decision note that
+  records when option (B) was adopted, the entry on the forms the description names, and
+  the entry that corrected the first of them. The rewrite the test prints on such a
+  possessive says "A to Z" as well. A new test fails when a sentence of an entry the tests
+  read, of the description or of the printed rewrite has the five words before the comma
+  in "starts with a capital letter, A to Z" and not "A to Z" directly after them, with or
+  without the comma. The test that runs the tests on the description with docstrings
+  stripped (`python3 -OO`) runs it as well. The pattern and the decision notes are
+  unchanged.
+- The changelog test of `scripts/test_decision_note_terms.py` on case-sensitive, written
+  with a hyphen or a space and in any letter case, reads sentences. It failed on those
+  words directly after is or are anywhere in an entry it read, so an entry could not say
+  what is true of another check. The check on an abbreviation before "threat model" is
+  case-sensitive ("xyz threat model" is not found). Of the sentences of an entry, the test
+  now fails only on one that has those words directly after is or are and names a noun or
+  a phrase of the approval check, in any letter case: go-ahead, approval, sign-off or gate,
+  singular or plural, "requested from", "requested of" or "approved by"; a sentence ends
+  only where the earlier entry says, where a period and then whitespace come directly
+  before a capital letter A to Z, a backtick, a straight double quotation mark or an
+  opening parenthesis. The test reads characters, not grammar: a sentence that names one
+  of them fails whatever it calls case-sensitive, and a sentence that names none passes.
+  Its failure says where a statement on another check goes. The patterns and the decision
+  notes are unchanged.
+- Two descriptions of which changelog entries the tests of
+  `scripts/test_decision_note_terms.py` read match what the tests look for. The earlier
+  entry said they read each entry under [Unreleased] "that contains the code span", and the
+  docstring of the function that selects the entries said "that names this file"; an entry
+  is read only when the path of the file stands directly between two backticks. An entry
+  that names the file only without backticks, or only with a space or other text between a
+  backtick and the path, is not read, so none of these tests applies to it. Both now
+  describe that selection, and the docstring of the test class and the names of two tests
+  speak of an entry that is read, where they spoke of any entry. A new test pins the
+  selection with each of those forms, and another fails when a sentence of an entry read
+  has "read each entry under [Unreleased]" and not "directly between two backticks".
 
 ### Added
 
