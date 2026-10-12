@@ -299,9 +299,12 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   never reads, and runs in CI through `scripts/validate_examples.py`.
 - `python3 -m unittest scripts/test_examples_bindings.py` runs from the repository root: the
   file inserts its own directory into `sys.path` before it imports `check_naming`, as the
-  other test files in `scripts/` do, where it raised `ModuleNotFoundError`.
-  `scripts/test_sibling_imports.py` fails when a test file in `scripts/` imports a sibling
-  script before that insertion, and runs in CI through `scripts/validate_examples.py`.
+  other test files in `scripts/` that import a sibling script do, where it raised
+  `ModuleNotFoundError`. `scripts/test_sibling_imports.py` imports each test file in
+  `scripts/` under the module name that command uses, in a new interpreter started in the
+  repository root with `PYTHONPATH` ignored, and fails with the error the import raised and
+  the line that inserts the directory. It imports each file without running its tests, and
+  runs in CI through `scripts/validate_examples.py`.
 - The ML-DSA-65 decision note no longer credits its recommendation to a group it does not
   define or names a role by an abbreviation. Its status line says the decision proceeded
   with the option the ESCALATION section recommends, option (B) is marked "recommended",
