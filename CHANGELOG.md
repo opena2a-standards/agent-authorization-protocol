@@ -316,6 +316,17 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   no requirement changes. `scripts/test_transport_bindings.py` now also reads the example
   and checks the header citation, the `atx` field in the agent card section and the summary
   table, and that no sentence of the example places the ATX in the `atp` object.
+- Section 3.2 states that the issuing Registry named in `iss` sets the AIT lifetime,
+  `exp - iat`, and that this specification sets no upper bound on it, unlike the CGT
+  (Section 4.3), the DA (Section 5.3) and the BAC (Section 6.1). The `iat` / `exp` row
+  described the window only as a "Validity window". The section names what a longer
+  lifetime lengthens: the time for which a verifier accepts an AIT whose trust level or
+  referenced ATX has since changed, and the time for which a receiver tracks its `jti`
+  (Section 8.1). No requirement changes: the counts of MUST, MUST NOT, SHOULD, SHOULD NOT
+  and MAY are unchanged. `scripts/test_ait_lifetime.py` checks that the `iat` / `exp` row
+  of the AIT, CGT and BAC claim tables each states what governs `exp - iat`, and that the
+  3600-second lifetime Section 3.2 cites for its example is the `exp - iat` of
+  `examples/tokens/ait-v1.claims.json` and of the claim set the section prints.
 
 ### Added
 
