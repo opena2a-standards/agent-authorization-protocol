@@ -319,5 +319,44 @@ class PatternFormsTest(unittest.TestCase):
         )
 
 
+def changelog_entries():
+    """Each entry under [Unreleased] in CHANGELOG.md that names this file, as one line."""
+    text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    start = text.index("## [Unreleased]")
+    end = text.find("\n## [", start + 1)
+    return [
+        " ".join(entry.split())
+        for entry in re.split(r"\n(?=- )", text[start:end])
+        if "`scripts/test_decision_note_terms.py`" in entry
+    ]
+
+
+class ChangelogEntriesTest(unittest.TestCase):
+    """The changelog entries on this file describe the approval check as the patterns read it."""
+
+    def test_entries_are_read(self):
+        entries = changelog_entries()
+        self.assertTrue(any('"requested from"' in entry for entry in entries))
+
+    def test_no_entry_calls_the_approval_check_case_sensitive(self):
+        for phrase in ("with Xyz's Go-Ahead", "REQUESTED FROM Xyz", "with Xyz's GATE"):
+            with self.subTest(phrase=phrase):
+                self.assertIsNotNone(CREDITED_APPROVAL.search(phrase))
+        for entry in changelog_entries():
+            with self.subTest(entry=entry[:80]):
+                self.assertNotRegex(entry, r"(?i)\b(?:is|are) case[- ]sensitive\b")
+
+    def test_an_entry_that_lists_gate_names_the_capital_letter(self):
+        self.assertIsNone(CREDITED_APPROVAL.search("the verifier's gate rejects it"))
+        self.assertIsNotNone(CREDITED_APPROVAL.search("Xyz's gate"))
+        for entry in changelog_entries():
+            for sentence in re.split(r"(?<=\.)\s+(?=[A-Z`\"(])", entry):
+                if re.search(r"\bgate\b", sentence) and re.search(
+                    r"\b(?:go-ahead|approval|sign-off)\b", sentence
+                ):
+                    with self.subTest(sentence=sentence):
+                        self.assertIn("capital letter", sentence)
+
+
 if __name__ == "__main__":
     unittest.main()
