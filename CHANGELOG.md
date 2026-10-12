@@ -374,6 +374,17 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   write. Words whose American spelling ends in -our or -ise ("hour", "detour", "advertise",
   "exercise", "improvisation") pass. README.md now spells "honor" the American way, as the
   rest of the repository does. It runs in CI through `scripts/validate_examples.py`.
+- `examples/transport-bindings.md`, a worked example of each initial binding of broker
+  profile Section 8.5: the HTTP `Agent-Trust-Credential` header, the `atp` object of an A2A
+  agent card and the reference in an MCP server manifest. For each it shows where the ATX
+  travels, the proof of presenter identity of Section 6.8 (an RFC 9421 HTTP Message
+  Signature, or a signed challenge), and what the broker reads before it evaluates policy.
+  README.md described `examples/` as covering transport bindings while the directory held
+  none; its entry now names each worked example and what it covers. Informative: no
+  requirement changes, and the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in both
+  documents are unchanged. `scripts/test_examples_bindings.py` fails when a binding that
+  Section 8.5 lists has no heading in a Markdown file in `examples/`, and runs in CI through
+  `scripts/validate_examples.py`.
 
 ## [0.5.1-draft] - 2026-10-02
 

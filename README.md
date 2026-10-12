@@ -121,7 +121,9 @@ OpenA2A AIM (Agent Identity Management). See
 
 - [`AAP-SPEC.md`](./AAP-SPEC.md), the AAP token model (AIT/CGT/DA/BAC, federation, revocation).
 - [`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md), the broker & resolution layer.
-- [`examples/`](./examples/), worked examples (resolution flow, policy grammar, transport bindings).
+- [`examples/`](./examples/), worked examples: the resolution flow and a policy grammar clause
+  ([`orders-db-exchange.md`](./examples/orders-db-exchange.md)), and the HTTP, A2A agent card and
+  MCP manifest transport bindings ([`transport-bindings.md`](./examples/transport-bindings.md)).
 
 ## License
 
