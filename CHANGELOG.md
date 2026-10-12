@@ -294,7 +294,7 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   section numbers only; it also reads the items that note lists without a section number
   and fails when the paragraph does not name each name such an item carries. Editorial: no
   requirement changes.
-- `scripts/test_examples_bindings.py` no longer imports `pathlib`, which it did not use.
+- `scripts/test_examples_bindings.py` no longer imports `pathlib` without using it.
   `scripts/test_unused_imports.py` fails when a script in `scripts/` imports a name it
   never reads, and runs in CI through `scripts/validate_examples.py`.
 - `python3 -m unittest scripts/test_examples_bindings.py` runs from the repository root: the
