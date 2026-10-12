@@ -76,10 +76,36 @@ GATE_FORM = re.compile(r"(?i:gates?)\Z")
 # reads as a name, so the writer of a note is told how to write the sentence.
 GATE_REWRITE = (
     'a possessive before "gate" is read as a credit when its word starts with a'
-    " capital letter, wherever the word stands; write the noun of a verification"
-    " gate in lower case, with a word before it at the start of a sentence"
-    ' ("The verifier\'s gate")'
+    " capital letter, A to Z, wherever the word stands; write the noun of a"
+    " verification gate in lower case, with a word before it at the start of a"
+    ' sentence ("The verifier\'s gate")'
 )
+
+# What marks a changelog entry as one the tests read: the path of this file
+# with a backtick directly before it and directly after it.
+PATH_IN_BACKTICKS = "`scripts/test_decision_note_terms.py`"
+# A noun or a phrase of CREDITED_APPROVAL. A sentence of a changelog entry that
+# names one is read as a sentence on the approval check.
+APPROVAL_TERM = re.compile(
+    r"\b(?i:go-aheads?|approvals?|sign-offs?|gates?"
+    r"|requested from|requested of|approved by)\b"
+)
+CASE_SENSITIVE = re.compile(r"(?i)\b(?:is|are) case[- ]sensitive\b")
+# What a failure on such a sentence adds: where a true statement on another
+# check goes.
+CASE_SENSITIVE_REWRITE = (
+    "the approval check finds its nouns and phrases in any letter case; a"
+    " statement that another check is case-sensitive goes in a sentence that"
+    " names none of them"
+)
+# The statement of the rule on a possessive before gate. The pattern reads A to
+# Z, so the statement goes on "A to Z", with or without a comma before it.
+CAPITAL_LETTER = "starts with a capital letter"
+CAPITAL_LETTER_NOT_A_TO_Z = re.compile(rf"{CAPITAL_LETTER}(?!,? A to Z\b)")
+# What a changelog sentence on the entries the tests read says, and how it
+# names PATH_IN_BACKTICKS.
+EACH_ENTRY_READ = "read each entry under [Unreleased]"
+BETWEEN_BACKTICKS = "directly between two backticks"
 
 
 def notes():
@@ -341,43 +367,179 @@ class PatternFormsTest(unittest.TestCase):
         )
 
 
-def changelog_entries():
-    """Each entry under [Unreleased] in CHANGELOG.md that names this file, as one line."""
-    text = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
-    start = text.index("## [Unreleased]")
-    end = text.find("\n## [", start + 1)
+def entries_read(changelog):
+    """Each entry under [Unreleased] in `changelog` that carries PATH_IN_BACKTICKS, as one line.
+
+    An entry that names this file only in another way is not returned: without
+    backticks, or with a space or other text between a backtick and the path.
+    """
+    start = changelog.index("## [Unreleased]")
+    end = changelog.find("\n## [", start + 1)
     return [
         " ".join(entry.split())
-        for entry in re.split(r"\n(?=- )", text[start:end])
-        if "`scripts/test_decision_note_terms.py`" in entry
+        for entry in re.split(r"\n(?=- )", changelog[start:end])
+        if PATH_IN_BACKTICKS in entry
     ]
 
 
+def changelog_entries():
+    """The entries of CHANGELOG.md that entries_read() returns."""
+    return entries_read((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
+
+
+def sentences(entry):
+    """The parts of `entry` the tests read as its sentences.
+
+    An entry is split only where a period and then whitespace come directly
+    before a capital letter A to Z, a backtick, a straight double quotation
+    mark or an opening parenthesis.
+    """
+    return re.split(r"(?<=\.)\s+(?=[A-Z`\"(])", entry)
+
+
+def case_sensitive_claims(entry):
+    """The sentences of `entry` that name an APPROVAL_TERM and match CASE_SENSITIVE."""
+    return [
+        sentence
+        for sentence in sentences(entry)
+        if APPROVAL_TERM.search(sentence) and CASE_SENSITIVE.search(sentence)
+    ]
+
+
+def capital_letter_claims(entry):
+    """The sentences of `entry` that state CAPITAL_LETTER and do not go on "A to Z"."""
+    return [
+        sentence for sentence in sentences(entry) if CAPITAL_LETTER_NOT_A_TO_Z.search(sentence)
+    ]
+
+
+def changelog_with(entry):
+    """A changelog whose one entry under [Unreleased] is `entry`."""
+    return (
+        "# Changelog\n\n## [Unreleased]\n\n### Changed\n\n"
+        f"{entry}\n\n"
+        "## [0.1.0-draft] - 2026-06-01\n\n### Added\n\n"
+        f"- {PATH_IN_BACKTICKS} is named in a released section.\n"
+    )
+
+
 class ChangelogEntriesTest(unittest.TestCase):
-    """The changelog entries on this file describe the approval check as the patterns read it."""
+    """The changelog entries entries_read() returns describe the checks as the patterns do."""
 
     def test_entries_are_read(self):
         entries = changelog_entries()
         self.assertTrue(any('"requested from"' in entry for entry in entries))
 
-    def test_no_entry_calls_the_approval_check_case_sensitive(self):
+    def test_an_entry_is_read_only_with_the_path_directly_between_two_backticks(self):
+        path = "scripts/test_decision_note_terms.py"
+        self.assertEqual(PATH_IN_BACKTICKS, f"`{path}`")
+        for entry in (
+            f"- The match of `{path}` changed.",
+            f"- The match of ``{path}`` changed.",
+            f"- The match of {path} changed:\n  `{path}` finds one more form.",
+        ):
+            with self.subTest(read=entry):
+                self.assertEqual(entries_read(changelog_with(entry)), [" ".join(entry.split())])
+        for entry in (
+            f"- The match of {path} changed.",
+            f"- The match of `` {path} `` changed.",
+            f"- The match of `` {path} `` is case-sensitive before gate.",
+            f"- The tests run with `python3 {path}`.",
+            f"- The tests in `{path} ` changed.",
+        ):
+            with self.subTest(not_read=entry):
+                self.assertEqual(entries_read(changelog_with(entry)), [])
+
+    def test_a_sentence_on_each_entry_read_names_the_backticks(self):
+        for entry in changelog_entries():
+            for sentence in sentences(entry):
+                if EACH_ENTRY_READ in sentence:
+                    with self.subTest(sentence=sentence):
+                        self.assertIn(BETWEEN_BACKTICKS, sentence)
+
+    def test_no_sentence_on_the_approval_check_in_an_entry_read_says_case_sensitive(self):
         for phrase in ("with Xyz's Go-Ahead", "REQUESTED FROM Xyz", "with Xyz's GATE"):
             with self.subTest(phrase=phrase):
                 self.assertIsNotNone(CREDITED_APPROVAL.search(phrase))
         for entry in changelog_entries():
             with self.subTest(entry=entry[:80]):
-                self.assertNotRegex(entry, r"(?i)\b(?:is|are) case[- ]sensitive\b")
+                self.assertEqual(case_sensitive_claims(entry), [], CASE_SENSITIVE_REWRITE)
 
-    def test_an_entry_that_lists_gate_names_the_capital_letter(self):
+    def test_a_sentence_that_names_no_approval_term_may_say_case_sensitive(self):
+        # The check on an abbreviation before threat model is case-sensitive, so
+        # an entry can say so in a sentence that names no approval term.
+        self.assertIsNotNone(QUALIFIED_THREAT_MODEL.search("- XYZ threat model: tokens"))
+        self.assertIsNone(QUALIFIED_THREAT_MODEL.search("- xyz threat model: tokens"))
+        on_threat_model = "The check on an abbreviation before threat model is case-sensitive."
+        for entry in (
+            f"- {PATH_IN_BACKTICKS}: the check on an abbreviation before threat model"
+            " is case-sensitive.",
+            f"- {PATH_IN_BACKTICKS} finds go-ahead in any letter case. {on_threat_model}",
+        ):
+            with self.subTest(passes=entry):
+                self.assertEqual(case_sensitive_claims(entry), [])
+        # Each noun and phrase of the approval check marks a sentence as one on
+        # that check, in any letter case and, for a noun, in the plural.
+        nouns = ("go-ahead", "approval", "sign-off", "gate")
+        phrases = ("requested from", "requested of", "approved by")
+        for found in (*(f"with Xyz's {noun}" for noun in nouns), *phrases):
+            with self.subTest(found=found):
+                self.assertIsNotNone(CREDITED_APPROVAL.search(found))
+        for term in (*nouns, *(f"{noun}s" for noun in nouns), *phrases):
+            for sentence in (
+                f"The match of {term} is case-sensitive.",
+                f"The match of {term.upper()} IS Case Sensitive.",
+                f'The matches of "{term}" and the like are case-sensitive.',
+            ):
+                with self.subTest(fails=sentence):
+                    self.assertEqual(
+                        case_sensitive_claims(f"- {PATH_IN_BACKTICKS} changed. {sentence}"),
+                        [sentence],
+                    )
+        # The patterns read characters, not grammar: a sentence that names a term
+        # fails whatever it calls case-sensitive, and one that names none passes.
+        both = "- The approval check is unchanged, and the other check is case-sensitive."
+        self.assertEqual(case_sensitive_claims(both), [both])
+        self.assertEqual(
+            case_sensitive_claims("- The check finds go-ahead. It is case-sensitive."), []
+        )
+
+    def test_an_entry_read_that_lists_gate_names_the_capital_letter(self):
         self.assertIsNone(CREDITED_APPROVAL.search("the verifier's gate rejects it"))
         self.assertIsNotNone(CREDITED_APPROVAL.search("Xyz's gate"))
         for entry in changelog_entries():
-            for sentence in re.split(r"(?<=\.)\s+(?=[A-Z`\"(])", entry):
+            for sentence in sentences(entry):
                 if re.search(r"\bgate\b", sentence) and re.search(
                     r"\b(?:go-ahead|approval|sign-off)\b", sentence
                 ):
                     with self.subTest(sentence=sentence):
                         self.assertIn("capital letter", sentence)
+
+    def test_the_capital_letter_rule_is_stated_with_a_to_z(self):
+        # The pattern reads A to Z: a capital letter outside that range is not
+        # found ("É" is E with an acute accent).
+        self.assertIsNotNone(CREDITED_APPROVAL.search("with Xyz's gate"))
+        self.assertIsNone(CREDITED_APPROVAL.search("with Émile's gate"))
+        self.assertTrue("É".isupper())
+        # The description and the printed rewrite say so where they state the rule.
+        description = " ".join(__doc__.split())
+        self.assertIn(f"{CAPITAL_LETTER}, A to Z", description)
+        self.assertEqual(capital_letter_claims(description), [])
+        self.assertIn(f"{CAPITAL_LETTER}, A to Z", GATE_REWRITE)
+        self.assertEqual(capital_letter_claims(GATE_REWRITE), [])
+        # So does each sentence of an entry read that states it.
+        for entry in changelog_entries():
+            with self.subTest(entry=entry[:80]):
+                self.assertEqual(
+                    capital_letter_claims(entry), [], f'write "{CAPITAL_LETTER}, A to Z"'
+                )
+        stated = f"A possessive before gate is found when its word {CAPITAL_LETTER}"
+        for sentence in (f"{stated}, A to Z.", f"{stated} A to Z, before gate."):
+            with self.subTest(passes=sentence):
+                self.assertEqual(capital_letter_claims(f"- {sentence}"), [])
+        for sentence in (f"{stated}.", f"{stated}, before gate.", f"{stated}, A to Zeta."):
+            with self.subTest(fails=sentence):
+                self.assertEqual(capital_letter_claims(f"- {sentence}"), [f"- {sentence}"])
 
 
 class StrippedDocstringsTest(unittest.TestCase):
@@ -395,11 +557,14 @@ class StrippedDocstringsTest(unittest.TestCase):
                 "test_forms_that_credit_no_one_are_found_and_described",
             )
         ]
+        tests.append(
+            f"{here.stem}.ChangelogEntriesTest.test_the_capital_letter_rule_is_stated_with_a_to_z"
+        )
         result = subprocess.run(
             [sys.executable, "-B", "-E", "-OO", "-m", "unittest", *tests],
             cwd=here.parent, capture_output=True, text=True, timeout=120)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Ran 2 tests", result.stderr)
+        self.assertIn("Ran 3 tests", result.stderr)
 
 
 if __name__ == "__main__":
