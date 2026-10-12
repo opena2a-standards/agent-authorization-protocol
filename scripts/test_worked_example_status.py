@@ -14,9 +14,9 @@ profile section that defines it: the first broker profile section the paragraph
 names after "(step N)" has a numbered heading, and its text, up to the next
 heading, holds a phrase that defines the step (the heading "Versioning and
 negotiation" for step 2, which Section 13, the conformance table, does not
-hold). Each section number in the paragraph is written next to the broker
-profile's name, so check_section_citations.py, which reads a number only there,
-reads every one.
+hold). Each section number in the paragraph, written after "Section" or "§",
+is written next to the broker profile's name, so check_section_citations.py,
+which reads a number only there, reads every one.
 
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
@@ -58,7 +58,9 @@ STATUS_PARAGRAPH = "A `v1:` note marks"
 STEP_SECTION = re.compile(
     r"\(step (\d+)\)(?:(?!\(step ).)*?\b[Bb]roker profile Section (\d+(?:\.\d+)*)"
 )
-SECTION_NUMBER = re.compile(r"\bSections? (\d+(?:\.\d+)*)")
+# A section number written after "Section", "Sections", "§" or "§§", the markers
+# check_section_citations.py reads ("§99" is a section number too).
+SECTION_NUMBER = re.compile(r"(?:\bSections?\s+|§§?\s*)(\d+(?:\.\d+)*)")
 
 
 def flow_steps():
@@ -106,6 +108,21 @@ def profile_section(number):
     return " ".join(" ".join(lines[start:end]).split())
 
 
+def written_section_numbers(paragraph):
+    """Every section number written in `paragraph`, named or not."""
+    return sorted(SECTION_NUMBER.findall(paragraph))
+
+
+def read_section_numbers(paragraph):
+    """The broker profile section numbers check_section_citations.py reads in `paragraph`."""
+    return sorted(
+        number
+        for cite in check_section_citations.citations(EXAMPLE.name, paragraph)
+        if cite.doc.text == PROFILE.name
+        for number in cite.numbers
+    )
+
+
 class WorkedExampleStatusTest(unittest.TestCase):
     def test_flow_has_seven_numbered_steps(self):
         self.assertEqual(sorted(flow_steps()), list(range(1, 8)))
@@ -139,13 +156,21 @@ class WorkedExampleStatusTest(unittest.TestCase):
 
     def test_the_citation_check_reads_each_section_number_of_the_paragraph(self):
         paragraph = status_paragraph()
-        read = [
-            number
-            for cite in check_section_citations.citations(EXAMPLE.name, paragraph)
-            if cite.doc.text == PROFILE.name
-            for number in cite.numbers
-        ]
-        self.assertEqual(sorted(read), sorted(SECTION_NUMBER.findall(paragraph)))
+        self.assertEqual(read_section_numbers(paragraph), written_section_numbers(paragraph))
+
+    def test_a_section_number_written_with_the_section_sign_is_counted(self):
+        # "§99" without the broker profile's name is not read by the citation
+        # check, so the comparison above must see it and fail.
+        paragraph = status_paragraph()
+        self.assertIn("targets Level 1.", paragraph)
+        for sign in ("§99", "§ 99", "§§99"):
+            with self.subTest(sign=sign):
+                unnamed = paragraph.replace("targets Level 1.", f"targets Level 1 ({sign}).")
+                self.assertIn("99", written_section_numbers(unnamed))
+                self.assertNotIn("99", read_section_numbers(unnamed))
+                self.assertNotEqual(
+                    read_section_numbers(unnamed), written_section_numbers(unnamed)
+                )
 
 
 if __name__ == "__main__":

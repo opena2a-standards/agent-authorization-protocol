@@ -45,6 +45,7 @@ Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 import ast
 import pathlib
 import re
+import string
 import subprocess
 import sys
 import unittest
@@ -105,11 +106,18 @@ CASE_SENSITIVE_REWRITE = (
 # Z, so the statement goes on "A to Z", with or without a comma before it.
 CAPITAL_LETTER = "starts with a capital letter"
 CAPITAL_LETTER_NOT_A_TO_Z = re.compile(rf"{CAPITAL_LETTER}(?!,? A to Z\b)")
-# A changelog sentence that has both says a common noun with a capital letter
-# is found before gate. An entry is read on its own, so such a sentence names
-# the letters the pattern reads as well.
+# A changelog sentence that has both, in any letter case, says a common noun
+# with a capital letter is found before gate. An entry is read on its own, so
+# such a sentence names the letters the pattern reads as well.
 COMMON_NOUN_WITH_A_CAPITAL = ("common noun", "capital letter")
 A_TO_Z = re.compile(r"\bA to Z\b")
+# What the failure says when no sentence of an entry read has both of
+# COMMON_NOUN_WITH_A_CAPITAL.
+NO_SENTENCE_ON_A_COMMON_NOUN = (
+    'no sentence of an entry read has "common noun" and "capital letter"; the sentence'
+    " that says a common noun with a capital letter is found before gate has both and"
+    ' "A to Z"'
+)
 # What a changelog sentence on the entries the tests read names, and how it
 # names PATH_IN_BACKTICKS.
 UNRELEASED = "[Unreleased]"
@@ -434,11 +442,14 @@ def capital_letter_claims(entry):
 
 
 def common_noun_statements(entry):
-    """The sentences of `entry` that have each of COMMON_NOUN_WITH_A_CAPITAL."""
+    """The sentences of `entry` that have each of COMMON_NOUN_WITH_A_CAPITAL, in any letter case.
+
+    A sentence can start with either ("Common nouns with a capital letter").
+    """
     return [
         sentence
         for sentence in sentences(entry)
-        if all(words in sentence for words in COMMON_NOUN_WITH_A_CAPITAL)
+        if all(words in sentence.lower() for words in COMMON_NOUN_WITH_A_CAPITAL)
     ]
 
 
@@ -565,6 +576,29 @@ class ChangelogEntriesTest(unittest.TestCase):
         ):
             with self.subTest(one_sentence=entry):
                 self.assertEqual(sentences(entry), [entry])
+        # Each printable ASCII character other than whitespace is read in both
+        # places. Directly after the whitespace, a sentence ends before each
+        # capital letter A to Z and the other three, and before no other
+        # character: no hyphen, asterisk or "<". Directly before it, a sentence
+        # ends after a period and after no other character: no "!" or ":".
+        printable = [character for character in string.printable if not character.isspace()]
+        split_before = string.ascii_uppercase + '`"('
+        for character in printable:
+            second = f"{character}XY is found."
+            for space in (" ", "\n  "):
+                entry = f"{first}{space}{second}"
+                with self.subTest(after_whitespace=character, space=space):
+                    expected = [first, second] if character in split_before else [entry]
+                    self.assertEqual(sentences(entry), expected)
+        for character in printable:
+            entry = f"- The check finds go-ahead{character} The patterns are unchanged."
+            with self.subTest(before_whitespace=character):
+                expected = (
+                    ["- The check finds go-ahead.", "The patterns are unchanged."]
+                    if character == "."
+                    else [entry]
+                )
+                self.assertEqual(sentences(entry), expected)
         # The tests read the sentences apart: a statement on threat model after a
         # sentence that names go-ahead passes with each of the four at its start,
         # and fails where the two are one sentence.
@@ -681,6 +715,19 @@ class ChangelogEntriesTest(unittest.TestCase):
             with self.subTest(fails=sentence):
                 self.assertEqual(capital_letter_claims(f"- {sentence}"), [f"- {sentence}"])
 
+    def assert_a_common_noun_is_stated_with_a_to_z(self, entries):
+        """Fail on a common_noun_claims() sentence of `entries`.
+
+        Fail as well when no sentence of `entries` has both of COMMON_NOUN_WITH_A_CAPITAL.
+        """
+        stated = [sentence for entry in entries for sentence in common_noun_statements(entry)]
+        self.assertNotEqual(stated, [], NO_SENTENCE_ON_A_COMMON_NOUN)
+        self.assertEqual(
+            [sentence for entry in entries for sentence in common_noun_claims(entry)],
+            [],
+            'write "capital letter, A to Z"',
+        )
+
     def test_a_common_noun_with_a_capital_letter_is_stated_with_a_to_z(self):
         # A common noun before gate is found as a name is only when its first
         # letter is one of A to Z ("É" is E with an acute accent).
@@ -689,18 +736,15 @@ class ChangelogEntriesTest(unittest.TestCase):
         self.assertTrue("É".isupper())
         # Each sentence of an entry read that says such a noun is found names
         # those letters, and at least one sentence says it.
-        entries = changelog_entries()
-        self.assertTrue(any(common_noun_statements(entry) for entry in entries))
-        for entry in entries:
-            with self.subTest(entry=entry[:80]):
-                self.assertEqual(
-                    common_noun_claims(entry), [], 'write "capital letter, A to Z"'
-                )
+        self.assert_a_common_noun_is_stated_with_a_to_z(changelog_entries())
         found = "a common noun with a capital letter"
         for sentence in (
             f"The check finds {found}, A to Z, before gate.",
             "The capital letter, A to Z, is the only sign of a name, so a common noun"
             " written with one is found.",
+            # The two are read in any letter case, so a sentence can start with either.
+            "Common nouns with a capital letter, A to Z, before gate are found as names are.",
+            "Capital letters, A to Z, start the common nouns found before gate.",
             # A sentence with one of the two is not read as such a statement.
             "A common noun in lower case before gate is not found.",
             "A sentence ends before a capital letter.",
@@ -714,12 +758,42 @@ class ChangelogEntriesTest(unittest.TestCase):
             "The capital letter is the only sign of a name, so a common noun written"
             " with one is found.",
             f"The check finds {found}, A to Zeta, before gate.",
+            "Common nouns with a capital letter before gate are found as names are.",
+            "Capital letters start the common nouns found before gate.",
+            "A COMMON NOUN with a CAPITAL LETTER before gate is found.",
         ):
             with self.subTest(fails=sentence):
                 self.assertEqual(
                     common_noun_claims(f"- {PATH_IN_BACKTICKS} changed. {sentence}"),
                     [sentence],
                 )
+
+    def test_a_missing_sentence_on_a_common_noun_fails_with_what_to_write(self):
+        stated = (
+            f"- {PATH_IN_BACKTICKS} finds a common noun with a capital letter, A to Z,"
+            " before gate."
+        )
+        self.assert_a_common_noun_is_stated_with_a_to_z([stated])
+        # No sentence has both words: the failure names the missing sentence.
+        for entries in (
+            [],
+            [f"- {PATH_IN_BACKTICKS} finds one more form. No note changes."],
+            [stated.replace("common noun", "common word")],
+            [
+                f"- {PATH_IN_BACKTICKS} finds a common noun before gate.",
+                f"- {PATH_IN_BACKTICKS} finds a word with a capital letter, A to Z.",
+            ],
+        ):
+            with self.subTest(fails=entries):
+                with self.assertRaises(AssertionError) as raised:
+                    self.assert_a_common_noun_is_stated_with_a_to_z(entries)
+                self.assertIn(NO_SENTENCE_ON_A_COMMON_NOUN, str(raised.exception))
+        # A sentence with both and not A to Z: the failure says what to write.
+        without_a_to_z = f"- {PATH_IN_BACKTICKS} finds a common noun with a capital letter."
+        with self.assertRaises(AssertionError) as raised:
+            self.assert_a_common_noun_is_stated_with_a_to_z([stated, without_a_to_z])
+        self.assertIn('write "capital letter, A to Z"', str(raised.exception))
+        self.assertNotIn(NO_SENTENCE_ON_A_COMMON_NOUN, str(raised.exception))
 
 
 class StrippedDocstringsTest(unittest.TestCase):

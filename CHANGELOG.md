@@ -404,6 +404,13 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   passes. A new test runs it with `-OO` in a subprocess, and another checks that the
   description read from the file is the docstring. The checks and the description are
   unchanged.
+- `scripts/test_sibling_imports.py` parses its source with `optimize=0` to read its
+  description, because on Python 3.14 the parse drops the docstrings when they are stripped.
+  The validation workflow runs Python 3.12, where the parse keeps them, so the `-OO` test
+  passed there without `optimize=0` and only a Python 3.14 run failed. A new test reads the
+  description through a parse that drops stripped docstrings as Python 3.14 does, so the
+  removal of `optimize=0` fails on every version. The checks and the description are
+  unchanged.
 - A test in `scripts/test_decision_note_terms.py` pins the paragraph of its description on a
   possessive before gate: the description must carry the sentence "The capital letter is
   the only sign of a name the tests read", the two examples found as a name ("Verifier's
@@ -452,9 +459,11 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   MUST NOT, SHOULD, SHOULD NOT and MAY in the three documents are unchanged.
   `scripts/test_worked_example_status.py` checks that each of the three steps carries its
   note, that the paragraph cites for each step a broker profile section whose text defines
-  that step, that the citation check reads every section number in the paragraph, and that
-  the Section 14 note names the audit signature; `scripts/test_reference_status.py` checks
-  that the AAP-SPEC paragraph cites Section 6.7.
+  that step, that the citation check reads every section number in the paragraph, written
+  after "Section", "Sections", "§" or "§§" (the markers the citation check reads, so a
+  "§99" without the broker profile's name fails it), and that the Section 14 note names the
+  audit signature; `scripts/test_reference_status.py` checks that the AAP-SPEC paragraph
+  cites Section 6.7.
 - Three entries above state the rule of `scripts/test_decision_note_terms.py` on a
   possessive before gate with the letters its pattern reads: the word "starts with a
   capital letter, A to Z", as the description of the tests says. They named a capital
@@ -516,8 +525,9 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   to Z is not found ("Église's gate rejects a missing family"). The second of the two now
   names the file with its path directly between two backticks, so the tests read it; it
   named only "That test". A new test fails when a sentence of an entry read has "common
-  noun" and "capital letter" and not "A to Z", and when no sentence of an entry read has
-  the first two. The pattern, the description and the decision notes are unchanged.
+  noun" and "capital letter", in any letter case, and not "A to Z", and when no sentence
+  of an entry read has the first two. The pattern, the description and the decision notes
+  are unchanged.
 - A test of `scripts/test_decision_note_terms.py` pins where its changelog tests end a
   sentence: where a period and then whitespace come directly before a capital letter A to
   Z, a backtick, a straight double quotation mark or an opening parenthesis. No test
@@ -537,6 +547,30 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   have "directly between two backticks", or when no sentence names the section. The entry
   above that described the test states this, and a new test pins both failures. The
   patterns and the decision notes are unchanged.
+- The test of `scripts/test_decision_note_terms.py` that pins where its changelog tests end
+  a sentence reads each printable ASCII character other than whitespace on both sides of
+  the whitespace. It read one phrase for each of a few characters, so a split that also
+  ended a sentence before a hyphen, an asterisk or "<", or after "!" or ":", passed all 27
+  tests, as did a split that read only B to Z or only A to Y. For each such character
+  directly after the whitespace, the test now checks that a sentence ends before it when,
+  and only when, it is a capital letter A to Z, a backtick, a straight double quotation
+  mark or an opening parenthesis; for each directly before the whitespace, that a sentence
+  ends after it when, and only when, it is a period. The split is unchanged.
+- The changelog test of `scripts/test_decision_note_terms.py` on a common noun with a
+  capital letter, A to Z, before gate reads "common noun" and "capital letter" in any
+  letter case. It read only the lower-case words, so an entry read whose sentence starts
+  with either ("Common nouns with a capital letter before gate are found as names are.")
+  passed all 27 tests without A to Z, while the same sentence starting "The common nouns"
+  failed. Such a sentence now fails the test, which has a passing and a failing sentence
+  that starts with each of the two. The entry above that first described the test says
+  so. The pattern, the description and the decision notes are unchanged.
+- The changelog test of `scripts/test_decision_note_terms.py` on a common noun with a
+  capital letter, A to Z, before gate says what to write when no sentence of an entry read
+  states it. With "common noun" reworded in every entry, it failed with only "False is not
+  true"; the failure now says that no sentence of an entry read has "common noun" and
+  "capital letter", and that the sentence that says such a noun is found before gate has
+  both and "A to Z". A new test pins that failure and the failure on a sentence that has
+  both and not "A to Z". The patterns and the decision notes are unchanged.
 
 ### Added
 
