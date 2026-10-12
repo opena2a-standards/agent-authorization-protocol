@@ -518,14 +518,21 @@ Expressed in the (non-normative) policy grammar:
     jurisdiction: { in: [us, eu] }                            # Section 9 (v1: parsed, not enforced)
   resolve:
     mode: exchange
-    provider: orders-idp           # configuration; never on the wire
+    provider: orders-idp           # configuration; never on the wire (reference loader: providerId)
     scope: orders.read
-    ttl: 300s
+    ttl: 300s                      # reference loader: ttlSeconds: 300
 ```
 
 A v1 broker MUST parse the full clause (including `issuerChainIncludes` and `jurisdiction`) and MAY
 treat the federation-only predicates as always-satisfied within its own org while still enforcing
 `trustClass`, `oasbLevel`, `mode`, `scope`, and `ttl`.
+
+> **Reference spelling (non-normative).** At commit `660af0d` the policy loader of the reference
+> implementation accepts `mode`, `providerId`, `scope`, `audience` and `ttlSeconds` in a `resolve`
+> clause and refuses any other key. For the `provider` of this grammar it takes `providerId`, and
+> for the duration-valued `ttl` it takes `ttlSeconds` with a number of seconds (`ttlSeconds: 300`
+> for `ttl: 300s`). The keys a given release accepts are recorded in the reference implementation's
+> repository, in `src/broker/grant-policy.ts`.
 
 ### 7.2 The Trust Program and Root Authorities
 

@@ -35,11 +35,19 @@ grant resolves through an OAuth token exchange rather than a vaulted secret or a
     jurisdiction: { in: [us, eu] }                            # v1: parsed, not enforced
   resolve:
     mode: exchange
-    provider: orders-idp        # thin adapter (e.g. Okta), name lives ONLY here
+    provider: orders-idp        # thin adapter (e.g. Okta), name lives ONLY here (reference loader: providerId)
     scope: orders.read
     audience: https://api.orders.internal
-    ttl: 300s
+    ttl: 300s                   # reference loader: ttlSeconds: 300
 ```
+
+**Reference spelling.** The binding above is written in the policy grammar of broker profile §7.1.
+At commit `660af0d` the policy loader of the reference implementation accepts `mode`, `providerId`,
+`scope`, `audience` and `ttlSeconds` in a `resolve` clause and refuses any other key, so it refuses
+the binding as written. It loads the binding once `provider: orders-idp` reads
+`providerId: orders-idp` and `ttl: 300s` reads `ttlSeconds: 300`; the `match` clause loads as
+written. The keys a given release accepts are recorded in the reference implementation's
+repository, in `src/broker/grant-policy.ts`.
 
 ## 3. Resolution flow (Section 6 of the broker profile)
 

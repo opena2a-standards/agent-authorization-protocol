@@ -201,6 +201,17 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   (6.10), revocation after resolution (6.13) and the policy compile step (7.3).
   `scripts/test_reference_status.py` reads the sections that note names and checks that
   the paragraph cites each of them and the note. Editorial: no requirement changes.
+- The policy binding for `grant://orders-db` in `examples/orders-db-exchange.md` and in
+  broker profile Section 7.1 names the reference implementation's spelling of the two
+  `resolve` keys its policy loader refuses as the grammar writes them: a comment on the
+  `provider` line gives `providerId`, and a comment on the `ttl: 300s` line gives
+  `ttlSeconds: 300`. A note under each binding lists the keys the loader accepts at commit
+  `660af0d` (`mode`, `providerId`, `scope`, `audience`, `ttlSeconds`) and names
+  `src/broker/grant-policy.ts` in the reference implementation's repository as the record
+  for a given release. The keys of the grammar are unchanged.
+  `scripts/test_resolve_key_spelling.py` reads the `resolve` clause of both bindings and
+  fails on a key the loader does not accept that carries no such comment. Editorial: no
+  requirement changes.
 
 ### Added
 
