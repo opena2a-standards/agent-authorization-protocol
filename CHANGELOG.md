@@ -398,6 +398,14 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   ("The verifier's gate rejects a missing family"), and the printed rewrite must carry
   ("The verifier's gate"). Rewriting or removing that sentence passed all 14 tests before;
   it now fails one. The patterns and the decision notes are unchanged.
+- That test now pins the whole paragraph, word for word, as a paragraph of the
+  description, and checks each of its clauses against the patterns: a common noun with a
+  capital letter before gate is found at the start of a sentence, after one, in a list item
+  and in a heading in title case. Rewording a clause outside the four pinned phrases
+  ("prints that rewrite" to "prints nothing", "at the start of a sentence or a list item"
+  to "in the middle of a sentence or a table cell", "is found as a name is" to "is never
+  found"), or adding a sentence to the paragraph, passed all 15 tests before; each now
+  fails one. The patterns, the description and the decision notes are unchanged.
 
 ### Added
 

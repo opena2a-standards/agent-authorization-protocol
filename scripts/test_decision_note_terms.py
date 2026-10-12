@@ -260,20 +260,38 @@ class PatternFormsTest(unittest.TestCase):
             )
 
     def test_a_capital_letter_before_gate_is_read_as_a_name_and_described(self):
-        description = " ".join(__doc__.split())
-        self.assertIn(
-            "The capital letter is the only sign of a name the tests read", description
+        # The whole paragraph of the description on a possessive before gate, so
+        # no clause of it can be reworded, and no sentence added to it, with every
+        # test passing. Each clause is checked against the patterns below.
+        paragraph = (
+            "The capital letter is the only sign of a name the tests read, so a common"
+            " noun written with one before gate is found as a name is: at the start of"
+            " a sentence or a list item (\"Verifier's gate rejects a missing family\")"
+            " and in a heading in title case (\"The Verifier's Gate\"). A note writes"
+            " such a noun in lower case, with a word before it where it would start a"
+            " sentence (\"The verifier's gate rejects a missing family\"); the failure"
+            " of the test on a possessive before gate prints that rewrite."
         )
-        # A name in lower case is not found; a common noun with a capital letter is.
+        paragraphs = [" ".join(block.split()) for block in __doc__.split("\n\n")]
+        self.assertIn(paragraph, paragraphs)
+        # A name in lower case is not found; a common noun with a capital letter is,
+        # as a name is: at the start of a sentence or a list item and in a heading.
         self.assertIsNone(CREDITED_APPROVAL.search("after this lands (xyz's gate)"))
-        for phrase in ("Verifier's gate rejects a missing family", "The Verifier's Gate"):
+        for phrase in (
+            "Verifier's gate rejects a missing family",
+            "A missing family fails. Verifier's gate rejects it.",
+            "- Verifier's gate: rejects a missing family",
+            "The Verifier's Gate",
+        ):
             with self.subTest(phrase=phrase):
                 self.assertIsNotNone(CREDITED_APPROVAL.search(phrase))
-                self.assertIn(phrase, description)
-        rewrite = "The verifier's gate rejects a missing family"
-        self.assertIsNone(CREDITED_APPROVAL.search(rewrite))
-        self.assertIn(rewrite, description)
-        # The description says the failure prints that rewrite.
+        # The noun in lower case with a word before it is not found.
+        self.assertIsNone(
+            CREDITED_APPROVAL.search("The verifier's gate rejects a missing family")
+        )
+        # The failure prints that rewrite: the failure message is GATE_REWRITE
+        # (test_a_gate_that_starts_a_sentence_fails_with_its_rewrite), which
+        # carries it.
         self.assertIn("(\"The verifier's gate\")", GATE_REWRITE)
 
     def test_forms_that_credit_no_one_are_found_and_described(self):
