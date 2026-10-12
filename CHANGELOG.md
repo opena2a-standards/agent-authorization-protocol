@@ -342,6 +342,19 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   of the AIT, CGT and BAC claim tables each states what governs `exp - iat`, and that the
   3600-second lifetime Section 3.2 cites for its example is the `exp - iat` of
   `examples/tokens/ait-v1.claims.json` and of the claim set the section prints.
+- `scripts/test_decision_note_terms.py` finds each form its description names, and the
+  description names only those. A possessive before recommendation, go-ahead, approval or
+  sign-off is found in the singular and the plural ("the group's recommendation", "the
+  editors' approval"), directly or with one word between ("Xyz's explicit go-ahead"), with
+  the noun in any letter case and in the plural; the check on recommendation found only a
+  plural possessive directly before the word, and the check on the other three only a
+  singular one. "requested of" and "approved by" are found as "requested from" is, each in
+  any letter case. A possessive before gate is found only when its word starts with a
+  capital letter ("Xyz's gate"), so a sentence on a verification gate ("the verifier's
+  gate rejects a missing family") no longer fails the test. The contractions it's, that's,
+  there's, here's, what's, who's and let's are not read as possessives. Each form has a
+  test phrase, so removing "approval" or "sign-off" from the pattern fails a test where
+  all five tests passed. No decision note changes.
 
 ### Added
 
