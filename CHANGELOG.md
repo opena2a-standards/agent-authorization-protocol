@@ -678,6 +678,36 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   not depend on where the temporary directory is. In a checkout with no ignored Python file
   below `scripts/` the test reads the files it read before, and the six files its table
   lists are unchanged.
+- `scripts/test_nested_with.py` runs its test of the check over a temporary directory tree
+  without git's list. The entry above says the test for subdirectories runs without it:
+  that was the test of the function that lists the files, and the test of the check still
+  asked git, which gives an empty list for a temporary directory in a git work tree whose
+  `.gitignore` lists it. There the subtest that expects the check to pass failed, and the
+  two that expect one failure passed on the first assertion of the check, that the test
+  file is among the files read, and not on the nested `with` statement. A new test runs
+  that test with its temporary directories in such a work tree and fails without the
+  change. What the check reads and its table are unchanged.
+- `scripts/test_nested_with.py` pins that the function listing the Python files of the
+  repository gives a path once when the list it reads names that path three times. The
+  function already read the list as a set, and no test failed with the set removed: the 25
+  tests the file held passed. Two new tests fail with it removed. One gives the function a
+  list that names one path three times. The other builds a git checkout whose index holds
+  stages 1, 2 and 3 of one file, the entries a merge leaves for a file with a content
+  conflict, and git lists that path three times there. The function and the table of the
+  test are unchanged.
+- `scripts/check_naming.py` lists the documents git tracks only when the directory it
+  checks is the top directory of a git work tree. Below the top of one, as a temporary
+  directory inside a work tree is, git listed none of the files a test had written there,
+  so the check and the checks that take their documents from `check_naming.documents`
+  (`check_raw_html.py`, `check_requirement_references.py`, `check_section_citations.py`
+  and `check_spelling.py`) read no document. With the temporary directory inside a work
+  tree that ignores it, that gave eight failures in seven tests: one in
+  `test_check_raw_html.py` and three each in `test_check_requirement_references.py` and
+  `test_check_section_citations.py`. Such a directory is now read as a directory outside
+  git is, every matching file outside a hidden directory, and those tests pass there. A new
+  test pins it for a directory below the top of a work tree that the work tree ignores and
+  for one it does not. At the top of a checkout the check reads the tracked files, as
+  before.
 
 ### Added
 

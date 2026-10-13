@@ -204,6 +204,34 @@ class NestedWithTest(unittest.TestCase):
                 write(root, name)
             self.assertEqual(python_files(root), [".x.py", "top.py", "venv/lib/site.py"])
 
+    def test_path_the_list_names_more_than_once_is_given_once(self):
+        listed = ["top.py", "sub/x.py", "top.py", "top.py"]
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch(f"{__name__}.listed_by_git", return_value=listed):
+            root = pathlib.Path(tmp)
+            for name in ("top.py", "sub/x.py"):
+                write(root, name)
+            self.assertEqual(python_files(root), ["sub/x.py", "top.py"])
+
+    @unittest.skipIf(shutil.which("git") is None, "git not installed")
+    def test_path_git_lists_for_each_unmerged_stage_is_given_once(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            for name in ("scripts/top.py", "scripts/new.py"):
+                write(repo, name)
+            blob = subprocess.run(
+                ["git", "-C", str(repo), "hash-object", "-w", "scripts/top.py"],
+                capture_output=True, check=True, text=True).stdout.strip()
+            # Stages 1, 2 and 3 of one path, which a merge leaves for a file with a
+            # content conflict.
+            stages = "".join(f"100644 {blob} {stage}\tscripts/top.py\n" for stage in (1, 2, 3))
+            subprocess.run(["git", "-C", str(repo), "update-index", "--index-info"],
+                           input=stages, check=True, text=True)
+            self.assertEqual(sorted(listed_by_git(repo / "scripts")),
+                             ["new.py", "top.py", "top.py", "top.py"])
+            self.assertEqual(python_files(repo / "scripts"), ["new.py", "top.py"])
+
     def test_git_gives_no_list_when_it_fails_or_is_not_installed(self):
         for error in (subprocess.CalledProcessError(128, "git"), FileNotFoundError("git")):
             with self.subTest(error=error), mock.patch("subprocess.run", side_effect=error):
@@ -252,12 +280,27 @@ class NestedWithTest(unittest.TestCase):
             with self.subTest(name=name, failures=failures), \
                     tempfile.TemporaryDirectory() as tmp, \
                     mock.patch.dict(KNOWN, clear=True), \
+                    mock.patch(f"{__name__}.listed_by_git", return_value=None), \
                     mock.patch(f"{__name__}.SCRIPTS", pathlib.Path(tmp)) as root:
                 (root / name).parent.mkdir(parents=True)
                 for path, text in ((pathlib.Path(__file__).name, "pass\n"), (name, source)):
                     (root / path).write_text(text, encoding="utf-8")
                 test.run(result)
                 self.assertEqual((len(result.failures), result.errors), (failures, []))
+
+    @unittest.skipIf(shutil.which("git") is None, "git not installed")
+    def test_subdirectory_test_passes_where_git_ignores_the_temporary_directory(self):
+        test = NestedWithTest("test_nested_with_in_a_subdirectory_fails_the_check_of_the_scripts")
+        result = unittest.TestResult()
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            (repo / ".gitignore").write_text("tmp/\n", encoding="utf-8")
+            write(repo, "tmp/held.py")
+            self.assertEqual(listed_by_git(repo / "tmp"), [])
+            with mock.patch("tempfile.tempdir", str(repo / "tmp")):
+                test.run(result)
+        self.assertEqual((result.testsRun, result.failures, result.errors), (1, [], []))
 
     def test_nested_with_is_detected(self):
         self.assertEqual(nested_withs("with a:\n    with b:\n        pass\n"), [1])

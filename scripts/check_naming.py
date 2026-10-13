@@ -101,8 +101,21 @@ def first_use_error(text: str) -> str | None:
 
 
 def tracked_documents(root: pathlib.Path) -> list[str] | None:
-    """Return the tracked files matching PATTERNS, or None outside a git checkout."""
+    """Return the tracked files matching PATTERNS, or None when root is not the top
+    directory of a git work tree.
+
+    A directory below the top of a work tree, such as a temporary directory inside
+    one, is given None and read as a directory outside git, since git lists none of
+    the files there that it does not track.
+    """
     try:
+        prefix = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--show-prefix"],
+            capture_output=True,
+            check=True,
+        )
+        if prefix.stdout.strip():
+            return None
         result = subprocess.run(
             ["git", "-C", str(root), "ls-files", "-z", "--", *PATTERNS],
             capture_output=True,
@@ -116,9 +129,9 @@ def tracked_documents(root: pathlib.Path) -> list[str] | None:
 def documents(root: pathlib.Path = ROOT) -> list[str]:
     """Return every document the check covers, as sorted paths relative to root.
 
-    In a git checkout these are the tracked files, so local files that are never
-    committed are not read. Otherwise every matching file outside a hidden
-    directory is used.
+    When root is the top directory of a git checkout these are the tracked files,
+    so local files that are never committed are not read. Otherwise every matching
+    file outside a hidden directory is used.
     """
     names = tracked_documents(root)
     if names is None:
