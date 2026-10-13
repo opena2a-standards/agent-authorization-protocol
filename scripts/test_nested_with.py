@@ -4,28 +4,29 @@
 A `with` statement whose body is one other `with` statement and nothing else
 spends two statements and two levels of indentation on what one statement that
 names both context managers says. The tests parse every Python file in scripts/
-and count the statements written that way. Six test files held one each when
-these tests were added: KNOWN lists them and the number each holds, and a file
-passes only while it holds exactly that number, so it fails on a second and
-fails when its statement is combined until its entry leaves KNOWN. A file KNOWN
-does not list fails on its first, and a name KNOWN lists that is not a file in
-scripts/ fails. An `async with` and a `with` cannot share a statement, so one
-that holds the other is not counted. CI runs these tests through
-validate_examples.py.
+and the directories below it, and count the statements written that way. Six
+test files held one each when these tests were added: KNOWN lists them by path
+relative to scripts/ and the number each holds, and a file passes only while it
+holds exactly that number, so it fails on a second and fails when its statement
+is combined until its entry leaves KNOWN. A file KNOWN does not list fails on
+its first, and a name KNOWN lists that is not the path of one of those files
+fails. An `async with` and a `with` cannot share a statement, so one that holds
+the other is not counted. CI runs these tests through validate_examples.py.
 
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
 
 import ast
 import pathlib
+import tempfile
 import unittest
 from unittest import mock
 
 SCRIPTS = pathlib.Path(__file__).resolve().parent
 
 # The files that held a nested `with` statement when these tests were added,
-# and how many each held. A file leaves the table when its statements are
-# combined, and the tests fail until it does.
+# by path relative to scripts/, and how many each held. A file leaves the table
+# when its statements are combined, and the tests fail until it does.
 KNOWN = {
     "test_check_naming.py": 1,
     "test_check_raw_html.py": 1,
@@ -67,15 +68,34 @@ def absent(names):
     return sorted(set(KNOWN) - set(names))
 
 
+def python_files(root):
+    """Every Python file in `root` and the directories below it, by path relative to `root`."""
+    return sorted(path.relative_to(root).as_posix() for path in root.rglob("*.py"))
+
+
 class NestedWithTest(unittest.TestCase):
     def test_each_script_holds_the_number_known_records(self):
-        scripts = sorted(SCRIPTS.glob("*.py"))
-        self.assertIn(pathlib.Path(__file__).resolve(), scripts)
-        self.assertEqual(absent(path.name for path in scripts), [])
-        for path in scripts:
-            with self.subTest(script=path.name):
-                self.assertIsNone(miscount(path.name, path.read_text(encoding="utf-8")),
-                                  f"KNOWN records {KNOWN.get(path.name, 0)}")
+        scripts = python_files(SCRIPTS)
+        self.assertIn(pathlib.Path(__file__).name, scripts)
+        self.assertEqual(absent(scripts), [])
+        for name in scripts:
+            with self.subTest(script=name):
+                self.assertIsNone(miscount(name, (SCRIPTS / name).read_text(encoding="utf-8")),
+                                  f"KNOWN records {KNOWN.get(name, 0)}")
+
+    def test_files_in_subdirectories_are_scanned(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / "sub" / "deeper").mkdir(parents=True)
+            for name in ("top.py", "sub/x.py", "sub/deeper/y.py", "sub/notes.txt"):
+                (root / name).write_text("pass\n", encoding="utf-8")
+            self.assertEqual(python_files(root), ["sub/deeper/y.py", "sub/x.py", "top.py"])
+
+    def test_listed_name_does_not_cover_a_file_of_that_name_in_a_subdirectory(self):
+        nested = "with a:\n    with b:\n        pass\n"
+        with mock.patch.dict(KNOWN, {"listed.py": 1}, clear=True):
+            self.assertEqual(miscount("sub/listed.py", nested), [1])
+            self.assertEqual(absent(["sub/listed.py"]), ["listed.py"])
 
     def test_listed_file_passes_with_what_it_held_and_fails_on_one_more(self):
         nested = "with a:\n    with b:\n        pass\n"

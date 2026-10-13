@@ -632,6 +632,12 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   entry records, an entry naming no file, and both stale entries failing the check of the
   scripts. The six files the table lists each hold one such statement, and the test
   passes on them.
+- `scripts/test_nested_with.py` reads the Python files in the directories below `scripts/`
+  as well as those in `scripts/` itself, as its docstring says, where it read only
+  `scripts/*.py`; no such file exists today, so no result changes. The six files its table
+  lists are named by their path relative to `scripts/`, so a file of the same name in a
+  directory below is held to none and does not keep an entry in the table. Two new tests
+  pin both.
 
 ### Added
 
