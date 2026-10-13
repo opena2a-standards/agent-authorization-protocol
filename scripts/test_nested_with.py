@@ -252,12 +252,27 @@ class NestedWithTest(unittest.TestCase):
             with self.subTest(name=name, failures=failures), \
                     tempfile.TemporaryDirectory() as tmp, \
                     mock.patch.dict(KNOWN, clear=True), \
+                    mock.patch(f"{__name__}.listed_by_git", return_value=None), \
                     mock.patch(f"{__name__}.SCRIPTS", pathlib.Path(tmp)) as root:
                 (root / name).parent.mkdir(parents=True)
                 for path, text in ((pathlib.Path(__file__).name, "pass\n"), (name, source)):
                     (root / path).write_text(text, encoding="utf-8")
                 test.run(result)
                 self.assertEqual((len(result.failures), result.errors), (failures, []))
+
+    @unittest.skipIf(shutil.which("git") is None, "git not installed")
+    def test_subdirectory_test_passes_where_git_ignores_the_temporary_directory(self):
+        test = NestedWithTest("test_nested_with_in_a_subdirectory_fails_the_check_of_the_scripts")
+        result = unittest.TestResult()
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            (repo / ".gitignore").write_text("tmp/\n", encoding="utf-8")
+            write(repo, "tmp/held.py")
+            self.assertEqual(listed_by_git(repo / "tmp"), [])
+            with mock.patch("tempfile.tempdir", str(repo / "tmp")):
+                test.run(result)
+        self.assertEqual((result.testsRun, result.failures, result.errors), (1, [], []))
 
     def test_nested_with_is_detected(self):
         self.assertEqual(nested_withs("with a:\n    with b:\n        pass\n"), [1])

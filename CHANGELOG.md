@@ -678,6 +678,15 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   not depend on where the temporary directory is. In a checkout with no ignored Python file
   below `scripts/` the test reads the files it read before, and the six files its table
   lists are unchanged.
+- `scripts/test_nested_with.py` runs its test of the check over a temporary directory tree
+  without git's list. The entry above says the test for subdirectories runs without it:
+  that was the test of the function that lists the files, and the test of the check still
+  asked git, which gives an empty list for a temporary directory in a git work tree whose
+  `.gitignore` lists it. There the subtest that expects the check to pass failed, and the
+  two that expect one failure passed on the first assertion of the check, that the test
+  file is among the files read, and not on the nested `with` statement. A new test runs
+  that test with its temporary directories in such a work tree and fails without the
+  change. What the check reads and its table are unchanged.
 
 ### Added
 
