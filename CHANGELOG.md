@@ -644,7 +644,40 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/*.py`; no such file exists today, so no result changes. The six files its table
   lists are named by their path relative to `scripts/`, so a file of the same name in a
   directory below is held to none and does not keep an entry in the table. Two new tests
-  pin both.
+  pin the function that lists the files and how a path is held to the table.
+- `scripts/test_nested_with.py` fails when its check of the scripts stops reading the
+  directories below `scripts/`. The two tests the entry above records call the functions
+  the check is built from and not the check, so every test passed with the check reading
+  only `scripts/*.py` again. A new test runs the check over a temporary directory tree: the
+  check fails once when a file one or two directories down holds a nested `with`
+  statement, and passes when that file names both context managers in one statement. The
+  entry above now says what its two tests pin, where it said they pin both changes. What
+  the check reads and its table are unchanged.
+- `scripts/test_nested_with.py` reads a capital letter of this changelog as its small one
+  when it looks for the rule it takes from the comment above `KNOWN` and for the words the
+  rule is given after. It compared the letters as written, so an entry that gave the rule
+  as a sentence of its own, with a capital first letter, after "As the test's docstring
+  says:" passed, although the entry on that test above says it fails after any words but
+  those it names. Such an entry now fails, and a sentence that opens with "The comment
+  above `KNOWN` says" and then gives the rule counts as naming the comment. Two new tests
+  pin how a capital letter is read and that the test of this changelog fails when such an
+  entry is added to it. This changelog gives the rule once, after those words, and the
+  test passes on it.
+- `scripts/test_nested_with.py` reads only the Python files of the repository in `scripts/`
+  and the directories below it. In a git checkout these are the files git lists there: the
+  ones it tracks, and the ones it does not track and does not ignore. The test read every
+  `*.py` file there, so with a local virtual environment in `scripts/.venv/`, which
+  `.gitignore` lists, it failed on each file of that environment that holds a `with`
+  statement nested in another. Where git is not installed or `scripts/` is not in a git
+  checkout, the test reads the files in no directory whose name starts with ".", so a
+  directory that git would ignore and that is not hidden, such as `scripts/venv/`, is still
+  read there. Three new tests pin the files read in a git checkout that carries this
+  repository's `.gitignore`, where a tracked file deleted from the working tree is left
+  out, the files read without git, and that git gives no list when it fails or is not
+  installed. The test for subdirectories now runs without git's list, so its result does
+  not depend on where the temporary directory is. In a checkout with no ignored Python file
+  below `scripts/` the test reads the files it read before, and the six files its table
+  lists are unchanged.
 
 ### Added
 

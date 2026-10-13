@@ -3,26 +3,36 @@
 
 A `with` statement whose body is one other `with` statement and nothing else
 spends two statements and two levels of indentation on what one statement that
-names both context managers says. The tests parse every Python file in scripts/
-and the directories below it, and count the statements written that way. Six
-test files held one each when these tests were added: KNOWN lists them by path
-relative to scripts/ and the number each holds, and a file passes only while it
-holds exactly that number, so it fails on a second and fails when its statement
-is combined until its entry leaves KNOWN. A file KNOWN does not list fails on
-its first, and a name KNOWN lists that is not the path of one of those files
-fails. An `async with` and a `with` cannot share a statement, so one that holds
-the other is not counted. CI runs these tests through validate_examples.py.
+names both context managers says. The tests parse every Python file of the
+repository in scripts/ and the directories below it, and count the statements
+written that way. Six test files held one each when these tests were added:
+KNOWN lists them by path relative to scripts/ and the number each holds, and a
+file passes only while it holds exactly that number, so it fails on a second
+and fails when its statement is combined until its entry leaves KNOWN. A file
+KNOWN does not list fails on its first, and a name KNOWN lists that is not the
+path of one of those files fails. An `async with` and a `with` cannot share a
+statement, so one that holds the other is not counted. CI runs these tests
+through validate_examples.py.
+
+In a git checkout the files of the repository are the ones git lists for
+scripts/: those it tracks, and those it does not track and does not ignore. A
+virtual environment in scripts/.venv/ or scripts/venv/, which .gitignore lists,
+is not read. Where git is not installed or scripts/ is not in a git checkout,
+they are the files in no directory whose name starts with ".", so a directory
+that git would ignore and that is not hidden is read there.
 
 CHANGELOG.md gives the rule the comment above KNOWN states and names that
 comment as what says it. One test fails when the changelog gives the rule
 after any other words or does not give it, and another when the comment no
-longer states it.
+longer states it. Both read a capital letter as its small one.
 
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
 
 import ast
 import pathlib
+import shutil
+import subprocess
 import tempfile
 import unittest
 from unittest import mock
@@ -78,9 +88,43 @@ def absent(names):
     return sorted(set(KNOWN) - set(names))
 
 
+def listed_by_git(root):
+    """The Python files in `root` and below it that git tracks or does not ignore, or None.
+
+    The paths are relative to `root`. An untracked file is given unless git
+    ignores it. None is given when git is not installed or `root` is not in a
+    git checkout.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "ls-files", "-z", "--cached", "--others",
+             "--exclude-standard", "--", "*.py"],
+            capture_output=True, check=True)
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    return [name for name in result.stdout.decode("utf-8").split("\0") if name]
+
+
+def outside_hidden_directories(root):
+    """The Python files in `root` and below it in no directory whose name starts with "."."""
+    paths = [path.relative_to(root) for path in root.rglob("*.py")]
+    return [path.as_posix() for path in paths
+            if not any(part.startswith(".") for part in path.parts[:-1])]
+
+
 def python_files(root):
-    """Every Python file in `root` and the directories below it, by path relative to `root`."""
-    return sorted(path.relative_to(root).as_posix() for path in root.rglob("*.py"))
+    """The Python files of the repository in `root` and below it, by path relative to `root`.
+
+    In a git checkout they are the files `listed_by_git` gives, so a file git
+    ignores is not one of them. Otherwise they are the files
+    `outside_hidden_directories` gives. A path is given once, and a path that
+    is not a file below `root`, such as a tracked file deleted there, is left
+    out.
+    """
+    names = listed_by_git(root)
+    if names is None:
+        names = outside_hidden_directories(root)
+    return sorted(name for name in set(names) if (root / name).is_file())
 
 
 def comment_above(source, name):
@@ -101,10 +145,19 @@ def comment_above(source, name):
 def credits(changelog):
     """How often `changelog` has LEAVES_THE_TABLE, and how often directly after COMMENT_SAYS.
 
-    A line break or a run of spaces in `changelog` reads as one space.
+    A line break or a run of spaces in `changelog` reads as one space, and a
+    capital letter as its small one.
     """
-    text = " ".join(changelog.split())
-    return text.count(LEAVES_THE_TABLE), text.count(f"{COMMENT_SAYS} {LEAVES_THE_TABLE}")
+    text = " ".join(changelog.split()).lower()
+    rule = LEAVES_THE_TABLE.lower()
+    return text.count(rule), text.count(f"{COMMENT_SAYS.lower()} {rule}")
+
+
+def write(root, name):
+    """Write a Python file `name` below `root`, in the directories its path names."""
+    path = root / name
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("pass\n", encoding="utf-8")
 
 
 class NestedWithTest(unittest.TestCase):
@@ -118,12 +171,43 @@ class NestedWithTest(unittest.TestCase):
                                   f"KNOWN records {KNOWN.get(name, 0)}")
 
     def test_files_in_subdirectories_are_scanned(self):
-        with tempfile.TemporaryDirectory() as tmp:
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch(f"{__name__}.listed_by_git", return_value=None):
             root = pathlib.Path(tmp)
             (root / "sub" / "deeper").mkdir(parents=True)
             for name in ("top.py", "sub/x.py", "sub/deeper/y.py", "sub/notes.txt"):
                 (root / name).write_text("pass\n", encoding="utf-8")
             self.assertEqual(python_files(root), ["sub/deeper/y.py", "sub/x.py", "top.py"])
+
+    @unittest.skipIf(shutil.which("git") is None, "git not installed")
+    def test_in_a_git_checkout_files_git_ignores_are_not_scanned(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = pathlib.Path(tmp)
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            shutil.copyfile(SCRIPTS.parent / ".gitignore", repo / ".gitignore")
+            for name in ("other.py", "scripts/top.py", "scripts/gone.py", "scripts/new.py",
+                         "scripts/sub/x.py", "scripts/.tools/run.py", "scripts/venv/kept.py",
+                         "scripts/.venv/lib/site.py", "scripts/venv/lib/site.py"):
+                write(repo, name)
+            subprocess.run(["git", "-C", str(repo), "add", "--force", "scripts/top.py",
+                            "scripts/gone.py", "scripts/venv/kept.py"], check=True)
+            (repo / "scripts" / "gone.py").unlink()
+            self.assertEqual(python_files(repo / "scripts"),
+                             [".tools/run.py", "new.py", "sub/x.py", "top.py", "venv/kept.py"])
+
+    def test_outside_a_git_checkout_files_in_hidden_directories_are_not_scanned(self):
+        with tempfile.TemporaryDirectory() as tmp, \
+                mock.patch(f"{__name__}.listed_by_git", return_value=None):
+            root = pathlib.Path(tmp)
+            for name in ("top.py", ".x.py", ".venv/lib/site.py", "sub/.cache/y.py",
+                         "venv/lib/site.py"):
+                write(root, name)
+            self.assertEqual(python_files(root), [".x.py", "top.py", "venv/lib/site.py"])
+
+    def test_git_gives_no_list_when_it_fails_or_is_not_installed(self):
+        for error in (subprocess.CalledProcessError(128, "git"), FileNotFoundError("git")):
+            with self.subTest(error=error), mock.patch("subprocess.run", side_effect=error):
+                self.assertIsNone(listed_by_git(SCRIPTS))
 
     def test_listed_name_does_not_cover_a_file_of_that_name_in_a_subdirectory(self):
         nested = "with a:\n    with b:\n        pass\n"
@@ -157,6 +241,23 @@ class NestedWithTest(unittest.TestCase):
             with self.subTest(entry=entry), mock.patch.dict(KNOWN, entry):
                 test.run(result)
                 self.assertEqual(len(result.failures), 1)
+
+    def test_nested_with_in_a_subdirectory_fails_the_check_of_the_scripts(self):
+        test = NestedWithTest("test_each_script_holds_the_number_known_records")
+        nested, combined = "with a:\n    with b:\n        pass\n", "with a, b:\n    pass\n"
+        for name, source, failures in (("sub/held.py", nested, 1),
+                                       ("sub/deeper/held.py", nested, 1),
+                                       ("sub/held.py", combined, 0)):
+            result = unittest.TestResult()
+            with self.subTest(name=name, failures=failures), \
+                    tempfile.TemporaryDirectory() as tmp, \
+                    mock.patch.dict(KNOWN, clear=True), \
+                    mock.patch(f"{__name__}.SCRIPTS", pathlib.Path(tmp)) as root:
+                (root / name).parent.mkdir(parents=True)
+                for path, text in ((pathlib.Path(__file__).name, "pass\n"), (name, source)):
+                    (root / path).write_text(text, encoding="utf-8")
+                test.run(result)
+                self.assertEqual((len(result.failures), result.errors), (failures, []))
 
     def test_nested_with_is_detected(self):
         self.assertEqual(nested_withs("with a:\n    with b:\n        pass\n"), [1])
@@ -217,6 +318,25 @@ class CommentAboveKnownTest(unittest.TestCase):
         self.assertEqual(credits(docstring), (1, 0))
         self.assertEqual(credits(entry + docstring), (2, 1))
         self.assertEqual(credits("- No entry gives the rule.\n"), (0, 0))
+
+    def test_rule_is_counted_whatever_its_capital_letters(self):
+        sentence = LEAVES_THE_TABLE.capitalize()
+        comment_says = COMMENT_SAYS[0].upper() + COMMENT_SAYS[1:]
+        self.assertEqual(credits(f"- As the test's docstring says: {sentence}.\n"), (1, 0))
+        self.assertEqual(credits(f"- The docstring says {LEAVES_THE_TABLE.upper()}.\n"), (1, 0))
+        self.assertEqual(credits(f"- {comment_says}\n  {sentence}.\n"), (1, 1))
+
+    def test_capitalized_rule_after_other_words_fails_the_check_of_the_changelog(self):
+        changelog = (SCRIPTS.parent / "CHANGELOG.md").read_text(encoding="utf-8")
+        added = f"- As the test's docstring says: {LEAVES_THE_TABLE.capitalize()}.\n"
+        test = CommentAboveKnownTest(
+            "test_changelog_gives_the_rule_only_as_what_the_comment_above_known_says")
+        for text, failures in ((changelog, 0), (changelog + added, 1)):
+            result = unittest.TestResult()
+            reads = mock.patch.object(pathlib.Path, "read_text", return_value=text)
+            with self.subTest(failures=failures), reads:
+                test.run(result)
+                self.assertEqual((len(result.failures), len(result.errors)), (failures, 0))
 
     def test_comment_above_is_the_run_of_comment_lines_before_the_assignment(self):
         source = "# Not this one.\n\n# First line\n# and second.\nKNOWN = {}\n"
