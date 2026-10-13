@@ -623,6 +623,15 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `test_check_spelling.py`, `test_check_status_claims.py` and
   `test_check_version_labels.py`): they are unchanged, the new test lists them, and it
   fails when one of them holds a second.
+- `scripts/test_nested_with.py` holds each script to the number of nested `with`
+  statements its table records, not to at most that number, and fails when the table
+  names a file that is not in `scripts/`. A listed file whose statement had been combined
+  still passed, as did an entry for a file that had been deleted or renamed, so a stale
+  entry stayed in the table although the test's docstring says a file leaves the table
+  when its statements are combined. New tests pin a listed file that holds fewer than its
+  entry records, an entry naming no file, and both stale entries failing the check of the
+  scripts. The six files the table lists each hold one such statement, and the test
+  passes on them.
 
 ### Added
 
