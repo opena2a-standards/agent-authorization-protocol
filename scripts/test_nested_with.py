@@ -13,6 +13,11 @@ its first, and a name KNOWN lists that is not the path of one of those files
 fails. An `async with` and a `with` cannot share a statement, so one that holds
 the other is not counted. CI runs these tests through validate_examples.py.
 
+CHANGELOG.md gives the rule the comment above KNOWN states and names that
+comment as what says it. One test fails when the changelog gives the rule
+after any other words or does not give it, and another when the comment no
+longer states it.
+
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
 
@@ -35,6 +40,11 @@ KNOWN = {
     "test_check_status_claims.py": 1,
     "test_check_version_labels.py": 1,
 }
+
+# The rule the comment above KNOWN states, in the words CHANGELOG.md gives it
+# in, and the words the changelog gives it after.
+LEAVES_THE_TABLE = "a file leaves the table when its statements are combined"
+COMMENT_SAYS = "the comment above `KNOWN` says"
 
 
 def holds_one_with(node):
@@ -71,6 +81,30 @@ def absent(names):
 def python_files(root):
     """Every Python file in `root` and the directories below it, by path relative to `root`."""
     return sorted(path.relative_to(root).as_posix() for path in root.rglob("*.py"))
+
+
+def comment_above(source, name):
+    """The comment that ends on the line before the one that assigns `name` in `source`.
+
+    The comment is the run of lines that start with "#" and end there, joined
+    into one line without the "#". It is "" when the line before the
+    assignment is not such a line, or no line starts with the assignment.
+    """
+    lines = source.splitlines()
+    end = next((at for at, line in enumerate(lines) if line.startswith(f"{name} = ")), 0)
+    start = end
+    while start and lines[start - 1].startswith("#"):
+        start -= 1
+    return " ".join(line.lstrip("#").strip() for line in lines[start:end])
+
+
+def credits(changelog):
+    """How often `changelog` has LEAVES_THE_TABLE, and how often directly after COMMENT_SAYS.
+
+    A line break or a run of spaces in `changelog` reads as one space.
+    """
+    text = " ".join(changelog.split())
+    return text.count(LEAVES_THE_TABLE), text.count(f"{COMMENT_SAYS} {LEAVES_THE_TABLE}")
 
 
 class NestedWithTest(unittest.TestCase):
@@ -163,6 +197,32 @@ class NestedWithTest(unittest.TestCase):
         source = ("async def run():\n    async with a:\n        with b:\n            with c:\n"
                   "                pass\n")
         self.assertEqual(nested_withs(source), [3])
+
+
+class CommentAboveKnownTest(unittest.TestCase):
+    def test_comment_above_known_states_the_rule_the_changelog_gives(self):
+        source = pathlib.Path(__file__).resolve().read_text(encoding="utf-8")
+        self.assertIn(LEAVES_THE_TABLE, comment_above(source, "KNOWN").lower())
+
+    def test_changelog_gives_the_rule_only_as_what_the_comment_above_known_says(self):
+        changelog = (SCRIPTS.parent / "CHANGELOG.md").read_text(encoding="utf-8")
+        given, after_comment_says = credits(changelog)
+        self.assertGreater(given, 0)
+        self.assertEqual(after_comment_says, given)
+
+    def test_rule_given_after_other_words_is_not_counted_with_the_comment(self):
+        entry = f"- A stale entry stayed although {COMMENT_SAYS}\n  {LEAVES_THE_TABLE}.\n"
+        docstring = entry.replace(COMMENT_SAYS, "the test's docstring says")
+        self.assertEqual(credits(entry), (1, 1))
+        self.assertEqual(credits(docstring), (1, 0))
+        self.assertEqual(credits(entry + docstring), (2, 1))
+        self.assertEqual(credits("- No entry gives the rule.\n"), (0, 0))
+
+    def test_comment_above_is_the_run_of_comment_lines_before_the_assignment(self):
+        source = "# Not this one.\n\n# First line\n# and second.\nKNOWN = {}\n"
+        self.assertEqual(comment_above(source, "KNOWN"), "First line and second.")
+        self.assertEqual(comment_above("x = 1\nKNOWN = {}\n", "KNOWN"), "")
+        self.assertEqual(comment_above("# A comment.\nOTHER = {}\n", "KNOWN"), "")
 
 
 if __name__ == "__main__":

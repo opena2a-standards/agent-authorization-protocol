@@ -627,11 +627,18 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   statements its table records, not to at most that number, and fails when the table
   names a file that is not in `scripts/`. A listed file whose statement had been combined
   still passed, as did an entry for a file that had been deleted or renamed, so a stale
-  entry stayed in the table although the test's docstring says a file leaves the table
-  when its statements are combined. New tests pin a listed file that holds fewer than its
-  entry records, an entry naming no file, and both stale entries failing the check of the
-  scripts. The six files the table lists each hold one such statement, and the test
-  passes on them.
+  entry stayed in the table although the comment above `KNOWN` says a file leaves the
+  table when its statements are combined. New tests pin a listed file that holds fewer
+  than its entry records, an entry naming no file, and both stale entries failing the
+  check of the scripts. The six files the table lists each hold one such statement, and
+  the test passes on them.
+- `scripts/test_nested_with.py` fails when this changelog gives the rule the entry above
+  takes from the comment above `KNOWN`, the table of that test, after any words but "the
+  comment above `KNOWN` says", when the changelog does not give the rule, and when that
+  comment no longer states it. The entry above now reads those words where it read "the
+  test's docstring says": before the change that entry records, the docstring of the test
+  had no such sentence and only the comment did. Two more tests pin how the changelog and
+  the comment are read. The table and what the other tests check are unchanged.
 - `scripts/test_nested_with.py` reads the Python files in the directories below `scripts/`
   as well as those in `scripts/` itself, as its docstring says, where it read only
   `scripts/*.py`; no such file exists today, so no result changes. The six files its table
