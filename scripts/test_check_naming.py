@@ -144,6 +144,27 @@ class DiscoveryTest(unittest.TestCase):
                        check=True)
         self.assertEqual(check_naming.documents(self.root), ["draft-x-00.xml", "tracked.md"])
 
+    @unittest.skipIf(shutil.which("git") is None, "git not installed")
+    def test_below_the_top_of_a_git_work_tree_every_document_is_found(self):
+        # A temporary directory inside a work tree is one, ignored by it or not.
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        write(self.root, ".gitignore", "ignored/\n")
+        for name in ("ignored", "untracked"):
+            root = self.root / name
+            for document in ("a.md", ".hidden/c.md", "draft-x-00.xml"):
+                write(root, document, "text\n")
+            write_required(root)
+            write(root, "decisions/note.md", "Lesson from the AIM header gap.\n")
+            with self.subTest(root=name):
+                self.assertIsNone(check_naming.tracked_documents(root))
+                self.assertEqual(check_naming.documents(root),
+                                 sorted(["a.md", "decisions/note.md", "draft-x-00.xml",
+                                         *check_naming.REQUIRED]))
+                out = io.StringIO()
+                with contextlib.redirect_stdout(out):
+                    self.assertEqual(check_naming.check(root), 1)
+                self.assertIn("FAIL  decisions/note.md: line 1", out.getvalue())
+
     def test_unlisted_document_with_bare_first_use_fails(self):
         write_required(self.root)
         write(self.root, "decisions/note.md", "Lesson from the AIM header gap.\n")
