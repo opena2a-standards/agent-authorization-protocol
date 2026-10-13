@@ -687,6 +687,14 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   file is among the files read, and not on the nested `with` statement. A new test runs
   that test with its temporary directories in such a work tree and fails without the
   change. What the check reads and its table are unchanged.
+- `scripts/test_nested_with.py` pins that the function listing the Python files of the
+  repository gives a path once when the list it reads names that path three times. The
+  function already read the list as a set, and no test failed with the set removed: the 25
+  tests the file held passed. Two new tests fail with it removed. One gives the function a
+  list that names one path three times. The other builds a git checkout whose index holds
+  stages 1, 2 and 3 of one file, the entries a merge leaves for a file with a content
+  conflict, and git lists that path three times there. The function and the table of the
+  test are unchanged.
 
 ### Added
 
