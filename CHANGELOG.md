@@ -653,6 +653,16 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   statement, and passes when that file names both context managers in one statement. The
   entry above now says what its two tests pin, where it said they pin both changes. What
   the check reads and its table are unchanged.
+- `scripts/test_nested_with.py` reads a capital letter of this changelog as its small one
+  when it looks for the rule it takes from the comment above `KNOWN` and for the words the
+  rule is given after. It compared the letters as written, so an entry that gave the rule
+  as a sentence of its own, with a capital first letter, after "As the test's docstring
+  says:" passed, although the entry on that test above says it fails after any words but
+  those it names. Such an entry now fails, and a sentence that opens with "The comment
+  above `KNOWN` says" and then gives the rule counts as naming the comment. Two new tests
+  pin how a capital letter is read and that the test of this changelog fails when such an
+  entry is added to it. This changelog gives the rule once, after those words, and the
+  test passes on it.
 
 ### Added
 

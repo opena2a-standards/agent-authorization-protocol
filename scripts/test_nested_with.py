@@ -16,7 +16,7 @@ the other is not counted. CI runs these tests through validate_examples.py.
 CHANGELOG.md gives the rule the comment above KNOWN states and names that
 comment as what says it. One test fails when the changelog gives the rule
 after any other words or does not give it, and another when the comment no
-longer states it.
+longer states it. Both read a capital letter as its small one.
 
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
@@ -101,10 +101,12 @@ def comment_above(source, name):
 def credits(changelog):
     """How often `changelog` has LEAVES_THE_TABLE, and how often directly after COMMENT_SAYS.
 
-    A line break or a run of spaces in `changelog` reads as one space.
+    A line break or a run of spaces in `changelog` reads as one space, and a
+    capital letter as its small one.
     """
-    text = " ".join(changelog.split())
-    return text.count(LEAVES_THE_TABLE), text.count(f"{COMMENT_SAYS} {LEAVES_THE_TABLE}")
+    text = " ".join(changelog.split()).lower()
+    rule = LEAVES_THE_TABLE.lower()
+    return text.count(rule), text.count(f"{COMMENT_SAYS.lower()} {rule}")
 
 
 class NestedWithTest(unittest.TestCase):
@@ -234,6 +236,25 @@ class CommentAboveKnownTest(unittest.TestCase):
         self.assertEqual(credits(docstring), (1, 0))
         self.assertEqual(credits(entry + docstring), (2, 1))
         self.assertEqual(credits("- No entry gives the rule.\n"), (0, 0))
+
+    def test_rule_is_counted_whatever_its_capital_letters(self):
+        sentence = LEAVES_THE_TABLE.capitalize()
+        comment_says = COMMENT_SAYS[0].upper() + COMMENT_SAYS[1:]
+        self.assertEqual(credits(f"- As the test's docstring says: {sentence}.\n"), (1, 0))
+        self.assertEqual(credits(f"- The docstring says {LEAVES_THE_TABLE.upper()}.\n"), (1, 0))
+        self.assertEqual(credits(f"- {comment_says}\n  {sentence}.\n"), (1, 1))
+
+    def test_capitalized_rule_after_other_words_fails_the_check_of_the_changelog(self):
+        changelog = (SCRIPTS.parent / "CHANGELOG.md").read_text(encoding="utf-8")
+        added = f"- As the test's docstring says: {LEAVES_THE_TABLE.capitalize()}.\n"
+        test = CommentAboveKnownTest(
+            "test_changelog_gives_the_rule_only_as_what_the_comment_above_known_says")
+        for text, failures in ((changelog, 0), (changelog + added, 1)):
+            result = unittest.TestResult()
+            reads = mock.patch.object(pathlib.Path, "read_text", return_value=text)
+            with self.subTest(failures=failures), reads:
+                test.run(result)
+                self.assertEqual((len(result.failures), len(result.errors)), (failures, 0))
 
     def test_comment_above_is_the_run_of_comment_lines_before_the_assignment(self):
         source = "# Not this one.\n\n# First line\n# and second.\nKNOWN = {}\n"
