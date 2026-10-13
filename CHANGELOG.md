@@ -663,6 +663,21 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   pin how a capital letter is read and that the test of this changelog fails when such an
   entry is added to it. This changelog gives the rule once, after those words, and the
   test passes on it.
+- `scripts/test_nested_with.py` reads only the Python files of the repository in `scripts/`
+  and the directories below it. In a git checkout these are the files git lists there: the
+  ones it tracks, and the ones it does not track and does not ignore. The test read every
+  `*.py` file there, so with a local virtual environment in `scripts/.venv/`, which
+  `.gitignore` lists, it failed on each file of that environment that holds a `with`
+  statement nested in another. Where git is not installed or `scripts/` is not in a git
+  checkout, the test reads the files in no directory whose name starts with ".", so a
+  directory that git would ignore and that is not hidden, such as `scripts/venv/`, is still
+  read there. Three new tests pin the files read in a git checkout that carries this
+  repository's `.gitignore`, where a tracked file deleted from the working tree is left
+  out, the files read without git, and that git gives no list when it fails or is not
+  installed. The test for subdirectories now runs without git's list, so its result does
+  not depend on where the temporary directory is. In a checkout with no ignored Python file
+  below `scripts/` the test reads the files it read before, and the six files its table
+  lists are unchanged.
 
 ### Added
 
