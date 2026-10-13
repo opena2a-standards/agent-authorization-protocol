@@ -644,7 +644,15 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/*.py`; no such file exists today, so no result changes. The six files its table
   lists are named by their path relative to `scripts/`, so a file of the same name in a
   directory below is held to none and does not keep an entry in the table. Two new tests
-  pin both.
+  pin the function that lists the files and how a path is held to the table.
+- `scripts/test_nested_with.py` fails when its check of the scripts stops reading the
+  directories below `scripts/`. The two tests the entry above records call the functions
+  the check is built from and not the check, so every test passed with the check reading
+  only `scripts/*.py` again. A new test runs the check over a temporary directory tree: the
+  check fails once when a file one or two directories down holds a nested `with`
+  statement, and passes when that file names both context managers in one statement. The
+  entry above now says what its two tests pin, where it said they pin both changes. What
+  the check reads and its table are unchanged.
 
 ### Added
 

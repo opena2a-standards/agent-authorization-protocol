@@ -158,6 +158,23 @@ class NestedWithTest(unittest.TestCase):
                 test.run(result)
                 self.assertEqual(len(result.failures), 1)
 
+    def test_nested_with_in_a_subdirectory_fails_the_check_of_the_scripts(self):
+        test = NestedWithTest("test_each_script_holds_the_number_known_records")
+        nested, combined = "with a:\n    with b:\n        pass\n", "with a, b:\n    pass\n"
+        for name, source, failures in (("sub/held.py", nested, 1),
+                                       ("sub/deeper/held.py", nested, 1),
+                                       ("sub/held.py", combined, 0)):
+            result = unittest.TestResult()
+            with self.subTest(name=name, failures=failures), \
+                    tempfile.TemporaryDirectory() as tmp, \
+                    mock.patch.dict(KNOWN, clear=True), \
+                    mock.patch(f"{__name__}.SCRIPTS", pathlib.Path(tmp)) as root:
+                (root / name).parent.mkdir(parents=True)
+                for path, text in ((pathlib.Path(__file__).name, "pass\n"), (name, source)):
+                    (root / path).write_text(text, encoding="utf-8")
+                test.run(result)
+                self.assertEqual((len(result.failures), result.errors), (failures, []))
+
     def test_nested_with_is_detected(self):
         self.assertEqual(nested_withs("with a:\n    with b:\n        pass\n"), [1])
 
