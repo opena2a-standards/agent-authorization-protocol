@@ -613,6 +613,16 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   positions raises an error instead of adding no numbers, and a third new test pins that.
   The entry above now says that the comparison took the numbers of citations of the broker
   profile only. The paragraph and the citation check are unchanged.
+- `scripts/test_worked_example_status.py` names both context managers of the test for a
+  citation that records no positions in one `with` statement, where one `with` statement
+  held the other; what the test checks is unchanged. `scripts/test_nested_with.py` fails
+  when a script in `scripts/` holds a `with` statement whose body is one other `with`
+  statement of the same kind and nothing else, and runs in CI through
+  `scripts/validate_examples.py`. Six test files hold one such statement each
+  (`test_check_naming.py`, `test_check_raw_html.py`, `test_check_requirement_references.py`,
+  `test_check_spelling.py`, `test_check_status_claims.py` and
+  `test_check_version_labels.py`): they are unchanged, the new test lists them, and it
+  fails when one of them holds a second.
 
 ### Added
 
