@@ -269,9 +269,9 @@ class WorkedExampleStatusTest(unittest.TestCase):
             EXAMPLE.name, 1, check_section_citations.BY_NAME["broker profile"], ("6.8",),
             False, "broker profile Section 6.8",
         )
-        with mock.patch.object(check_section_citations, "citations", return_value=[cite]):
-            with self.assertRaises(ValueError):
-                read_sections("broker profile Section 6.8")
+        with mock.patch.object(check_section_citations, "citations", return_value=[cite]), \
+                self.assertRaises(ValueError):
+            read_sections("broker profile Section 6.8")
 
     def test_numbers_the_citation_check_reads_in_other_forms_are_counted(self):
         # No space after the marker, a marker joined to the word before it, and
