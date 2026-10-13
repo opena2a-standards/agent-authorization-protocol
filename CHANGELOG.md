@@ -589,13 +589,13 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   counted. The citation check is unchanged.
 - `scripts/test_worked_example_status.py` counts once a section number that two
   citations of the broker profile read, and counts a number listed without its own marker
-  after "Section" or "§". The comparison took every number of every citation
-  `scripts/check_section_citations.py` returns, and that check returns two citations of
-  "broker profile Sections 6.8 and 6.9 of the broker profile", one for the name before the
-  numbers and one for the name after them. So that phrase followed by "Step 4 is Section
-  6.8 and step 5 is Section 6.9." passed the comparison, although that check reads neither
-  unnamed number, and the phrase alone failed it, although that check reads both. After
-  "Section" or "§" that check reads a later number of a list only when it has its own
+  after "Section" or "§". The comparison took every number of every citation of the broker
+  profile that `scripts/check_section_citations.py` returns, and that check returns two
+  citations of "broker profile Sections 6.8 and 6.9 of the broker profile", one for the name
+  before the numbers and one for the name after them. So that phrase followed by "Step 4 is
+  Section 6.8 and step 5 is Section 6.9." passed the comparison, although that check reads
+  neither unnamed number, and the phrase alone failed it, although that check reads both.
+  After "Section" or "§" that check reads a later number of a list only when it has its own
   marker, and the test counted with the same grammar, so neither read the 6.9 of "broker
   profile Section 6.8 and 6.9" and the comparison passed. The test now compares where each
   number is written with where that check reads one, and counts each later number of a list
@@ -604,6 +604,15 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   with the same for one number and for "§" lists. Each citation the check returns also
   records where its numbers start; what the check reads and reports is unchanged. The
   paragraph is unchanged and the test passes on it.
+- `scripts/test_worked_example_status.py` pins the two rules of its comparison that no test
+  failed without: it compares section numbers by where they are written, so "Step 4 follows
+  broker profile Section 6.8, and step 5 also follows broker profile Section 6.8." passes
+  it, and it reads only citations of the broker profile, so the paragraph with "(AAP-SPEC
+  §4.4)" or "(AIP Section 4.1)" added fails it. A new test pins each. The test now pairs
+  the numbers of a citation with where they start strictly, so a citation that records no
+  positions raises an error instead of adding no numbers, and a third new test pins that.
+  The entry above now says that the comparison took the numbers of citations of the broker
+  profile only. The paragraph and the citation check are unchanged.
 
 ### Added
 

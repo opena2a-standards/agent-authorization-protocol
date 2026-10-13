@@ -19,7 +19,9 @@ hold). Each section number in the paragraph, written after "Section",
 marker ("Sections 6.8 and 6.9", "Section 6.8 and 6.9"), is where
 check_section_citations.py reads a number: in a citation next to the broker
 profile's name and, in a list after "Section" or "§", with its own marker. So
-that check reads every one; a number two of its citations read is counted once.
+that check reads every one; a number two of its citations read is counted once,
+a number named at two places is counted at each, and a number of a citation of
+another document is not read for the broker profile.
 
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
@@ -28,6 +30,7 @@ import pathlib
 import re
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
@@ -135,7 +138,7 @@ def read_sections(paragraph):
         (offset, number)
         for cite in check_section_citations.citations(EXAMPLE.name, paragraph)
         if cite.doc.text == PROFILE.name
-        for offset, number in zip(cite.offsets, cite.numbers)
+        for offset, number in zip(cite.offsets, cite.numbers, strict=True)
     })
 
 
@@ -237,6 +240,38 @@ class WorkedExampleStatusTest(unittest.TestCase):
                 self.assertEqual(read_sections(named), written_sections(named))
                 hidden = f"{named} {unnamed}"
                 self.assertNotEqual(read_sections(hidden), written_sections(hidden))
+
+    def test_a_number_named_at_two_places_is_counted_at_each(self):
+        # Two citations that read the same number at two places count it at
+        # each place, so the comparison passes.
+        named = ("Step 4 follows broker profile Section 6.8, and step 5 also follows "
+                 "broker profile Section 6.8.")
+        self.assertEqual(written_section_numbers(named), ["6.8", "6.8"])
+        self.assertEqual(read_section_numbers(named), ["6.8", "6.8"])
+        self.assertEqual(read_sections(named), written_sections(named))
+
+    def test_a_number_cited_for_another_document_is_counted(self):
+        # The citation check reads these numbers for AAP-SPEC or AIP, not for
+        # the broker profile, so the comparison must see them and fail.
+        paragraph = status_paragraph()
+        self.assertIn("targets Level 1.", paragraph)
+        for cited, number in (("AAP-SPEC §4.4", "4.4"), ("AIP Section 4.1", "4.1")):
+            with self.subTest(cited=cited):
+                other = paragraph.replace("targets Level 1.", f"targets Level 1 ({cited}).")
+                self.assertIn(number, written_section_numbers(other))
+                self.assertNotIn(number, read_section_numbers(other))
+                self.assertNotEqual(read_sections(other), written_sections(other))
+
+    def test_a_citation_without_offsets_is_an_error(self):
+        # A citation that does not record where its numbers start cannot be
+        # compared by position, so reading it raises instead of dropping them.
+        cite = check_section_citations.Citation(
+            EXAMPLE.name, 1, check_section_citations.BY_NAME["broker profile"], ("6.8",),
+            False, "broker profile Section 6.8",
+        )
+        with mock.patch.object(check_section_citations, "citations", return_value=[cite]):
+            with self.assertRaises(ValueError):
+                read_sections("broker profile Section 6.8")
 
     def test_numbers_the_citation_check_reads_in_other_forms_are_counted(self):
         # No space after the marker, a marker joined to the word before it, and
