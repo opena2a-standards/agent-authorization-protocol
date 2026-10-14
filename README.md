@@ -12,25 +12,34 @@ one of three credential-provider modes, performs the operation, and returns only
 secret, temporary credential, backend address, or vendor name ever reaches the agent, or the model
 behind it.
 
+## Specification
+
+- [`AAP-SPEC.md`](./AAP-SPEC.md), the AAP token model (AIT/CGT/DA/BAC, federation, revocation).
+- [`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md), the broker & resolution layer.
+- [`examples/`](./examples/), worked examples: the resolution flow and a policy grammar clause
+  ([`orders-db-exchange.md`](./examples/orders-db-exchange.md)), and the HTTP, A2A agent card and
+  MCP manifest transport bindings ([`transport-bindings.md`](./examples/transport-bindings.md)).
+
 ## Use cases
+
+The full text of each use case, with the sources to check it against, is in [`docs/use-cases.md`](./docs/use-cases.md).
 
 ### The key an agent should never hold
 
-You paste an API key into an agent's environment. The agent reads web pages, documents and tool results, and it cannot reliably tell your instructions from text hidden in what it reads. One hidden instruction can ask it to send the key somewhere, and whoever receives it has standing access to your customers' data for as long as the key lives.
+You paste an API key into an agent's environment. One hidden instruction can ask it to send the key somewhere, and whoever receives it has standing access to your customers' data for as long as the key lives.
 
-AAP removes the key from the agent. The agent emits an abstract `grant://name` reference. A local broker verifies the agent's ATX, evaluates the resource policy, obtains a scoped credential through one of three provider modes, performs the operation and returns the result. No secret, temporary credential, backend address or vendor name reaches the agent or the model behind it.
+AAP removes the key from the agent. The agent emits an abstract `grant://name` reference.
 
 What you can do today: run the token conformance suite, then read the worked example [`examples/orders-db-exchange.md`](./examples/orders-db-exchange.md).
 
-```bash
+```bash noexec
 git clone https://github.com/opena2a-standards/aap-conformance
 cd aap-conformance
 npm install
 node verifiers/node/verify.mjs fixtures
-# summary: 44 pass, 0 fail (44 fixtures)
 ```
 
-Where it stops today: the Exchange broker is implemented as a library with an end-to-end conformance test. A `secretless broker` daemon that does not construct the grant resolver from operator configuration returns 404 on `POST /grant`, and whether a given release constructs it is recorded in the reference implementation's repository (see the Reference implementation section below).
+Where it stops today: the Exchange broker is implemented as a library with an end-to-end conformance test. A `secretless broker` daemon that does not construct the grant resolver from operator configuration returns 404 on `POST /grant`, and whether a given release constructs it is recorded in the reference implementation's repository (see [Reference implementation](./docs/reference-implementation.md)).
 
 ### An agent checks out with your money
 
@@ -40,90 +49,26 @@ Under AAP the agent holds a Capability Grant Token that names the trust class an
 
 What you can do today: `fixtures/da-compact-scope-superset.json` in the conformance suite rejects a delegation wider than its delegator, `fixtures/cgt-compact-expired.json` rejects an expired grant, and the token bytes this specification publishes are in [`examples/tokens/`](./examples/tokens/). The suite's Node and Python verifiers at commit `99e213a` accept three of them: `ait-v1.jwt`, `bac-v1.jwt` and `bac-v1.session.jwt`.
 
-Where it stops today: the same daemon limit applies, and the suite's verifiers at commit `99e213a` match `trust_class` against `^[a-z0-9_-]+:[a-z0-9_-]+$` alone. They reject the seven CGT and DA tokens in [`examples/tokens/`](./examples/tokens/) (`cgt-v1.jwt`, `cgt-v1.fgc.jwt`, `cgt-v1.mldsa65.jwt`, `cgt-v1.general.json`, `cgt-v1.hybrid.general.json`, `da-v1.jwt` and `da-v1.fgc.jwt`), which carry the domain-prefixed `acme.com/orders:read` that AAP-SPEC Section 4.2 says a broker should mint; the suite's `conformance.json` records the pattern its verifiers match. The claim schemas in [`schemas/`](./schemas/) accept both forms. The tokens can be minted; whether a given release of the daemon resolves a `grant://` reference against them is recorded in the reference implementation's repository.
+Where it stops today: the same daemon limit applies, and the suite's verifiers at commit `99e213a` match `trust_class` against `^[a-z0-9_-]+:[a-z0-9_-]+$` alone. They reject the published CGT and DA tokens, which carry the domain-prefixed class AAP-SPEC Section 4.2 says a broker should mint ([the token list](./docs/use-cases.md#an-agent-checks-out-with-your-money)). The claim schemas in [`schemas/`](./schemas/) accept both forms.
 
-Why you can check this yourself: [`AAP-SPEC.md`](./AAP-SPEC.md) and [`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md); the Internet-Draft [draft-fane-opena2a-aap](https://datatracker.ietf.org/doc/draft-fane-opena2a-aap/); [aap-conformance](https://github.com/opena2a-standards/aap-conformance), 44 byte-pinned fixtures with Node and Python verifiers; the published token bytes in [`examples/tokens/`](./examples/tokens/), of which those verifiers at commit `99e213a` accept the three named above; and the broker library in [Secretless](https://github.com/opena2a-org/secretless-ai) under `src/broker/`.
+## Documentation
 
-## Contributing
-
-This specification is early and authored in the open. We are looking for co-authors, an independent second implementation, and review of the authorization and delegation model before it goes to an external standards body. See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## The one principle
-
-OpenA2A owns the protocol and the vocabulary. It owns no one's trust. Nothing in AAP requires a
-vendor, cloud, or government to give up their own root. The topology is a **trust program**
-(federated conformant Root Authorities), not a single root, the same reason DNS, TLS, OAuth, and
-OIDC won.
-
-## The decision / enforcement split
-
-| | States | Owned by | Travels with agent |
-|---|---|---|---|
-| **ATX** (subject claim) | what an agent *is*, identity, issuer chain, trust level, scan summary, capabilities as trust classes (`db:read`) | issuer | yes |
-| **Broker policy** (resource grant) | what a *resource* gives an agent holding a trust class | resource operator | no |
-| **Broker** (enforcement) | intersects the two; resolves `grant://name` to a concrete action | resource operator | n/a |
-
-> **Trust is not authorization, and trust is not transitive.** A valid ATX is never permission to
-> touch a resource. Authorization exists only where a local broker policy grants it. Default-deny.
-
-## The three CPI modes
-
-| Mode | What the provider does | Broker's secret surface |
-|---|---|---|
-| **Retrieve** | holds a secret, returns its value (broker proxies or injects into an ephemeral worker) | one root credential **per backend** |
-| **Assume** | takes an identity proof, returns short-lived role-scoped credentials (cloud STS) | **one rotating signing key** |
-| **Exchange** | OAuth-style token exchange (RFC 8693) for a scoped downstream token | **one rotating signing key** |
-
-Assume and Exchange leave the broker holding nothing but one rotating key, prefer them.
-
-## Two layers
-
-AAP is defined in two documents:
-
-- **[`AAP-SPEC.md`](./AAP-SPEC.md)**, the AAP **token model**: Agent Identity Token (AIT),
-  Capability Grant Token (CGT), Delegation Assertion (DA), Behavioral Attestation Claim (BAC),
-  cross-org federation, and revocation propagation. What the credentials contain, how they are
-  signed and verified.
-- **[`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md)**, the **broker & resolution layer**: how
-  an agent obtains and exercises those tokens via a `grant://` reference and a local broker,
-  without the credential value ever entering its reasoning context. Defines the
-  decision/enforcement split, the Credential Provider Interface, and two-tier conformance.
-
-## Status
-
-The last released versions are `0.5.1-draft` of `AAP-SPEC.md` and `0.4.1-draft` of the companion
-`AAP-BROKER-PROFILE.md`. Authored in the open as an IETF Internet-Draft:
-`draft-fane-opena2a-aap-02` (the 0.5.1-draft text, submitted 2026-10-02) is the current revision
-on the [datatracker](https://datatracker.ietf.org/doc/draft-fane-opena2a-aap/); its source and
-rendered text are in this repository. Each document carries its own version at the top. Between
-releases the text on main moves ahead of that version and of the submitted revision, and the
-version line says so ("plus unreleased changes"); the [Unreleased] section of `CHANGELOG.md` lists
-those changes. `CHANGELOG.md` also records what moved between drafts and which draft revision
-pairs with which version.
-
-## Reference implementation
-
-A v1 **Exchange** broker (RFC 8693) is implemented in the Secretless broker library, with an
-end-to-end conformance test proving the §4 invariant over the broker's Unix socket. Two limits are
-worth stating plainly rather than discovering later. The exchange is exercised against a fake
-transport injected into the provider adapter, not against a live identity-provider tenant. And a
-`secretless broker` daemon that does not construct the grant resolver from operator configuration
-returns 404 on `POST /grant`; whether a given release constructs it is recorded in the reference
-implementation's repository, and the operator-facing grant-binding configuration is tracked in
-[opena2a-standards/agent-authorization-protocol#1](https://github.com/opena2a-standards/agent-authorization-protocol/issues/1).
-
-The developer surface is the `@agent.perform_action` decorator of
-OpenA2A AIM (Agent Identity Management). See
-[`examples/orders-db-exchange.md`](./examples/orders-db-exchange.md) and
-[`AAP-BROKER-PROFILE.md` §14](./AAP-BROKER-PROFILE.md#14-reference-implementation-informative).
-
-## Specification
-
-- [`AAP-SPEC.md`](./AAP-SPEC.md), the AAP token model (AIT/CGT/DA/BAC, federation, revocation).
-- [`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md), the broker & resolution layer.
-- [`examples/`](./examples/), worked examples: the resolution flow and a policy grammar clause
-  ([`orders-db-exchange.md`](./examples/orders-db-exchange.md)), and the HTTP, A2A agent card and
-  MCP manifest transport bindings ([`transport-bindings.md`](./examples/transport-bindings.md)).
+- [`docs/use-cases.md`](./docs/use-cases.md): each use case in full, with the sources to check it against.
+- [`docs/overview.md`](./docs/overview.md): the one principle, the decision and enforcement split,
+  the three credential-provider modes, and the two documents that define AAP.
+- [`docs/reference-implementation.md`](./docs/reference-implementation.md): the Exchange broker in
+  the [Secretless](https://github.com/opena2a-org/secretless-ai) broker library, its limits, and
+  its developer surface.
+- [`docs/status.md`](./docs/status.md): the last released versions and the current Internet-Draft
+  revision.
+- [draft-fane-opena2a-aap](https://datatracker.ietf.org/doc/draft-fane-opena2a-aap/): the
+  Internet-Draft on the datatracker.
+- [aap-conformance](https://github.com/opena2a-standards/aap-conformance): byte-pinned token
+  fixtures with Node and Python verifiers.
+- [`CHANGELOG.md`](./CHANGELOG.md): what changed between drafts, which draft revision pairs with
+  which version, and the changes on main since the last release.
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md): co-authoring, review, and an independent second
+  implementation.
 
 ## License
 

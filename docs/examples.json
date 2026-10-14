@@ -1,0 +1,9 @@
+{
+  "README.md": [
+    {
+      "section": "The key an agent should never hold",
+      "command": "node verifiers/node/verify.mjs fixtures",
+      "noexec": "Runs in a clone of the aap-conformance repository after npm install; it reads that repository's fixtures, not a file committed here, so the README shows the command and no output block."
+    }
+  ]
+}

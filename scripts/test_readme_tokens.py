@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Tests that README.md says which published tokens the aap-conformance verifiers accept.
+"""Tests that the use cases say which published tokens the aap-conformance verifiers accept.
 
-README.md points readers to the aap-conformance suite to check the token bytes
-in examples/tokens/. The suite's Node and Python verifiers, at the commit
-README.md names, match `trust_class` against the legacy `namespace:action`
-pattern alone, so they accept a token that carries no `trust_class` or one in
-that form and reject a token that carries the domain-prefixed class AAP-SPEC
-Section 4.2 says a broker should mint. The tests read each token's payload and
-check that README.md names the tokens on each side, so a regenerated token that
-moves from one side to the other fails until the README is changed with it.
+README.md and docs/use-cases.md point readers to the aap-conformance suite to
+check the token bytes in examples/tokens/. The suite's Node and Python
+verifiers, at the commit they name, match `trust_class` against the legacy
+`namespace:action` pattern alone, so they accept a token that carries no
+`trust_class` or one in that form and reject a token that carries the
+domain-prefixed class AAP-SPEC Section 4.2 says a broker should mint. The tests
+read each token's payload and check that README.md and docs/use-cases.md name
+the tokens the verifiers accept, and that docs/use-cases.md, which carries the
+use cases in full, names the tokens they reject, so a regenerated token that
+moves from one side to the other fails until the text is changed with it.
 
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
@@ -21,8 +23,11 @@ import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 TOKENS = ROOT / "examples" / "tokens"
+README = "README.md"
+# The use cases in full; the README carries a short form of each.
+USE_CASES = "docs/use-cases.md"
 
-# The aap-conformance commit whose verifiers README.md describes.
+# The aap-conformance commit whose verifiers README.md and docs/use-cases.md describe.
 SUITE_COMMIT = "99e213a"
 # The `trust_class` pattern those verifiers match.
 LEGACY = r"^[a-z0-9_-]+:[a-z0-9_-]+$"
@@ -49,10 +54,10 @@ def published_tokens():
     }
 
 
-def paragraph(opening):
-    """The README paragraph that starts with `opening` and links examples/tokens/."""
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    return [p for p in readme.split("\n\n") if p.startswith(opening) and "examples/tokens/" in p]
+def paragraph(opening, document):
+    """The paragraphs of `document` that start with `opening` and link examples/tokens/."""
+    text = (ROOT / document).read_text(encoding="utf-8")
+    return [p for p in text.split("\n\n") if p.startswith(opening) and "examples/tokens/" in p]
 
 
 class ReadmeTokenStatementTest(unittest.TestCase):
@@ -71,13 +76,15 @@ class ReadmeTokenStatementTest(unittest.TestCase):
         self.assertEqual({self.tokens[n] for n in self.rejected}, {DOMAIN_PREFIXED})
 
     def test_readme_names_the_tokens_the_suite_accepts(self):
-        found = paragraph("What you can do today:")
-        self.assertEqual(len(found), 1)
-        self.assertIn(f"`{SUITE_COMMIT}`", found[0])
-        self.assertEqual(self.named_tokens(found[0]), self.accepted)
+        for document in (README, USE_CASES):
+            with self.subTest(document=document):
+                found = paragraph("What you can do today:", document)
+                self.assertEqual(len(found), 1)
+                self.assertIn(f"`{SUITE_COMMIT}`", found[0])
+                self.assertEqual(self.named_tokens(found[0]), self.accepted)
 
     def test_readme_names_the_tokens_the_suite_rejects_and_the_pattern_it_matches(self):
-        found = paragraph("Where it stops today:")
+        found = paragraph("Where it stops today:", USE_CASES)
         self.assertEqual(len(found), 1)
         self.assertIn(f"`{SUITE_COMMIT}`", found[0])
         self.assertIn(f"`{LEGACY}`", found[0])
@@ -85,9 +92,19 @@ class ReadmeTokenStatementTest(unittest.TestCase):
         self.assertIn("conformance.json", found[0])
         self.assertEqual(self.named_tokens(found[0]), self.rejected)
 
+    def test_readme_states_the_pattern_limit_and_links_the_token_list(self):
+        readme = (ROOT / README).read_text(encoding="utf-8")
+        found = [p for p in readme.split("\n\n")
+                 if p.startswith("Where it stops today:") and f"`{LEGACY}`" in p]
+        self.assertEqual(len(found), 1)
+        self.assertIn(f"`{SUITE_COMMIT}`", found[0])
+        self.assertIn(f"]({'./' + USE_CASES}#", found[0])
+
     def test_readme_does_not_call_every_published_token_valid(self):
-        readme = (ROOT / "README.md").read_text(encoding="utf-8")
-        self.assertFalse("valid token bytes" in readme, 'README.md calls examples/tokens/ "the valid token bytes"')
+        for document in (README, USE_CASES):
+            with self.subTest(document=document):
+                text = (ROOT / document).read_text(encoding="utf-8")
+                self.assertFalse("valid token bytes" in text, f'{document} calls examples/tokens/ "the valid token bytes"')
 
 
 if __name__ == "__main__":

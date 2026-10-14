@@ -708,6 +708,22 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   test pins it for a directory below the top of a work tree that the work tree ignores and
   for one it does not. At the top of a checkout the check reads the tracked files, as
   before.
+- `README.md` is shorter: under its unchanged header it holds the Specification list first,
+  a short form of the two use cases, a Documentation list and the License. Its reference
+  text moved, as written, to pages it links: the use cases in full to `docs/use-cases.md`;
+  the one principle, the decision / enforcement split, the three CPI modes and the two
+  layers to `docs/overview.md`; the Reference implementation section to
+  `docs/reference-implementation.md`; and the Status section, with the released versions
+  and the current Internet-Draft revision, to `docs/status.md`. The Contributing paragraph
+  is covered by `CONTRIBUTING.md`, which the Documentation list links. The README's
+  conformance-suite command is marked `noexec`, with its reason in `docs/examples.json`,
+  and shows no output; the summary line it printed is in `docs/use-cases.md`.
+  `scripts/check_status_claims.py` also checks `docs/use-cases.md`,
+  `docs/reference-implementation.md` and `docs/status.md`, and
+  `scripts/test_readme_tokens.py` reads the tokens the suite rejects from
+  `docs/use-cases.md`, the tokens it accepts from both pages, and checks that the README
+  states the pattern limit and links the token list. No requirement, schema or token
+  changes.
 
 ### Added
 
