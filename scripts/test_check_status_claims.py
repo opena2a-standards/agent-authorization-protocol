@@ -220,7 +220,8 @@ class RepositoryDocumentsTest(unittest.TestCase):
 
     def test_specification_documents_and_readme_are_covered(self):
         names = check_status_claims.documents()
-        for name in ("AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md", "schemas/README.md"):
+        for name in ("AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md", "docs/use-cases.md",
+                     "docs/reference-implementation.md", "docs/status.md", "schemas/README.md"):
             with self.subTest(document=name):
                 self.assertIn(name, names)
 
@@ -249,7 +250,9 @@ class DiscoveryTest(unittest.TestCase):
             write(self.root, name, "As of the date of this revision no implementation.\n")
         self.assertEqual(check_status_claims.documents(self.root),
                          ["AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md",
-                          "schemas/README.md", "draft-fane-opena2a-aap-03.xml"])
+                          "docs/use-cases.md", "docs/reference-implementation.md",
+                          "docs/status.md", "schemas/README.md",
+                          "draft-fane-opena2a-aap-03.xml"])
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             self.assertEqual(check_status_claims.check(self.root), 1)
@@ -261,8 +264,9 @@ class DiscoveryTest(unittest.TestCase):
             write(self.root, name, "<rfc><t>no implementation mints it</t></rfc>\n")
         self.assertEqual(check_status_claims.documents(self.root),
                          ["AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md",
-                          "schemas/README.md", "draft-ietf-opena2a-aap-00.xml",
-                          "draft-other-03.xml"])
+                          "docs/use-cases.md", "docs/reference-implementation.md",
+                          "docs/status.md", "schemas/README.md",
+                          "draft-ietf-opena2a-aap-00.xml", "draft-other-03.xml"])
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             self.assertEqual(check_status_claims.check(self.root), 2)

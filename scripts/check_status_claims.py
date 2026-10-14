@@ -34,9 +34,11 @@ HTML or xml2rfc element such as <em>):
     token's own validity window ("not yet valid", "not yet expired", "a jti
     not yet seen"), which is protocol state and not implementation status.
 
-The documents are AAP-SPEC.md, AAP-BROKER-PROFILE.md, README.md (its use
-cases and its Reference implementation section state what the reference
-implementation does), schemas/README.md (its Status column states what the
+The documents are AAP-SPEC.md, AAP-BROKER-PROFILE.md, README.md and
+docs/use-cases.md (their use cases state what the reference implementation
+does), docs/reference-implementation.md (what the reference implementation
+does and its limits), docs/status.md (the released versions and the current
+Internet-Draft revision), schemas/README.md (its Status column states what the
 reference implementation mints) and the XML source of every Internet-Draft
 (draft-*.xml at the top level) except the filed revisions -00 to -02 of
 draft-fane-opena2a-aap, which are left as filed. A document that is not valid
@@ -55,7 +57,15 @@ import check_naming
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-DOCUMENTS = ("AAP-SPEC.md", "AAP-BROKER-PROFILE.md", "README.md", "schemas/README.md")
+DOCUMENTS = (
+    "AAP-SPEC.md",
+    "AAP-BROKER-PROFILE.md",
+    "README.md",
+    "docs/use-cases.md",
+    "docs/reference-implementation.md",
+    "docs/status.md",
+    "schemas/README.md",
+)
 
 # Internet-Draft revisions filed before this check existed; their text is not changed.
 LAST_FILED_REVISION = 2
