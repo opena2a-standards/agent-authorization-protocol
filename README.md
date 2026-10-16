@@ -17,39 +17,13 @@ behind it.
 - [`AAP-SPEC.md`](./AAP-SPEC.md), the AAP token model (AIT/CGT/DA/BAC, federation, revocation).
 - [`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md), the broker & resolution layer.
 - [`examples/`](./examples/), worked examples: the resolution flow and a policy grammar clause
-  ([`orders-db-exchange.md`](./examples/orders-db-exchange.md)), and the HTTP, A2A agent card and
-  MCP manifest transport bindings ([`transport-bindings.md`](./examples/transport-bindings.md)).
+  ([`orders-db-exchange.md`](./examples/orders-db-exchange.md)).
+- [`examples/transport-bindings.md`](./examples/transport-bindings.md), the HTTP, A2A agent card
+  and MCP manifest transport bindings.
 
-## Use cases
+What you can do today: `fixtures/da-compact-scope-superset.json` in the [conformance suite](https://github.com/opena2a-standards/aap-conformance) rejects a delegation wider than its delegator, `fixtures/cgt-compact-expired.json` rejects an expired grant, and the token bytes this specification publishes are in [`examples/tokens/`](./examples/tokens/). The suite's Node and Python verifiers at commit `99e213a` accept three of them: `ait-v1.jwt`, `bac-v1.jwt` and `bac-v1.session.jwt`.
 
-The full text of each use case, with the sources to check it against, is in [`docs/use-cases.md`](./docs/use-cases.md).
-
-### The key an agent should never hold
-
-You paste an API key into an agent's environment. One hidden instruction can ask it to send the key somewhere, and whoever receives it has standing access to your customers' data for as long as the key lives.
-
-AAP removes the key from the agent. The agent emits an abstract `grant://name` reference.
-
-What you can do today: run the token conformance suite, then read the worked example [`examples/orders-db-exchange.md`](./examples/orders-db-exchange.md).
-
-```bash noexec
-git clone https://github.com/opena2a-standards/aap-conformance
-cd aap-conformance
-npm install
-node verifiers/node/verify.mjs fixtures
-```
-
-Where it stops today: the Exchange broker is implemented as a library with an end-to-end conformance test. A `secretless broker` daemon that does not construct the grant resolver from operator configuration returns 404 on `POST /grant`, and whether a given release constructs it is recorded in the reference implementation's repository (see [Reference implementation](./docs/reference-implementation.md)).
-
-### An agent checks out with your money
-
-An agent authorized to buy holds a stored card. It can be argued into a second purchase, and a helper agent it delegates to inherits the whole card. Stored payment credentials give software standing authority, with an expiry measured in years and no per-operation scope.
-
-Under AAP the agent holds a Capability Grant Token that names the trust class and scope a broker will honor; the broker denies anything outside a matching policy clause by default; and a Delegation Assertion must stay within its delegator's grant, so a delegated helper gets less, never more. A valid ATX is never permission on its own.
-
-What you can do today: `fixtures/da-compact-scope-superset.json` in the conformance suite rejects a delegation wider than its delegator, `fixtures/cgt-compact-expired.json` rejects an expired grant, and the token bytes this specification publishes are in [`examples/tokens/`](./examples/tokens/). The suite's Node and Python verifiers at commit `99e213a` accept three of them: `ait-v1.jwt`, `bac-v1.jwt` and `bac-v1.session.jwt`.
-
-Where it stops today: the same daemon limit applies, and the suite's verifiers at commit `99e213a` match `trust_class` against `^[a-z0-9_-]+:[a-z0-9_-]+$` alone. They reject the published CGT and DA tokens, which carry the domain-prefixed class AAP-SPEC Section 4.2 says a broker should mint ([the token list](./docs/use-cases.md#an-agent-checks-out-with-your-money)). The claim schemas in [`schemas/`](./schemas/) accept both forms.
+Where it stops today: the daemon limit in [Reference implementation](./docs/reference-implementation.md) applies, and the suite's verifiers at commit `99e213a` match `trust_class` against `^[a-z0-9_-]+:[a-z0-9_-]+$` alone. They reject the published CGT and DA tokens, which carry the domain-prefixed class AAP-SPEC Section 4.2 says a broker should mint ([the token list](./docs/use-cases.md#an-agent-checks-out-with-your-money)). The claim schemas in [`schemas/`](./schemas/) accept both forms.
 
 ## Documentation
 

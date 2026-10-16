@@ -1,7 +1,7 @@
 # Use cases
 
 Each use case states the problem, how AAP addresses it, what you can check today and where it
-stops today. The [README](../README.md) carries a short form of each.
+stops today. The [README](../README.md) repeats what the second says about the published tokens.
 
 ## The key an agent should never hold
 
