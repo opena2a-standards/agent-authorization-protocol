@@ -724,6 +724,10 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `docs/use-cases.md`, the tokens it accepts from both pages, and checks that the README
   states the pattern limit and links the token list. No requirement, schema or token
   changes.
+- `README.md` is shorter again: the two use cases, with the conformance-suite command, are
+  in `docs/use-cases.md` only, and the README keeps the second one's statements on the
+  published tokens under the Specification list, with the `examples/` line split in two. No requirement, schema or
+  token changes.
 
 ### Added
 
