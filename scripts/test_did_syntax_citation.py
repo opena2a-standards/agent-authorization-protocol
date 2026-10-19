@@ -7,8 +7,9 @@ OpenA2A specification family, and that ATX, ATP and AAP cite them rather than re
 the grammar. The tests read AAP-SPEC.md and check that a citation
 check_section_citations.py reads names did-method-opena2a with Sections 3.1 and 3.1.1,
 that the References section lists the method as [DID-OPENA2A], normative, naming its
-text file and its repository, and that no rule of the method's ABNF is restated: no
-line of AAP-SPEC.md defines `opena2a-did`, `resource-type` or `resource-id`.
+text file and its repository, and that no line of AAP-SPEC.md defines the ABNF rule
+`opena2a-did`, `resource-type` or `resource-id`. The method's other ABNF rules, such
+as `fragment` and `unreserved`, are not checked.
 
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
@@ -30,7 +31,8 @@ REPOSITORY = "https://github.com/opena2a-standards/did-method-opena2a"
 LABEL = "DID-OPENA2A"
 SECTIONS = ("3.1", "3.1.1")
 
-# A line that defines a rule of the method's ABNF (Section 3.1 of did-method-opena2a.md).
+# A line that defines the ABNF rule opena2a-did, resource-type or resource-id (Section 3.1
+# of did-method-opena2a.md). The method's other ABNF rules are not matched.
 GRAMMAR_RULE = re.compile(r"^\s*(opena2a-did|resource-type|resource-id)\s*=", re.MULTILINE)
 
 

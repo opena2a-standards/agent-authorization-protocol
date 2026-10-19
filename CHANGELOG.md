@@ -805,7 +805,8 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   reads one of AIP-SPEC, ATP-SPEC or atx-spec/core.md, so the citation must resolve to a
   References entry that names `did-method-opena2a.md`, and
   `scripts/test_did_syntax_citation.py` checks that AAP-SPEC.md carries the citation and
-  the entry and defines no rule of the grammar.
+  the entry and defines none of the ABNF rules `opena2a-did`, `resource-type` and
+  `resource-id`.
 - Broker profile Section 6.13, revocation after resolution. The revocation checks of
   Section 6 steps 2 and 5 ran at resolution only, and no text said what a revocation that
   becomes visible to the broker after them does to an operation the broker has not issued,
