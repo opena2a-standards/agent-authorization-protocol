@@ -32,9 +32,10 @@ are not checked.
    one numbered text: the AIP Markdown and its Internet-Draft number their sections
    differently, as AAP-SPEC.md and its render do. So where the citing document's
    References section lists the cited document, that entry names its text file
-   (AIP-SPEC.md, ATP-SPEC.md, atx-spec/core.md, AAP-BROKER-PROFILE.md). A document
-   outside this repository, whose headings this check cannot read, is named by its
-   text file in the citation (file name or stem, "AIP-SPEC §7.2") or in that entry.
+   (AIP-SPEC.md, ATP-SPEC.md, atx-spec/core.md, did-method-opena2a.md,
+   AAP-BROKER-PROFILE.md). A document outside this repository, whose headings this
+   check cannot read, is named by its text file in the citation (file name or stem,
+   "AIP-SPEC §7.2", "did-method-opena2a Sections 3.1 and 3.1.1") or in that entry.
 3. A citation names its document: "Section 6 of the spec" in a document other than
    the specification fails.
 4. In the render, each document cited by number has a reference entry. The census
@@ -82,6 +83,7 @@ DOCUMENTS = (
     Document("AIP", "AIP-SPEC.md", False, "AIP"),
     Document("ATP", "ATP-SPEC.md", False, "ATP"),
     Document("ATX", "atx-spec/core.md", False, "ATX"),
+    Document("DID method", "did-method-opena2a.md", False, "DID-OPENA2A"),
 )
 BY_NAME = {doc.name: doc for doc in DOCUMENTS}
 BY_LABEL = {check_references.key(doc.label): doc for doc in DOCUMENTS}
@@ -97,6 +99,7 @@ NAMES = (
     (r"AIP-SPEC(?:\.md)?", "AIP", True),
     (r"ATP-SPEC(?:\.md)?", "ATP", True),
     (r"atx-spec/core\.md", "ATX", True),
+    (r"did-method-opena2a(?:\.md)?", "DID method", True),
     (r"AIP", "AIP", False),
     (r"ATP", "ATP", False),
     (r"ATX", "ATX", False),

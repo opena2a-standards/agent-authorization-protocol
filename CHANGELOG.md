@@ -794,6 +794,18 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ### Added
 
+- Section 2 defines the term DID: a `did:opena2a` identifier, the value type the claim
+  tables name DID. The entry cites `did-method-opena2a` Sections 3.1 and 3.1.1, the two
+  sections that Section 3.1 of that specification names as the one home of the
+  `did:opena2a` string form for the specification family, and restates no rule of its
+  ABNF. DID-OPENA2A is a normative reference (`did-method-opena2a.md`); the submitted
+  `draft-fane-opena2a-aap-02` render is unchanged. Editorial: no requirement changes, and
+  the counts of MUST, MUST NOT, SHOULD, SHOULD NOT and MAY in AAP-SPEC.md are unchanged.
+  `scripts/check_section_citations.py` reads a citation of `did-method-opena2a` as it
+  reads one of AIP-SPEC, ATP-SPEC or atx-spec/core.md, so the citation must resolve to a
+  References entry that names `did-method-opena2a.md`, and
+  `scripts/test_did_syntax_citation.py` checks that AAP-SPEC.md carries the citation and
+  the entry and defines no rule of the grammar.
 - Broker profile Section 6.13, revocation after resolution. The revocation checks of
   Section 6 steps 2 and 5 ran at resolution only, and no text said what a revocation that
   becomes visible to the broker after them does to an operation the broker has not issued,
