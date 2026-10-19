@@ -766,6 +766,31 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `examples/orders-db-exchange.md` and the `capability` of the SDK call in the latter. It
   reads the same five claim sets, and each of the three Markdown values is
   `acme.com/orders:read`.
+- In `schemas/`, each member whose `pattern` ends with `$` rejects a value that holds a
+  line break, as `trust_class` in the CGT and DA claim schemas already did: a `not`
+  keyword with the pattern `\n` sits beside each of the other 16 such patterns. They are
+  `atx_reference` and `jti` in the AIT claim schema; `atx_reference`, `binary_hash` and
+  `jti` in the BAC claim schema; `jti`, `cnf.jkt` and the `type` of an
+  `authorization_details` entry in the CGT and DA claim schemas, and `delegator_atx` in
+  the DA claim schema; the grant reference itself in `grant-reference-v1.schema.json`;
+  and `payload` and the `protected` and `signature` of a `signatures` entry in
+  `jws-general-v1.schema.json`. An ECMA-262 engine rejects a well-formed value followed by
+  a line break under each of those patterns, but the jsonschema package evaluates `pattern`
+  with Python's `re.search`, where `$` also matches before a final line break: with
+  jsonschema 4.26.0, for each of those members, a published example with a line break
+  appended to that member's value validated against its schema. The patterns are unchanged
+  and no character they match is a line break, so the `not` keyword changes no verdict of
+  an ECMA-262 engine, and under the jsonschema package a value that holds no line break
+  gets the same verdict as before. The description of each of the six schemas says why the
+  `not` keyword is there. `scripts/test_schema_line_breaks.py` lists the 18 members whose
+  subschema holds a pattern that ends with `$`, the two `trust_class` members among them,
+  and fails when a schema holds such a pattern at a member it does not list or it lists a
+  member that holds none. For each member it appends a line break to the value of a
+  published example and checks that the schema rejects the example at that member, and it
+  checks that the schema accepts the value, the value followed by a line break or by a
+  carriage return and a line break, and the value preceded by a line break exactly when
+  ECMA-262 matches it, reading the final `$` of a pattern as Python's `\Z`. It runs in CI
+  through `scripts/validate_examples.py`, which runs the unit tests in `scripts/`.
 
 ### Added
 
