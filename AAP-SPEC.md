@@ -93,6 +93,10 @@ RFC 8174).
   AIT references. (ATX is the current name for the credential formerly called ATC.)
 - **Agent Security Context (ASC)**, shared state describing an agent's current security
   posture across monitoring products.
+- **DID**, a `did:opena2a` identifier, the value type the claim tables of this document
+  name DID (for example `iss` and `sub`, Section 3.2). The `did:opena2a` string form, its
+  ABNF and the unescaped form that signed artifacts carry, is defined in
+  `did-method-opena2a` Sections 3.1 and 3.1.1 and is cited here rather than restated.
 - **NanoMind**, local semantic intent classification model used for intent-verified
   authorization.
 - **Registry / Root Authority**, the trust authority that issues ATXs, maintains the
@@ -987,6 +991,9 @@ type registry of Section 4.4.1 are managed in this specification.
 - [ATX], Agent Trust eXtension credential format (`atx-spec/core.md`).
 - [ATP], Agent Trust Protocol (`ATP-SPEC.md`).
 - [AIP], Agent Identity Protocol (`AIP-SPEC.md`; Section 4.1 is the capability grammar of `trust_class`).
+- [DID-OPENA2A], The `did:opena2a` DID method specification (`did-method-opena2a.md`,
+  https://github.com/opena2a-standards/did-method-opena2a; Sections 3.1 and 3.1.1 are the
+  one home of the `did:opena2a` string form).
 
 ### Informative References
 - [A2A], Agent-to-Agent Protocol Specification.

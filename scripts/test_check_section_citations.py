@@ -115,6 +115,10 @@ class CitationTest(unittest.TestCase):
             "(JCS over a projected TBS, `atx-spec/core.md` §1.3a.2)": [("ATX", ("1.3a.2",), True)],
             "(pipe-delimited string, ATP §4.3)": [("ATP", ("4.3",), False)],
             "the AAP-SPEC.md §9.6 conventions": [("AAP-SPEC", ("9.6",), True)],
+            "defined in `did-method-opena2a` Sections 3.1 and 3.1.1 ([DID-OPENA2A])": [
+                ("DID method", ("3.1", "3.1.1"), True)
+            ],
+            "(did-method-opena2a.md §3.1.1)": [("DID method", ("3.1.1",), True)],
         }
         for text, expected in cases.items():
             with self.subTest(text=text):
@@ -140,6 +144,7 @@ class CitationTest(unittest.TestCase):
     def test_names_inside_a_word_or_a_path_are_not_names(self):
         self.assertEqual(found("https://example.org/AIP-SPEC.md Section 4"), [])
         self.assertEqual(found("XAIP Section 4"), [])
+        self.assertEqual(found("https://github.com/opena2a-standards/did-method-opena2a Section 3.1"), [])
 
     def test_forms_the_module_docstring_lists_are_not_read(self):
         cases = {
@@ -248,6 +253,18 @@ class RuleTest(unittest.TestCase):
         self.assertEqual(len(failures), 1)
         self.assertIn("ATP is outside this repository; name ATP-SPEC.md", failures[0])
         self.assertEqual(unnamed_texts(citations("doc.md", "ATP-SPEC.md Section 10.2"), {}), [])
+
+    def test_did_method_entry_must_name_its_text(self):
+        cites = citations("doc.md", "did-method-opena2a Sections 3.1 and 3.1.1")
+        entry = "- [DID-OPENA2A], The `did:opena2a` DID method specification"
+        failures = unnamed_texts(cites, {"DID method": entry + "."})
+        self.assertEqual(len(failures), 1)
+        self.assertIn(
+            "the DID-OPENA2A entry of the References section does not name did-method-opena2a.md",
+            failures[0],
+        )
+        self.assertEqual(unnamed_texts(cites, {"DID method": entry + " (`did-method-opena2a.md`)."}), [])
+        self.assertEqual(unnamed_texts(cites, {}), [])
 
     def test_local_document_without_an_entry_passes(self):
         self.assertEqual(unnamed_texts(citations("doc.md", "broker profile §8.1, AAP-SPEC §4"), {}), [])
@@ -514,6 +531,7 @@ class RepositoryTest(unittest.TestCase):
             (spec, "AIP", "AIP-SPEC.md"),
             (spec, "ATP", "ATP-SPEC.md"),
             (spec, "ATX", "atx-spec/core.md"),
+            (spec, "DID method", "did-method-opena2a.md"),
             (spec, "broker profile", "AAP-BROKER-PROFILE.md"),
             (profile, "AIP", "AIP-SPEC.md"),
             (profile, "ATP", "ATP-SPEC.md"),
