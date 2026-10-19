@@ -5,12 +5,25 @@ A citation such as "broker profile §8.1", "AIP Section 4.1" or "Section 4.4.1 o
 AAP-SPEC" sends the reader to a numbered section of an OpenA2A document. The check
 reads a citation in which a name in NAMES below sits next to a section number, with
 the numbers listed directly after that number ("§7, §11", "Sections 6.8, 6.9 and
-7.3"). A number further along the sentence, such as §6.8 in "the broker profile (§6,
-step 3, and §6.8)", is not read. The citations checked are those in the Markdown
-documents of this repository and in the newest Internet-Draft render
-(draft-fane-opena2a-aap-NN.xml). CHANGELOG.md, the dated notes in decisions/ and
-the earlier renders cite the numbering of the version they describe and are not
-checked.
+7.3"). These forms are not read:
+
+- a number further along the sentence, such as §6.8 in "the broker profile (§6,
+  step 3, and §6.8)" or §4–§6 in "AAP-SPEC §9 and the claim-semantics rules of
+  §4–§6";
+- a number listed without its own marker after "Section" or "§": "AIP §4.1, 4.2"
+  reads 4.1 only;
+- a number in parentheses after the bare name AIP, ATP or ATX, which also names a
+  protocol or a credential: nothing is read in "AIP (Section 4.1)";
+- a name that NAMES does not list, such as the ATX text written `core.md` rather
+  than atx-spec/core.md;
+- a number after a link whose target is longer than 256 characters, as in
+  "[AIP-SPEC.md](target) §7.2".
+
+The citations checked are those in the Markdown documents of this repository and in
+the newest Internet-Draft render (draft-fane-opena2a-aap-NN.xml), except the render's
+citations of AAP-SPEC, the specification it renders. CHANGELOG.md, the dated notes in
+decisions/ and the earlier renders cite the numbering of the version they describe and
+are not checked.
 
 1. A cited document of this repository (the specification, AAP-SPEC.md, and the
    broker profile, AAP-BROKER-PROFILE.md) has a numbered heading with each cited
@@ -26,7 +39,8 @@ checked.
    the specification fails.
 4. In the render, each document cited by number has a reference entry. The census
    line lists the printed address (the entry's target) of each, and whether the
-   address or the entry's annotation names the text file.
+   address or the entry's annotation names the text file: "address names",
+   "annotation names" or "does not name".
 5. The next render prints, for each document it cites by number, an address that
    names the text file, or names it in the entry's annotation. A render a released
    section of CHANGELOG.md records as submitted ("`draft-fane-opena2a-aap-02`
@@ -104,9 +118,11 @@ NUMBER = re.compile(NUM)
 
 # "AIP Section 4.1", "broker profile §7, §11", "[`AAP-BROKER-PROFILE.md` §14](...)",
 # "[`AAP-BROKER-PROFILE.md`](./AAP-BROKER-PROFILE.md) §13-§14", "broker profile (§6".
+# A link target is read up to 256 characters, so a run of "AIP](" without a closing
+# parenthesis is not read to its end again from each name in it.
 NAME_FIRST = re.compile(
     NAME_START + NAME + NAME_END
-    + r"`?(?:\]\([^)\s]*\))?`?\*{0,2}(?:'s)?\s*(?P<paren>\(\s*)?" + NUMBERS
+    + r"`?(?:\]\([^)\s]{0,256}\))?`?\*{0,2}(?:'s)?\s*(?P<paren>\(\s*)?" + NUMBERS
 )
 # "§6 of the broker profile", "Section 4.4.1 of AAP-SPEC".
 NUMBER_FIRST = re.compile(
@@ -141,7 +157,11 @@ def classify(name: str) -> tuple[Document, bool]:
 
 
 def citations(file: str, text: str) -> list[Citation]:
-    """Return the section-numbered citations of a family document in text."""
+    """Return the citations in text in which a name in NAMES sits next to a section number.
+
+    A citation holds that number and the numbers listed directly after it; the module
+    docstring lists the forms that are not read.
+    """
     flat = text.replace("\n", " ")
     found = {}
     for pattern in (NAME_FIRST, NUMBER_FIRST):
@@ -336,17 +356,19 @@ def check(root: pathlib.Path = ROOT) -> int:
                     )
                     continue
                 target, annotation = references[doc.label]
-                names = doc.text in target or doc.text in annotation
-                if not names and not submitted:
-                    failures.append(
-                        f"{render_name}: {doc.name} is cited by section number and its reference"
-                        f" entry ({target or 'no target'}) does not name {doc.text}; the next render"
-                        f" must print an address of {doc.text} or name it in the entry's annotation"
-                    )
-                addresses.append(
-                    f"{doc.name} {target or '(no target)'}"
-                    f" ({'names' if names else 'does not name'} {doc.text})"
-                )
+                if doc.text in target:
+                    named = f"address names {doc.text}"
+                elif doc.text in annotation:
+                    named = f"annotation names {doc.text}"
+                else:
+                    named = f"does not name {doc.text}"
+                    if not submitted:
+                        failures.append(
+                            f"{render_name}: {doc.name} is cited by section number and its reference"
+                            f" entry ({target or 'no target'}) does not name {doc.text}; the next render"
+                            f" must print an address of {doc.text} or name it in the entry's annotation"
+                        )
+                addresses.append(f"{doc.name} {target or '(no target)'} ({named})")
             parts.append(f"{render_name} {census(cites)}")
         status = "; " + check_references.render_status(render_name, submitted)
 

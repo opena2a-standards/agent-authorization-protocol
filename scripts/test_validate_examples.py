@@ -96,13 +96,18 @@ class RunUnitTestsTest(unittest.TestCase):
 class MainTest(unittest.TestCase):
     def run_main(self, unit_test_failures, status_claim_failures=0,
                  section_citation_failures=0, raw_html_failures=0, spelling_failures=0,
-                 version_label_failures=0):
+                 version_label_failures=0, reference_failures=0,
+                 requirement_reference_failures=0):
         out = io.StringIO()
         with mock.patch.object(validate_examples, "run_unit_tests",
                                return_value=unit_test_failures) as run, \
-                mock.patch.object(check_naming, "check", return_value=0), \
+                mock.patch.object(check_naming, "check", return_value=0) as naming, \
                 mock.patch.object(check_status_claims, "check",
                                   return_value=status_claim_failures) as status, \
+                mock.patch.object(check_references, "check",
+                                  return_value=reference_failures) as references, \
+                mock.patch.object(check_requirement_references, "check",
+                                  return_value=requirement_reference_failures) as requirements, \
                 mock.patch.object(check_section_citations, "check",
                                   return_value=section_citation_failures) as cite, \
                 mock.patch.object(check_raw_html, "check",
@@ -114,7 +119,10 @@ class MainTest(unittest.TestCase):
                 contextlib.redirect_stdout(out):
             code = validate_examples.main()
         run.assert_called_once_with()
+        naming.assert_called_once_with()
         status.assert_called_once_with()
+        references.assert_called_once_with()
+        requirements.assert_called_once_with()
         cite.assert_called_once_with()
         raw_html.assert_called_once_with()
         spelling.assert_called_once_with()
@@ -153,6 +161,16 @@ class MainTest(unittest.TestCase):
 
     def test_section_citation_failure_fails_validation(self):
         code, out = self.run_main(0, section_citation_failures=1)
+        self.assertEqual(code, 1)
+        self.assertIn("1 failure(s)", out)
+
+    def test_reference_class_failure_fails_validation(self):
+        code, out = self.run_main(0, reference_failures=1)
+        self.assertEqual(code, 1)
+        self.assertIn("1 failure(s)", out)
+
+    def test_requirement_citing_an_informative_reference_fails_validation(self):
+        code, out = self.run_main(0, requirement_reference_failures=1)
         self.assertEqual(code, 1)
         self.assertIn("1 failure(s)", out)
 

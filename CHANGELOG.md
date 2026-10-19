@@ -22,9 +22,17 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   accordingly (Section 9.7), and the AIT and BAC fixtures and `test-keys.json` are
   unchanged. AIP is a normative reference. One MUST and one SHOULD are added to
   AAP-SPEC.md; the broker profile's requirement counts are unchanged.
+  Both schemas also reject a `trust_class` that holds a line break, through a `not` keyword
+  with the pattern `\n`: an ECMA-262 engine rejects `acme.com/orders:read` or `orders:read`
+  followed by a line break under the two patterns alone, but the jsonschema package
+  evaluates `pattern` with Python's `re.search`, where `$` also matches before a final line
+  break, so without the `not` keyword both validated there.
   `scripts/test_trust_class_grammar.py` pins the accepted and rejected values for both
-  schemas and checks that the five CGT and DA claim sets in `examples/tokens/` and the
-  `trust_class` values of the JSON examples in AAP-SPEC.md carry the domain-prefixed class.
+  schemas, those two among the rejected, and checks that the domain-prefixed class is
+  carried by each claim set in `examples/tokens/` with a `trust_class` member (five CGT and
+  DA claim sets), by the `trust_class` values of the JSON examples in AAP-SPEC.md, and by
+  the `trustClass` of the broker policy examples in the broker profile and
+  `examples/orders-db-exchange.md` and the `capability` of the SDK call in the latter.
 - The specification and the broker profile no longer carry dated statements that no
   implementation provides a feature (eight sentences: AAP-SPEC Section 4.2 preamble and
   `authorization_details` row, Sections 4.6 and 7.3; broker profile Sections 6.8, 6.9, 7.3
@@ -728,6 +736,36 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   in `docs/use-cases.md` only, and the README keeps the second one's statements on the
   published tokens under the Specification list, with the `examples/` line split in two. No requirement, schema or
   token changes.
+- `scripts/check_section_citations.py` says on its census line whether the address or the
+  annotation of a render's reference entry names the text file. For an entry whose
+  annotation alone named it, the line said "names", as for an address that names it; it
+  now says "annotation names", and "address names" for an address. It reads a link target
+  after a name up to 256 characters, so a run of "AIP](" without a closing parenthesis is
+  not read to its end again from each name in it: 100,000 characters of it took about 5 s
+  and take 0.03 s. The entry under Added that describes the check and the check's docstring
+  now list the same forms the check does not read, among them two that neither stated: a
+  number in parentheses after the bare name AIP, ATP or ATX, and a number listed without
+  its own marker after "Section" or "§". Both also say that a number after a link target
+  longer than 256 characters is not read and that the render's citations of AAP-SPEC are
+  not checked. The docstring of `citations()` says that it returns the citations in which
+  a name sits next to a section number. New tests pin the census wording, the bound, the
+  run time and the forms the docstring lists, and the two exemptions that no test pinned:
+  "Section 4 of the spec" passes in `AAP-SPEC.md` and fails in another document, and the
+  render's citations of AAP-SPEC are not resolved, need no reference entry and are not
+  counted.
+- `scripts/test_validate_examples.py` patches the `check` of `scripts/check_references.py`
+  and of `scripts/check_requirement_references.py` in its tests of `validate_examples.main`,
+  which ran both on the repository, and asserts that `main` calls once each check it
+  patches, `scripts/check_naming.py` included; two new tests pin that a failure of either
+  of the two fails validation.
+- The CGT and DA claim schemas reject a `trust_class` that holds a line break, as the
+  `trust_class` entry above describes. `scripts/test_trust_class_grammar.py` reads the
+  claim sets it checks from `examples/tokens/*.claims.json`, taking each with a
+  `trust_class` member, where it read a list of five file names, and reads the
+  `trustClass` of the broker policy examples in the broker profile and
+  `examples/orders-db-exchange.md` and the `capability` of the SDK call in the latter. It
+  reads the same five claim sets, and each of the three Markdown values is
+  `acme.com/orders:read`.
 
 ### Added
 
@@ -821,10 +859,15 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   named next to a section number ("broker profile §8.1", "AIP Section 4.1", "Section 4.4.1
   of AAP-SPEC"), with the numbers listed directly after that number ("broker profile §7,
   §11"), in the Markdown documents of the repository, except this changelog and the dated
-  notes in `decisions/`, and in the newest Internet-Draft render. A number further along
-  the sentence is not read: in "the broker profile (§6, step 3, and §6.8)" the check reads
-  §6 only. A citation that names the ATX text `core.md` rather than `atx-spec/core.md` is
-  not read. A number cited from the
+  notes in `decisions/`, and in the newest Internet-Draft render, except the render's
+  citations of AAP-SPEC, the specification it renders. It does not read a number further
+  along the sentence (in "the broker profile (§6, step 3, and §6.8)" it reads §6 only, and
+  in "AAP-SPEC §9 and the claim-semantics rules of §4–§6" §9 only), a number listed without
+  its own marker after "Section" or "§" ("AIP §4.1, 4.2" reads 4.1 only), a number in
+  parentheses after the bare name AIP, ATP or ATX, which also names a protocol or a
+  credential (nothing is read in "AIP (Section 4.1)"), a citation that names the ATX text
+  `core.md` rather than `atx-spec/core.md`, or a number after a link whose target is longer
+  than 256 characters. A number cited from the
   specification or the broker profile must be a numbered heading of that document. Where
   the citing document's References section lists the cited document, the entry names its
   text file, and a document outside this repository is named by its text file in the
@@ -832,7 +875,8 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   in the render each document cited by number must have a reference entry. The check
   prints one census line: the citations per document, and the printed address of each
   document the render cites by number, with whether that address or the entry's annotation
-  names the text file. For draft-fane-opena2a-aap-02 the [AIP] address names `AIP-SPEC.md`
+  names the text file ("address names", "annotation names" or "does not name"). For
+  draft-fane-opena2a-aap-02 the [AIP] address names `AIP-SPEC.md`
   and the [AAP-BROKER-PROFILE] address does not name `AAP-BROKER-PROFILE.md`. It runs in CI
   through `scripts/validate_examples.py`; its unit tests pin the citation forms and the
   rules.

@@ -7,6 +7,11 @@ organization's domain, then a colon and an action). Claim schema v1 also
 accepts the legacy `namespace:action` form, so a value a deployed broker
 mints today stays valid.
 
+The tests also check that each claim set in examples/tokens/ with a
+`trust_class` member, the JSON examples of AAP-SPEC.md, and the broker policy
+and SDK examples of AAP-BROKER-PROFILE.md and examples/orders-db-exchange.md
+carry the domain-prefixed class.
+
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
 
@@ -74,6 +79,10 @@ REJECTED = [
     "/orders:read",
     ".com/orders:read",
     "acme.com/orders:read ",
+    # Under Python's re.search, which the jsonschema package uses for `pattern`, `$`
+    # also matches before a final line break; under ECMA-262 it does not.
+    "acme.com/orders:read\n",
+    "orders:read\n",
 ]
 
 SCHEMAS = {
@@ -81,18 +90,27 @@ SCHEMAS = {
     "da": ("schemas/da-claims-v1.schema.json", "examples/tokens/da-v1.claims.json"),
 }
 
-# Every committed claim set that carries `trust_class`.
-CLAIM_FIXTURES = {
-    "cgt-v1.claims.json": "cgt",
-    "cgt-v1.mldsa65.claims.json": "cgt",
-    "cgt-v1.fgc.claims.json": "cgt",
-    "da-v1.claims.json": "da",
-    "da-v1.fgc.claims.json": "da",
-}
+# The trust class in the Markdown examples outside the specification: the `trustClass`
+# member of a broker policy rule and the `capability` argument of the SDK call.
+MARKDOWN_EXAMPLES = (
+    ("AAP-BROKER-PROFILE.md", r"\btrustClass: (\S+)"),
+    ("examples/orders-db-exchange.md", r"\btrustClass: (\S+)"),
+    ("examples/orders-db-exchange.md", r'\bcapability="([^"]*)"'),
+)
 
 
 def load(rel):
     return json.loads((ROOT / rel).read_text(encoding="utf-8"))
+
+
+def claim_fixtures():
+    """Return {file name: kind} for each examples/tokens/*.claims.json with a trust_class
+    member; the kind is the file name up to its first hyphen (cgt in cgt-v1.claims.json)."""
+    fixtures = {}
+    for path in sorted((ROOT / "examples" / "tokens").glob("*.claims.json")):
+        if "trust_class" in json.loads(path.read_text(encoding="utf-8")):
+            fixtures[path.name] = path.name.split("-", 1)[0]
+    return fixtures
 
 
 @NEEDS_JSONSCHEMA
@@ -143,7 +161,10 @@ class TrustClassSchemaTest(unittest.TestCase):
 class TrustClassExamplesTest(unittest.TestCase):
     @NEEDS_JSONSCHEMA
     def test_committed_claim_sets_carry_the_domain_prefixed_class(self):
-        for name, kind in CLAIM_FIXTURES.items():
+        fixtures = claim_fixtures()
+        # A claim set of each kind carries trust_class, and no claim set of another kind does.
+        self.assertEqual(set(fixtures.values()), set(SCHEMAS), fixtures)
+        for name, kind in fixtures.items():
             with self.subTest(fixture=name):
                 claims = load(f"examples/tokens/{name}")
                 self.assertEqual(claims["trust_class"], DOMAIN_PREFIXED)
@@ -155,6 +176,13 @@ class TrustClassExamplesTest(unittest.TestCase):
         values = re.findall(r'"trust_class": "([^"]*)"', spec)
         self.assertGreater(len(values), 0)
         self.assertEqual(set(values), {DOMAIN_PREFIXED})
+
+    def test_policy_and_sdk_examples_outside_the_specification_carry_the_domain_prefixed_class(self):
+        for rel, pattern in MARKDOWN_EXAMPLES:
+            with self.subTest(document=rel, pattern=pattern):
+                values = re.findall(pattern, (ROOT / rel).read_text(encoding="utf-8"))
+                self.assertGreater(len(values), 0)
+                self.assertEqual(set(values), {DOMAIN_PREFIXED})
 
 
 if __name__ == "__main__":

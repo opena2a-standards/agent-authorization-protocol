@@ -9,6 +9,7 @@ import io
 import pathlib
 import sys
 import tempfile
+import time
 import unittest
 import xml.etree.ElementTree as ET
 from unittest import mock
@@ -140,6 +141,35 @@ class CitationTest(unittest.TestCase):
         self.assertEqual(found("https://example.org/AIP-SPEC.md Section 4"), [])
         self.assertEqual(found("XAIP Section 4"), [])
 
+    def test_forms_the_module_docstring_lists_are_not_read(self):
+        cases = {
+            "the broker profile (§6, step 3, and §6.8)": [("broker profile", ("6",), False)],
+            "AAP-SPEC §9 and the claim-semantics rules of §4–§6": [("AAP-SPEC", ("9",), True)],
+            "AIP §4.1, 4.2": [("AIP", ("4.1",), False)],
+            "AIP Section 4.1, 4.2": [("AIP", ("4.1",), False)],
+            "AIP (Section 4.1)": [],
+            "ATP (§4.3)": [],
+            "ATX (Section 6)": [],
+            "`core.md` §1.3 step 6 and §13": [],
+            "[AIP-SPEC.md](./" + "x" * 255 + ") §7.2": [],
+        }
+        for text, expected in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(found(text), expected)
+
+    def test_a_link_target_is_read_up_to_256_characters(self):
+        for length, expected in ((256, [("AIP", ("7.2",), True)]), (257, [])):
+            with self.subTest(length=length):
+                target = "./" + "x" * (length - 2)
+                self.assertEqual(found(f"[`AIP-SPEC.md`]({target}) §7.2"), expected)
+
+    def test_run_time_is_linear_in_a_run_of_unclosed_link_targets(self):
+        # Reading the link target after each name to the end of the run took about 5 s
+        # on these 100,000 characters; a target is now read up to 256 characters.
+        start = time.perf_counter()
+        self.assertEqual(found("AIP](" * 20000), [])
+        self.assertLess(time.perf_counter() - start, 2.0)
+
     def test_a_citation_split_across_lines_carries_its_first_line(self):
         cites = citations("doc.md", "one\ntwo broker profile\n§8.1 three\n")
         self.assertEqual([(c.line, c.numbers) for c in cites], [(2, ("8.1",))])
@@ -253,8 +283,9 @@ class CheckTest(unittest.TestCase):
         self.assertIn("draft-fane-opena2a-aap-03.xml 2 (AIP 1, broker profile 1)", out)
         self.assertIn(
             "printed address in draft-fane-opena2a-aap-03.xml:"
-            " AIP https://example.org/agent-identity-protocol/AIP-SPEC.md (names AIP-SPEC.md),"
-            " broker profile https://example.org/aap/broker-profile (names AAP-BROKER-PROFILE.md)",
+            " AIP https://example.org/agent-identity-protocol/AIP-SPEC.md (address names AIP-SPEC.md),"
+            " broker profile https://example.org/aap/broker-profile"
+            " (annotation names AAP-BROKER-PROFILE.md)",
             out,
         )
 
@@ -350,6 +381,37 @@ class CheckTest(unittest.TestCase):
         self.assertIn("examples/flow.md:1:", out)
         self.assertIn("examples/flow.md:3:", out)
 
+    def test_the_specification_may_call_itself_the_spec(self):
+        # A citation of "the spec" fails in each Markdown document but AAP-SPEC.md,
+        # where the spec is the document itself.
+        sentence = "\nSection 4 of the spec defines the grammar.\n"
+        files = self.base()
+        files["AAP-SPEC.md"] += sentence
+        failures, out = self.run_check(files)
+        self.assertEqual(failures, 0, out)
+        files["examples/flow.md"] = sentence
+        failures, out = self.run_check(files)
+        self.assertEqual(failures, 1, out)
+        self.assertIn('examples/flow.md:2: "Section 4 of the spec" does not name its document', out)
+
+    def test_the_render_does_not_check_its_citations_of_aap_spec(self):
+        # The render is the Internet-Draft of AAP-SPEC: its citations of AAP-SPEC are not
+        # resolved against AAP-SPEC.md, need no reference entry and are not counted.
+        citation = "AAP-SPEC Section 9.9 and "  # SPEC_TEXT has no heading 9.9
+        files = self.base()
+        files["draft-fane-opena2a-aap-03.xml"] = RENDER_XML.replace(
+            "The grammar", citation + "the grammar"
+        )
+        failures, out = self.run_check(files)
+        self.assertEqual(failures, 0, out)
+        self.assertIn("draft-fane-opena2a-aap-03.xml 2 (AIP 1, broker profile 1)", out)
+        files["examples/flow.md"] = citation + "the grammar.\n"
+        failures, out = self.run_check(files)
+        self.assertEqual(failures, 1, out)
+        self.assertIn(
+            'examples/flow.md:1: "AAP-SPEC Section 9.9": AAP-SPEC.md has no numbered heading 9.9', out
+        )
+
     def test_missing_local_document_fails(self):
         files = self.base()
         del files["AAP-BROKER-PROFILE.md"]
@@ -418,7 +480,31 @@ class RepositoryTest(unittest.TestCase):
                     self.assertIn(failure, out.getvalue())
                 else:
                     self.assertNotIn(failure, out.getvalue())
-                    self.assertIn(f"broker profile {blob} (names AAP-BROKER-PROFILE.md)", out.getvalue())
+                    self.assertIn(f"broker profile {blob} (address names AAP-BROKER-PROFILE.md)", out.getvalue())
+
+    def test_census_line_says_the_annotation_names_the_text_where_the_address_does_not(self):
+        # The -02 render as the next render, with an annotation that names
+        # AAP-BROKER-PROFILE.md added to its broker profile entry.
+        root = check_section_citations.ROOT
+        render = (root / "draft-fane-opena2a-aap-02.xml").read_text(encoding="utf-8")
+        head, entry, tail = render.partition('<reference anchor="AAP-BROKER-PROFILE"')
+        self.assertTrue(entry)
+        annotation = "<annotation>Section numbers are those of AAP-BROKER-PROFILE.md.</annotation>"
+        render = head + entry + tail.replace("</reference>", annotation + "</reference>", 1)
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = pathlib.Path(tmp)
+            for name in ("AAP-SPEC.md", "AAP-BROKER-PROFILE.md"):
+                (copy / name).write_bytes((root / name).read_bytes())
+            (copy / "draft-fane-opena2a-aap-03.xml").write_text(render, encoding="utf-8")
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                failures = check_section_citations.check(copy)
+        self.assertEqual(failures, 0, out.getvalue())
+        self.assertIn(
+            "broker profile https://specs.opena2a.org/aap/broker-profile"
+            " (annotation names AAP-BROKER-PROFILE.md)",
+            out.getvalue(),
+        )
 
     def test_reference_entries_name_the_text_of_each_family_document_cited_by_number(self):
         root = check_section_citations.ROOT
