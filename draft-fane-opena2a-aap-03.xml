@@ -211,9 +211,12 @@ NOTE: '\' line wrapping per RFC 8792
 ]]></sourcecode>
 
       <t>The claim schema and this generated example pin the form for
-      implementers. This document does not record which implementations mint
-      AITs: an AIT is minted by the issuing Registry named in "iss", and the
-      record is that Registry implementation's own repository.</t>
+      implementers.</t>
+
+      <t>Implementation status (non-normative): this document does not record
+      which implementations mint AITs. An AIT is minted by the issuing Registry
+      named in "iss", and the record is that Registry implementation's own
+      repository.</t>
 
       <t>AIT verification MUST be local. The verifier checks the signature
       against the issuer's public key, distributed via the trust anchor
@@ -268,12 +271,12 @@ NOTE: '\' line wrapping per RFC 8792
       <xref target="AAP-CONFORMANCE"/> is the record of the pattern its
       reference verifiers match.</t>
 
-      <t>This document does not record which implementations mint or verify
-      the "authorization_details", "aap_crit", and "cnf" claims. For the
-      reference broker that record is broker profile Section 14
-      <xref target="AAP-BROKER-PROFILE"/> and the reference implementation's
-      own repository; for the reference verifiers it is the
-      "conformance.json" file of the aap-conformance repository
+      <t>Implementation status (non-normative): this document does not record
+      which implementations mint or verify the "authorization_details",
+      "aap_crit", and "cnf" claims. For the reference broker that record is
+      broker profile Section 14 <xref target="AAP-BROKER-PROFILE"/> and the
+      reference implementation's own repository; for the reference verifiers
+      it is the "conformance.json" file of the aap-conformance repository
       <xref target="AAP-CONFORMANCE"/>.</t>
 
       <sourcecode type="json"><![CDATA[
@@ -530,7 +533,9 @@ NOTE: '\' line wrapping per RFC 8792
       {"sub": delegator}, with nested "act" objects expressing a chain, innermost
       actor first; "max_depth" bounds further delegation; and "delegator_atx"
       embeds the delegator's ATX hash for the audit trail. The delegatee's "scope"
-      and "trust_class" MUST be equal to or a subset of the delegator's.</t>
+      and "trust_class" MUST be equal to or a subset of the delegator's. The
+      minting broker enforces subsetting at mint time; a verifier that can
+      resolve the delegator's grant MUST re-check it.</t>
 
       <t>A DA's "exp" MUST NOT be later than its delegator's "exp", so a
       delegation does not outlive the grant it was delegated from. The minting
@@ -714,15 +719,15 @@ NOTE: '\' line wrapping per RFC 8792
       <t>The validity window MUST satisfy "exp" minus "iat" less than or equal to
       60 seconds. BAC verification is local: the receiver verifies the signature
       against the issuing Registry instance's published public key, under the
-      suite model of <xref target="sec-pq"/>. The post-quantum profile, an
-      ML-DSA-65 <xref target="FIPS204"/> signature alongside Ed25519 via the
-      multi-signature form of <xref target="serialization"/>, is shipped for
-      CGTs (the reference broker mints it and the conformance suite carries
-      generated hybrid fixtures); for BACs it remains a target, and the v1 BAC
-      fixtures carry a single Ed25519 signature. This document does not record
-      which implementations mint BACs; as for the AIT
-      (<xref target="ait"/>), the record is the issuing Registry
-      implementation's own repository.</t>
+      suite model of <xref target="sec-pq"/>. The post-quantum profile for BACs,
+      an ML-DSA-65 <xref target="FIPS204"/> signature alongside Ed25519 via the
+      multi-signature form of <xref target="multi-signature"/>, is a target,
+      not a shipped property: the v1 BAC fixtures carry a single Ed25519
+      signature.</t>
+
+      <t>Implementation status (non-normative): this document does not record
+      which implementations mint BACs. As for the AIT (<xref target="ait"/>),
+      the record is the issuing Registry implementation's own repository.</t>
     </section>
 
     <section anchor="federation">
@@ -761,9 +766,11 @@ NOTE: '\' line wrapping per RFC 8792
 
         <t>Version 0.3 of the broker profile bound revocation "entirely" to the
         ATX revocation list; the grant revocation list is a requirement that
-        text did not carry. This document does not record which
-        implementations maintain a grant revocation list. For the reference
-        broker that record is broker profile Section 14
+        text did not carry.</t>
+
+        <t>Implementation status (non-normative): this document does not record
+        which implementations maintain a grant revocation list. For the
+        reference broker that record is broker profile Section 14
         <xref target="AAP-BROKER-PROFILE"/> and the reference implementation's
         own repository.</t>
       </section>

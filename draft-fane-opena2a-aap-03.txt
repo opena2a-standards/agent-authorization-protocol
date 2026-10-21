@@ -299,9 +299,12 @@ Internet-Draft                     AAP                      October 2026
    }
 
    The claim schema and this generated example pin the form for
-   implementers.  This document does not record which implementations
-   mint AITs: an AIT is minted by the issuing Registry named in "iss",
-   and the record is that Registry implementation's own repository.
+   implementers.
+
+   Implementation status (non-normative): this document does not record
+   which implementations mint AITs.  An AIT is minted by the issuing
+   Registry named in "iss", and the record is that Registry
+   implementation's own repository.
 
    AIT verification MUST be local.  The verifier checks the signature
    against the issuer's public key, distributed via the trust anchor
@@ -327,9 +330,6 @@ Internet-Draft                     AAP                      October 2026
    defined below), "issuer_chain" (the ATX issuer chain), "trust_level"
    (an integer from 0 to 4), "iat" and "exp" (the validity window, where
    "exp" minus "iat" is the policy time-to-live), and "jti".  These ten
-   claims and nothing else are the ratified baseline.  The
-   "authorization_details", "aap_crit", and "cnf" claims (Section 4.1,
-   Section 4.2, and Section 4.3) are OPTIONAL in form and mandatory to
 
 
 
@@ -338,6 +338,9 @@ Fane                      Expires 24 April 2027                 [Page 6]
 Internet-Draft                     AAP                      October 2026
 
 
+   claims and nothing else are the ratified baseline.  The
+   "authorization_details", "aap_crit", and "cnf" claims (Section 4.1,
+   Section 4.2, and Section 4.3) are OPTIONAL in form and mandatory to
    understand when present; they are outside the ratified baseline.  The
    "intent_verified", "max_uses", and "context_required" claims are
    OPTIONAL and are not minted by the v1 reference.  The
@@ -362,12 +365,13 @@ Internet-Draft                     AAP                      October 2026
    [AAP-CONFORMANCE] is the record of the pattern its reference
    verifiers match.
 
-   This document does not record which implementations mint or verify
-   the "authorization_details", "aap_crit", and "cnf" claims.  For the
-   reference broker that record is broker profile Section 14
-   [AAP-BROKER-PROFILE] and the reference implementation's own
-   repository; for the reference verifiers it is the "conformance.json"
-   file of the aap-conformance repository [AAP-CONFORMANCE].
+   Implementation status (non-normative): this document does not record
+   which implementations mint or verify the "authorization_details",
+   "aap_crit", and "cnf" claims.  For the reference broker that record
+   is broker profile Section 14 [AAP-BROKER-PROFILE] and the reference
+   implementation's own repository; for the reference verifiers it is
+   the "conformance.json" file of the aap-conformance repository
+   [AAP-CONFORMANCE].
 
    {
      "iss": "https://broker.acme.example",
@@ -381,10 +385,6 @@ Internet-Draft                     AAP                      October 2026
      "exp": 1780315500,
      "jti": "9f8e7d6c5b4a39281706f5e4d3c2b1a0"
    }
-
-
-
-
 
 
 
@@ -680,7 +680,9 @@ Internet-Draft                     AAP                      October 2026
    "act" objects expressing a chain, innermost actor first; "max_depth"
    bounds further delegation; and "delegator_atx" embeds the delegator's
    ATX hash for the audit trail.  The delegatee's "scope" and
-   "trust_class" MUST be equal to or a subset of the delegator's.
+   "trust_class" MUST be equal to or a subset of the delegator's.  The
+   minting broker enforces subsetting at mint time; a verifier that can
+   resolve the delegator's grant MUST re-check it.
 
    A DA's "exp" MUST NOT be later than its delegator's "exp", so a
    delegation does not outlive the grant it was delegated from.  The
@@ -714,8 +716,6 @@ Internet-Draft                     AAP                      October 2026
    [RFC8693] exchange.  Whether a given release also mints standalone
    DAs with an "act" chain is recorded in the reference implementation's
    repository (broker profile Section 14 [AAP-BROKER-PROFILE]).
-
-
 
 
 
@@ -938,13 +938,13 @@ Internet-Draft                     AAP                      October 2026
    The validity window MUST satisfy "exp" minus "iat" less than or equal
    to 60 seconds.  BAC verification is local: the receiver verifies the
    signature against the issuing Registry instance's published public
-   key, under the suite model of Section 8.2.  The post-quantum profile,
-   an ML-DSA-65 [FIPS204] signature alongside Ed25519 via the multi-
-   signature form of Section 9, is shipped for CGTs (the reference
-   broker mints it and the conformance suite carries generated hybrid
-   fixtures); for BACs it remains a target, and the v1 BAC fixtures
-   carry a single Ed25519 signature.  This document does not record
-   which implementations mint BACs; as for the AIT (Section 3), the
+   key, under the suite model of Section 8.2.  The post-quantum profile
+   for BACs, an ML-DSA-65 [FIPS204] signature alongside Ed25519 via the
+   multi-signature form of Section 9.4, is a target, not a shipped
+   property: the v1 BAC fixtures carry a single Ed25519 signature.
+
+   Implementation status (non-normative): this document does not record
+   which implementations mint BACs.  As for the AIT (Section 3), the
    record is the issuing Registry implementation's own repository.
 
 
@@ -992,15 +992,15 @@ Internet-Draft                     AAP                      October 2026
 
    Version 0.3 of the broker profile bound revocation "entirely" to the
    ATX revocation list; the grant revocation list is a requirement that
-   text did not carry.  This document does not record which
-   implementations maintain a grant revocation list.  For the reference
-   broker that record is broker profile Section 14 [AAP-BROKER-PROFILE]
-   and the reference implementation's own repository.
+   text did not carry.
+
+   Implementation status (non-normative): this document does not record
+   which implementations maintain a grant revocation list.  For the
+   reference broker that record is broker profile Section 14
+   [AAP-BROKER-PROFILE] and the reference implementation's own
+   repository.
 
 8.  Security Considerations
-
-
-
 
 
 
