@@ -844,6 +844,15 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/test_did_syntax_citation.py` checks that AAP-SPEC.md carries the citation and
   the entry and defines none of the ABNF rules `opena2a-did`, `resource-type` and
   `resource-id`.
+- `scripts/test_next_render.py` checks that the `draft-fane-opena2a-aap-03` source and
+  text render are in the repository and name the revision, that the text render carries
+  the date of its source, and that each JSON example of the next render (the newest
+  render that no released section of this changelog records as submitted) equals, once
+  its RFC 8792 line folds are undone, a JSON file that `scripts/generate_examples.py`
+  writes to `examples/tokens/`. A next render copied from the -02 source fails that
+  check: the CGT and DA examples of -02 carry the trust class `orders:read`, and the
+  generated claim sets carry `acme.com/orders:read`. `docs/status.md` says that -03 is in
+  this repository as source and rendered text and is not submitted.
 - Broker profile Section 6.13, revocation after resolution. The revocation checks of
   Section 6 steps 2 and 5 ran at resolution only, and no text said what a revocation that
   becomes visible to the broker after them does to an operation the broker has not issued,
