@@ -419,6 +419,13 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   description through a parse that drops stripped docstrings as Python 3.14 does, so the
   removal of `optimize=0` fails on every version. The checks and the description are
   unchanged.
+- `scripts/test_decision_note_terms.py` parses its source with `optimize=0` to read its
+  description, because on Python 3.14 the parse drops the docstrings when they are stripped.
+  On Python 3.12, which the validation workflow runs, the parse keeps them with or without
+  `optimize=0`. A new test reads the description through a parse that drops stripped
+  docstrings as Python 3.14 does, on Python 3.12 as well, and checks that the same parse
+  without `optimize=0` reads no description. The patterns, the description and the decision
+  notes are unchanged.
 - A test in `scripts/test_decision_note_terms.py` pins the paragraph of its description on a
   possessive before gate: the description must carry the sentence "The capital letter is
   the only sign of a name the tests read", the two examples found as a name ("Verifier's
