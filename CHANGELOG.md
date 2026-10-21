@@ -801,6 +801,36 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ### Added
 
+- `draft-fane-opena2a-aap-03`, the next Internet-Draft revision (document date
+  2026-10-21): its XML source and the text render generated from it. Its Section 9.4
+  sentence reads "ATX and ATP cite this rule", where `draft-fane-opena2a-aap-02`, left as
+  filed, reads "ATX, ATP and AIP cite this rule". It carries these changes recorded in
+  this section for AAP-SPEC.md into the render: the capability grammar of AIP Section 4.1
+  for `trust_class`, with the legacy `namespace:action` form a verifier accepts under
+  claim schema version 1, and `acme.com/orders:read` in the four JSON examples that carry
+  `trust_class`; the bound on a DA's `exp`; the checks a broker repeats before each
+  downstream operation of a resolution (broker profile Section 6.13); the paragraph on
+  the AIT lifetime, which the issuing Registry sets; the term DID, with a DID-OPENA2A
+  entry among the normative references; the implementation status sentences, which name
+  the record that holds the status and carry no date and no "yet"; the reserved ML-KEM
+  row and the RECOMMENDED `EdDSA` default on foreign-interoperability paths, stated
+  without "yet"; and the Section 9.4 sentence. The render lists AIP among its normative references, as
+  AAP-SPEC.md does, and its broker profile entry prints the address of
+  `AAP-BROKER-PROFILE.md`, whose section numbers the render cites. The abstract's
+  paragraph on what the revision changes describes -03, and the passages that said "this
+  revision" of what -02 changed name revision -02. Against the -02 source it has one
+  more MUST NOT (a DA's `exp`), two more MUST (a verifier treats the legacy `trust_class`
+  form as well formed, and re-checks a DA's `exp` where it can resolve the delegator's
+  grant) and one more SHOULD (a broker mints the AIP grammar); the counts of SHOULD NOT,
+  MAY, REQUIRED, RECOMMENDED and OPTIONAL are unchanged. No released section of this
+  changelog records it as submitted, so `scripts/check_references.py` and
+  `scripts/check_section_citations.py` read it as the next render; both pass on it, as do
+  `scripts/check_status_claims.py`, `scripts/check_naming.py` and
+  `scripts/check_spelling.py`. Rendered with xml2rfc 3.34.0 (exit 0; its one warning is
+  the consensus default, which the -02 source also produces); no line of the text render
+  exceeds 72 characters. `scripts/test_signature_gate_citers.py` fails when the newest
+  render is not a revision after -02, or when its XML source or its text render does not
+  name exactly ATX and ATP as citing Section 9.4.
 - Section 2 defines the term DID: a `did:opena2a` identifier, the value type the claim
   tables name DID. The entry cites `did-method-opena2a` Sections 3.1 and 3.1.1, the two
   sections that Section 3.1 of that specification names as the one home of the

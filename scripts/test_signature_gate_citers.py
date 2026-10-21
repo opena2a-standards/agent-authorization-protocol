@@ -7,10 +7,12 @@ The names must be those of specifications that do cite it, so the sentence, the
 0.5.1-draft changelog entry that describes it, and the same sentence in the XML source
 of every Internet-Draft after the filed revisions -00 to -02 are checked against CITING
 below. The text render of a revision is generated from its XML source, so the source is
-the one read. draft-fane-opena2a-aap-02 is left as filed: its sentence names ATX, ATP
-and AIP, which the 0.5.1-draft entry records, and the next revision must carry the
-corrected sentence. AIP is not in CITING: AIP-SPEC.md does not mention AAP section 9.4.
-When a specification adds the citation, add it to CITING and to each of these sentences.
+the one read, except that the text render of the newest revision is also read.
+draft-fane-opena2a-aap-02 is left as filed: its sentence names ATX, ATP and AIP, which
+the 0.5.1-draft entry records. The newest revision must be a later one, so the newest
+render names only the specifications that cite the gate. AIP is not in CITING:
+AIP-SPEC.md does not mention AAP section 9.4. When a specification adds the citation,
+add it to CITING and to each of these sentences.
 
 Run: python3 -m unittest discover -s scripts -p 'test_*.py'
 """
@@ -38,6 +40,8 @@ CITING = {
 MARKER = "<!-- opena2a-definition: signature-family-gate -->"
 SPEC_SENTENCE = re.compile(r"([A-Z][A-Za-z, ]*?) cite this rule for their own signature arrays")
 CHANGELOG_CLAUSE = re.compile(r"`HYBRID_INCOMPLETE`\), which ([A-Z][A-Za-z, ]*?) (?:now )?cite\b")
+# A line of a text render's page break: the footer, the form feed, the running header.
+PAGE_BREAK_LINE = re.compile(r"\[Page \d+\]\s*$|\f|^Internet-Draft {2,}")
 
 
 def names(phrase):
@@ -66,6 +70,17 @@ def render_citers(tree):
         if match:
             found.append(names(match.group(1)))
     return found
+
+
+def text_render_citers(path):
+    """Return the names each sentence of a text render gives as citing the gate.
+
+    The lines of each page break are dropped first, so a sentence that a page break
+    splits reads as one.
+    """
+    lines = [line for line in path.read_text(encoding="utf-8").splitlines()
+             if not PAGE_BREAK_LINE.search(line)]
+    return [names(match.group(1)) for match in SPEC_SENTENCE.finditer(" ".join(" ".join(lines).split()))]
 
 
 def later_renders(root):
@@ -120,6 +135,28 @@ class SignatureGateCitersTest(unittest.TestCase):
 
     def test_later_renders_name_the_citing_specifications(self):
         self.assertEqual(render_failures(ROOT), [])
+
+    def test_newest_render_names_the_citing_specifications(self):
+        newest = check_references.newest_render(ROOT)
+        self.assertIn(newest, later_renders(ROOT))
+        _, tree, error = check_references.read_render(ROOT / newest)
+        self.assertIsNone(error)
+        self.assertEqual([sorted(found) for found in render_citers(tree)], [sorted(CITING)])
+        text = (ROOT / newest).with_suffix(".txt")
+        self.assertEqual([sorted(found) for found in text_render_citers(text)], [sorted(CITING)])
+
+    def test_text_render_citers_reads_a_sentence_across_a_page_break(self):
+        page_break = ("   otherwise it is rejected as \"HYBRID_INCOMPLETE\".  ATX and\n\n\n\n"
+                      "Fane                     Expires 24 April 2027                  [Page 21]\n"
+                      "\f\n"
+                      "Internet-Draft                     AAP                      October 2026\n\n\n"
+                      "   ATP cite this rule for their own signature arrays rather than\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = pathlib.Path(tmp) / "draft.txt"
+            path.write_text(page_break, encoding="utf-8")
+            self.assertEqual(text_render_citers(path), [["ATX", "ATP"]])
+        filed = ROOT / FILED_RENDER.replace(".xml", ".txt")
+        self.assertEqual(text_render_citers(filed), [["ATX", "ATP", "AIP"]])
 
     def test_a_later_render_naming_aip_fails(self):
         filed = (ROOT / FILED_RENDER).read_text(encoding="utf-8")
