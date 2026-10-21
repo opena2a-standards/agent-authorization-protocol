@@ -812,17 +812,26 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   downstream operation of a resolution (broker profile Section 6.13); the paragraph on
   the AIT lifetime, which the issuing Registry sets; the term DID, with a DID-OPENA2A
   entry among the normative references; the implementation status sentences, which name
-  the record that holds the status and carry no date and no "yet"; the reserved ML-KEM
-  row and the RECOMMENDED `EdDSA` default on foreign-interoperability paths, stated
-  without "yet"; and the Section 9.4 sentence. The render lists AIP among its normative references, as
-  AAP-SPEC.md does, and its broker profile entry prints the address of
+  the record that holds the status and carry no date and no "yet", with the four
+  implementation status notes among them labeled non-normative, as AAP-SPEC.md labels
+  them; the reserved ML-KEM row and the RECOMMENDED `EdDSA` default on
+  foreign-interoperability paths, stated without "yet"; and the Section 9.4 sentence. It
+  also renders two passages as AAP-SPEC.md states them, where the -02 render did not: the
+  Section 5.3 sentence that the minting broker enforces the subsetting of a DA's `scope`
+  and `trust_class` at mint time and that a verifier that can resolve the delegator's
+  grant re-checks it, which -02 left out; and the Section 6.3 sentence that the
+  post-quantum profile for BACs is a target, which cites the multi-signature form of
+  Section 9.4 and no longer says that the reference broker mints the profile for CGTs, a
+  statement the specification does not make. The render lists AIP among its normative
+  references, as AAP-SPEC.md does, and its broker profile entry prints the address of
   `AAP-BROKER-PROFILE.md`, whose section numbers the render cites. The abstract's
   paragraph on what the revision changes describes -03, and the passages that said "this
   revision" of what -02 changed name revision -02. Against the -02 source it has one
-  more MUST NOT (a DA's `exp`), two more MUST (a verifier treats the legacy `trust_class`
-  form as well formed, and re-checks a DA's `exp` where it can resolve the delegator's
-  grant) and one more SHOULD (a broker mints the AIP grammar); the counts of SHOULD NOT,
-  MAY, REQUIRED, RECOMMENDED and OPTIONAL are unchanged. No released section of this
+  more MUST NOT (a DA's `exp`), three more MUST (a verifier treats the legacy
+  `trust_class` form as well formed, and, where it can resolve the delegator's grant,
+  re-checks a DA's `exp` and the subsetting of its `scope` and `trust_class`) and one more
+  SHOULD (a broker mints the AIP grammar); the counts of SHOULD NOT, MAY, REQUIRED,
+  RECOMMENDED and OPTIONAL are unchanged. No released section of this
   changelog records it as submitted, so `scripts/check_references.py` and
   `scripts/check_section_citations.py` read it as the next render; both pass on it, as do
   `scripts/check_status_claims.py`, `scripts/check_naming.py` and
@@ -844,6 +853,15 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   `scripts/test_did_syntax_citation.py` checks that AAP-SPEC.md carries the citation and
   the entry and defines none of the ABNF rules `opena2a-did`, `resource-type` and
   `resource-id`.
+- `scripts/test_next_render.py` checks that the `draft-fane-opena2a-aap-03` source and
+  text render are in the repository and name the revision, that the text render carries
+  the date of its source, and that each JSON example of the next render (the newest
+  render that no released section of this changelog records as submitted) equals, once
+  its RFC 8792 line folds are undone, a JSON file that `scripts/generate_examples.py`
+  writes to `examples/tokens/`. A next render copied from the -02 source fails that
+  check: the CGT and DA examples of -02 carry the trust class `orders:read`, and the
+  generated claim sets carry `acme.com/orders:read`. `docs/status.md` says that -03 is in
+  this repository as source and rendered text and is not submitted.
 - Broker profile Section 6.13, revocation after resolution. The revocation checks of
   Section 6 steps 2 and 5 ran at resolution only, and no text said what a revocation that
   becomes visible to the broker after them does to an operation the broker has not issued,
