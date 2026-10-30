@@ -108,8 +108,10 @@ Without the specification: an agent receives an ordinary access token or API key
 scope, and when it hands work to another agent, the helper gets the same token or a new grant that
 nobody can trace back to the agent that delegated it.
 
-What the specification does: each AAP token is defined against an existing OAuth 2.0 or OpenID
-Connect artifact.
+What the specification does: the Agent Identity Token, the Capability Grant Token and the
+Delegation Assertion are each defined against an existing OAuth 2.0 or OpenID Connect artifact.
+The Behavioral Attestation Claim has no such parallel
+([AAP-SPEC Section 6.1](../AAP-SPEC.md#61-purpose), `AAP-SPEC.md:590`).
 
 - The Agent Identity Token is a cryptographic assertion of agent identity, analogous to an OIDC
   ID Token ([AAP-SPEC Section 3.1](../AAP-SPEC.md#31-purpose), `AAP-SPEC.md:109`).
@@ -173,7 +175,8 @@ way.
 What the specification does: every verification, decision, resolution and denial MUST be written
 to a signed audit log, and an audit record MUST NOT contain any credential value or downstream token
 ([broker profile Section 6.7](../AAP-BROKER-PROFILE.md#67-audit), `AAP-BROKER-PROFILE.md:333`).
-The agent receives the same opaque denial whatever the cause, and the diagnostic detail goes to the
+The agent receives the same opaque denial whether the grant is unknown, the policy denies, the ATX
+is untrusted or the provider fails, and the diagnostic detail goes to the
 audit log ([broker profile Section 6.6](../AAP-BROKER-PROFILE.md#66-denials),
 `AAP-BROKER-PROFILE.md:324`). Level 1 of the broker profile requires signed audit together with
 default-deny, ATX verification and the revocation-list check before resolution, presentation
