@@ -3,8 +3,9 @@
 
 examples/orders-db-exchange.md walks the v1 resolution in numbered steps. A step
 the v1 reference implementation does not perform carries a "v1:" note, in the
-form the example's policy sample uses for `jurisdiction` ("v1: parsed, not
-enforced"), so the flow does not present the step as performed. Version
+form the example's policy sample uses for `jurisdiction` ("v1: refused at load
+by a broker that does not evaluate it"), so the flow does not present the step
+as performed. Version
 negotiation is also marked as a conformance Level 2 requirement (broker profile
 Section 13). The implementation status note of broker profile Section 14 names
 the signature on audit records among what its list does not describe.

@@ -34,10 +34,10 @@ grant resolves through an OAuth token exchange rather than a vaulted secret or a
 # Lives on the operator's host. The agent never sees any of this.
 - grant: grant://orders-db
   match:
-    issuerChainIncludes: { partnersSet: trusted-partners }   # v1: parsed, treated as satisfied in-org
+    issuerChainIncludes: { partnersSet: trusted-partners }   # v1: refused at load by a broker that does not evaluate it
     oasbLevel: ">=L2"                                         # from ATX scanSummary
     trustClass: acme.com/orders:read                          # ATX capability
-    jurisdiction: { in: [us, eu] }                            # v1: parsed, not enforced
+    jurisdiction: { in: [us, eu] }                            # v1: refused at load by a broker that does not evaluate it
   resolve:
     mode: exchange
     provider: orders-idp        # thin adapter (e.g. Okta), name lives ONLY here (reference loader: providerId)

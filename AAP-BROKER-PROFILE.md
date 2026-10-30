@@ -501,7 +501,8 @@ chain**, the **trust level**, the **scan summary**, and a **jurisdiction** claim
 ### 7.1 Canonical federation clause
 
 The grammar MUST be able to express the following clause, even though a single-org v1 broker need
-not evaluate the issuer-chain and jurisdiction predicates:
+not evaluate the issuer-chain and jurisdiction predicates (a clause carrying a predicate the broker
+does not evaluate is refused at load; see below):
 
 > *Any agent whose issuer chain includes a node in my trusted-partners set, at OASB level L2 or
 > higher, holding capability `acme.com/orders:read`, is granted the named resource `grant://orders-db`,
@@ -515,7 +516,7 @@ Expressed in the (non-normative) policy grammar:
     issuerChainIncludes: { partnersSet: trusted-partners }   # federation attribute
     oasbLevel: ">=L2"                                         # from ATX scanSummary
     trustClass: acme.com/orders:read                          # ATX capability
-    jurisdiction: { in: [us, eu] }                            # Section 9 (v1: parsed, not enforced)
+    jurisdiction: { in: [us, eu] }                            # Section 9 (refused at load by a broker that does not evaluate it)
   resolve:
     mode: exchange
     provider: orders-idp           # configuration; never on the wire (reference loader: providerId)
@@ -524,9 +525,16 @@ Expressed in the (non-normative) policy grammar:
     ttl: 300s                      # reference loader: ttlSeconds: 300
 ```
 
-A v1 broker MUST parse the full clause (including `issuerChainIncludes` and `jurisdiction`) and MAY
-treat the federation-only predicates as always-satisfied within its own org while still enforcing
-`trustClass`, `oasbLevel`, `mode`, `scope`, and `ttl`.
+A v1 broker MUST parse the full clause (including `issuerChainIncludes` and `jurisdiction`). A
+broker MUST NOT treat a predicate as satisfied without evaluating it, and a predicate over a claim
+the presented ATX does not carry is not satisfied. A broker that does not evaluate a predicate
+present in a clause MUST refuse to load that clause, naming the predicate in the load error; a
+clause is enforced whole or not loaded. `trustClass`, `oasbLevel`, `mode`, `scope` and `ttl` are
+evaluated at every conformance level; `issuerChainIncludes` and `jurisdiction` are required to be
+evaluated only at Level 3 (Section 13), so a broker below Level 3 that does not evaluate them
+refuses a clause carrying either, and a broker that evaluates one of them below Level 3 says so
+where its implementation status is recorded (Section 14 for the reference implementation). A load
+error is an operator-facing message, not a denial of Section 6.6.
 
 > **Reference spelling (non-normative).** At commit `660af0d` the policy loader of the reference
 > implementation accepts `mode`, `providerId`, `scope`, `audience` and `ttlSeconds` in a `resolve`
@@ -664,8 +672,9 @@ grammar slot now so cross-country enforcement in a later version needs no redesi
 - **Policy grammar slot:** a `jurisdiction` predicate (Section 7.1) able to constrain a grant, for
   example, "data may not be accessed by an agent operating outside the `eu` region."
 
-A v1 broker MUST parse the `jurisdiction` predicate but is **not** required to enforce it.
-Enforcement is a v3 concern under sovereign Root Authorities.
+A v1 broker MUST parse the `jurisdiction` predicate. A broker that does not evaluate it
+MUST refuse to load a clause that carries it (Section 7.1); the predicate is never loaded and
+ignored. Enforcement is a v3 concern under sovereign Root Authorities.
 
 The claim slot is retained in 0.4 with two cross references. The ATX side is out of scope here.
 The enforcement side is the **residency label family** (`residency:<region>`,

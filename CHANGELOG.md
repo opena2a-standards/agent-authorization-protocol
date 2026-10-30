@@ -798,6 +798,15 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   carriage return and a line break, and the value preceded by a line break exactly when
   ECMA-262 matches it, reading the final `$` of a pattern as Python's `\Z`. It runs in CI
   through `scripts/validate_examples.py`, which runs the unit tests in `scripts/`.
+- Broker profile Section 7.1 no longer lets a v1 broker treat the federation-only predicates
+  as always satisfied: a broker MUST NOT treat a predicate as satisfied without evaluating
+  it, a predicate over a claim the presented ATX does not carry is not satisfied, and a
+  broker that does not evaluate a predicate present in a clause
+  MUST refuse to load that clause, naming the predicate; Section 9 says the same of
+  `jurisdiction` in place of 'not required to enforce it'. The grammar is unchanged and a
+  clause refused by a broker below Level 3 loads unchanged on a broker that evaluates it.
+  The broker profile gains two MUST and one MUST NOT and loses one MAY (34 MUST,
+  22 MUST NOT, 8 SHOULD, 1 SHOULD NOT, 9 MAY). (#161)
 
 ### Added
 
