@@ -25,6 +25,14 @@ What you can do today: `fixtures/da-compact-scope-superset.json` in the [conform
 
 Where it stops today: the daemon limit in [Reference implementation](./docs/reference-implementation.md) applies, and the suite's verifiers at commit `99e213a` match `trust_class` against `^[a-z0-9_-]+:[a-z0-9_-]+$` alone. They reject the published CGT and DA tokens, which carry the domain-prefixed class AAP-SPEC Section 4.2 says a broker should mint ([the token list](./docs/use-cases.md#an-agent-checks-out-with-your-money)). The claim schemas in [`schemas/`](./schemas/) accept both forms.
 
+## Who this is for
+
+Security leaders deciding whether agents may hold credentials at all, identity architects fitting
+AAP's tokens beside the OAuth 2.0 and OpenID Connect servers they run, engineers who operate a
+broker, developers who implement one, auditors reading its signed audit log, and standards
+reviewers. [Who reads this](./docs/use-cases.md#who-reads-this) names the question each one brings
+and the section of AAP-SPEC or the broker profile that answers it.
+
 ## Documentation
 
 - [`docs/use-cases.md`](./docs/use-cases.md): each use case in full, with the sources to check it against.
