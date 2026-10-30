@@ -34,10 +34,10 @@ grant resolves through an OAuth token exchange rather than a vaulted secret or a
 # Lives on the operator's host. The agent never sees any of this.
 - grant: grant://orders-db
   match:
-    issuerChainIncludes: { partnersSet: trusted-partners }   # v1: refused at load by a broker that does not evaluate it
+    issuerChainIncludes: { partnersSet: trusted-partners }   # broker profile §7.1: refused at load by a broker that does not evaluate it
     oasbLevel: ">=L2"                                         # from ATX scanSummary
     trustClass: acme.com/orders:read                          # ATX capability
-    jurisdiction: { in: [us, eu] }                            # v1: refused at load by a broker that does not evaluate it
+    jurisdiction: { in: [us, eu] }                            # broker profile §7.1: refused at load by a broker that does not evaluate it
   resolve:
     mode: exchange
     provider: orders-idp        # thin adapter (e.g. Okta), name lives ONLY here (reference loader: providerId)
@@ -51,8 +51,12 @@ At commit `660af0d` the policy loader of the reference implementation accepts `m
 `scope`, `audience` and `ttlSeconds` in a `resolve` clause and refuses any other key, so it refuses
 the binding as written. It loads the binding once `provider: orders-idp` reads
 `providerId: orders-idp` and `ttl: 300s` reads `ttlSeconds: 300`; the `match` clause loads as
-written. The keys a given release accepts are recorded in the reference implementation's
-repository, in `src/broker/grant-policy.ts`.
+written, `issuerChainIncludes` and `jurisdiction` included: at that commit the loader checks the
+shape of those two predicates and loads them, and the evaluation of a loaded clause reads neither,
+so the clause grants as if both were satisfied, which broker profile §7.1 requires a broker that
+does not evaluate them to refuse at load. The keys a given release accepts, and whether it refuses
+such a clause, are recorded in the reference implementation's repository, in
+`src/broker/grant-policy.ts`.
 
 ## 3. Resolution flow (Section 6 of the broker profile)
 
@@ -78,9 +82,9 @@ The scoped downstream token exists only inside the broker's ephemeral worker (st
 enters the agent process or context. A denial at any step returns the same opaque typed error.
 
 A `v1:` note marks a step the v1 reference implementation does not perform as drawn, in the form
-the policy sample uses for `jurisdiction`. Version negotiation (step 2) is defined in broker
-profile Section 8.1 and is a requirement of conformance Level 2 (broker profile Section 13); the
-v1 reference targets Level 1. A rotating signing key (step 4) is described in broker profile
+step 7 uses ("v1: audit record written, not signed"). Version negotiation (step 2) is defined in
+broker profile Section 8.1 and is a requirement of conformance Level 2 (broker profile Section 13);
+the v1 reference targets Level 1. A rotating signing key (step 4) is described in broker profile
 Section 11, and a signed audit log (step 7) is required by broker profile Section 6.7. Broker
 profile Section 14 lists what the reference implementation provides.
 

@@ -806,9 +806,10 @@ that list are: the presentation binding step of Section 6.8 (a `cnf` member in t
 set); the grant revocation list of Section 6.9; the data clearance rules of Section 6.10 (reading a
 data sensitivity label, and projecting or masking a result by label); the revocation after
 resolution rules of Section 6.13; `authorization_details` and `aap_crit` in the minted claim set;
-the signature on audit records of Section 6.7; and the policy compile step of Section 7.3. Whether
-a given release of the reference implementation provides any of them is recorded in its own
-repository, where each is checkable in the `src/broker` and `src/grant` directories and in the
+the signature on audit records of Section 6.7; the refusal at load of Section 7.1 (a clause that
+carries a predicate the broker does not evaluate); and the policy compile step of Section 7.3.
+Whether a given release of the reference implementation provides any of them is recorded in its
+own repository, where each is checkable in the `src/broker` and `src/grant` directories and in the
 changelog.
 
 The developer surface is the existing AIM `@agent.perform_action` decorator: an agent references a

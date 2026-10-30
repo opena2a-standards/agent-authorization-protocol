@@ -807,6 +807,18 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   clause refused by a broker below Level 3 loads unchanged on a broker that evaluates it.
   The broker profile gains two MUST and one MUST NOT and loses one MAY (34 MUST,
   22 MUST NOT, 8 SHOULD, 1 SHOULD NOT, 9 MAY). (#161)
+- The implementation status note of broker profile Section 14 and the Reference
+  implementation paragraph of AAP-SPEC.md name the refusal at load of broker profile
+  Section 7.1 among what sits outside the reference implementation's described surface.
+  The reference spelling note of `examples/orders-db-exchange.md` says that the reference
+  implementation at commit `660af0d` loads a clause carrying `issuerChainIncludes` or
+  `jurisdiction` and evaluates neither predicate, which Section 7.1 requires a broker that
+  does not evaluate them to refuse at load; the comments on those two predicates of its
+  policy sample cite Section 7.1 in place of a `v1:` note, which marks a step of the
+  resolution flow the v1 reference does not perform. `scripts/test_worked_example_status.py`
+  checks that the form of a `v1:` note the example names is a note a step carries, that the
+  policy sample carries no `v1:` note, and that the reference spelling note names both
+  predicates. (#161)
 
 ### Added
 

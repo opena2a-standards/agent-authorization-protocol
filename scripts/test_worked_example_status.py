@@ -2,10 +2,14 @@
 """Tests that the worked example marks the steps the v1 reference does not perform.
 
 examples/orders-db-exchange.md walks the v1 resolution in numbered steps. A step
-the v1 reference implementation does not perform carries a "v1:" note, in the
-form the example's policy sample uses for `jurisdiction` ("v1: refused at load
-by a broker that does not evaluate it"), so the flow does not present the step
-as performed. Version
+the v1 reference implementation does not perform carries a "v1:" note ("v1: audit
+record written, not signed" on step 7), so the flow does not present the step as
+performed, and the paragraph after the flow names the form of such a note by
+quoting one that a step carries. The policy sample carries no "v1:" note: its
+`issuerChainIncludes` and `jurisdiction` predicates are governed by broker profile
+Section 7.1, under which a broker that does not evaluate a predicate refuses at
+load a clause carrying it, and the example's reference spelling note names both
+predicates and says what the reference implementation does with them. Version
 negotiation is also marked as a conformance Level 2 requirement (broker profile
 Section 13). The implementation status note of broker profile Section 14 names
 the signature on audit records among what its list does not describe.
@@ -60,6 +64,16 @@ DEFINED_BY = {
     7: ("signed audit log",),
 }
 STATUS_PARAGRAPH = "A `v1:` note marks"
+# 'in the form step 7 uses ("v1: audit record written, not signed")': the step
+# whose note the paragraph quotes as the form of a `v1:` note, and the note.
+NOTE_FORM = re.compile(r'in the form step (\d+) uses \("(v1: [^"]+)"\)')
+REFERENCE_NOTE = "**Reference spelling.**"
+# The match predicates the reference policy loader loads without evaluating,
+# read from `src/broker/grant-policy.ts` at commit 660af0d, the commit the
+# reference spelling note cites. Broker profile Section 7.1 requires a broker
+# that does not evaluate a predicate to refuse at load a clause carrying it, so
+# the note names each of them and says what the reference does.
+UNEVALUATED_PREDICATES = ("issuerChainIncludes", "jurisdiction")
 # "(step 4) is described in broker profile Section 11": a step and the first
 # broker profile section named after it, before the next step.
 STEP_SECTION = re.compile(
@@ -110,6 +124,22 @@ def status_paragraph():
     text = EXAMPLE.read_text(encoding="utf-8")
     start = text.index(STATUS_PARAGRAPH)
     return " ".join(text[start:text.index("\n\n", start)].split())
+
+
+def reference_spelling_note():
+    """The note under the policy sample on the reference spelling, line breaks read as spaces."""
+    text = EXAMPLE.read_text(encoding="utf-8")
+    start = text.index(REFERENCE_NOTE)
+    return " ".join(text[start:text.index("\n\n", start)].split())
+
+
+def policy_sample():
+    """The lines of the example's policy sample, its one fenced yaml block."""
+    text = EXAMPLE.read_text(encoding="utf-8")
+    blocks = re.findall(r"^```yaml\n(.*?)^```$", text, flags=re.M | re.S)
+    if len(blocks) != 1:
+        raise AssertionError(f"{EXAMPLE.name}: {len(blocks)} fenced yaml blocks, want 1")
+    return blocks[0].splitlines()
 
 
 def profile_section(number):
@@ -170,6 +200,28 @@ class WorkedExampleStatusTest(unittest.TestCase):
         note = implementation_status_note()
         self.assertIn("Outside that list are:", note)
         self.assertRegex(note, r"signature on audit records of Section 6\.7")
+
+    def test_the_form_of_a_note_is_a_note_a_step_carries(self):
+        # The paragraph after the flow names the form of a `v1:` note by quoting
+        # one; the step it names carries that note.
+        form = NOTE_FORM.search(status_paragraph())
+        self.assertIsNotNone(form, "the paragraph quotes no note of a step as the form")
+        self.assertIn(form.group(2), flow_steps()[int(form.group(1))])
+
+    def test_the_policy_sample_carries_no_v1_note(self):
+        # A `v1:` note marks a step of the flow. What the reference does with the
+        # predicates of the policy sample is said in the reference spelling note.
+        for line in policy_sample():
+            with self.subTest(line=line.strip()):
+                self.assertNotIn("v1:", line)
+
+    def test_the_reference_spelling_note_names_each_unevaluated_predicate(self):
+        note = reference_spelling_note()
+        for predicate in UNEVALUATED_PREDICATES:
+            with self.subTest(predicate=predicate):
+                self.assertIn(f"`{predicate}`", note)
+        self.assertIn("does not evaluate them to refuse at load", note)
+        self.assertIn("broker profile §7.1", note)
 
     def test_each_unperformed_step_cites_the_section_that_defines_it(self):
         cited = {int(step): number for step, number in STEP_SECTION.findall(status_paragraph())}

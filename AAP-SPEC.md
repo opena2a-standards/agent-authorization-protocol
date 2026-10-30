@@ -44,7 +44,8 @@ implementation status note of broker profile §14 names the parts of the resolut
 that surface: presentation binding, the grant revocation list, the data clearance rules and
 revocation after resolution (broker profile §6.8, §6.9, §6.10 and §6.13),
 `authorization_details` and `aap_crit` in the minted claim set, the signature on audit records
-(broker profile §6.7), and the policy compile step (broker profile §7.3).
+(broker profile §6.7), the refusal at load of a clause that carries a predicate the broker does
+not evaluate (broker profile §7.1), and the policy compile step (broker profile §7.3).
 OpenA2A AIM (Agent Identity Management) supplies the developer surface the broker profile names (the `@agent.perform_action`
 decorator and 5-step fine-grained authorization) and is the reference implementation for the
 identity and trust layers AAP builds on (AIP, ATX, ATP); AIM does not implement the broker.
