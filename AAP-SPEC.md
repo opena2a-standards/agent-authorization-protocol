@@ -599,7 +599,7 @@ The BAC attests state and confers no authority: as for the AIT and the ATX (§8.
 an assertion about the agent, not permission to touch a resource. A receiver MAY condition
 a decision on a fact the BAC attests and MUST NOT derive a permission from the BAC alone;
 authority is carried by the CGT and the DA (Sections 4 and 5), and the data clearance
-rules of broker profile §6.10 are enforced by the broker that holds the session, never by
+rules of broker profile §6.10 are the duty of the broker that holds the session, never of
 a receiver of the BAC. Because no BAC claim constrains an authority, every BAC claim is
 optional-to-ignore (broker profile §8.3) and the BAC carries no `aap_crit`.
 `session_label` (§6.4) is the signed report of the session high water mark: a receiver
