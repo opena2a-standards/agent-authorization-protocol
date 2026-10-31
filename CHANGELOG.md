@@ -6,6 +6,13 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ## [Unreleased]
 
+## [0.6.0-draft] - 2026-10-31
+
+Internet-Draft pairing: `draft-fane-opena2a-aap-03` (document date 2026-11-02) carries this
+0.6.0-draft and is not submitted; `draft-fane-opena2a-aap-02` (submitted 2026-10-02;
+document date 2026-09-30) is the current datatracker revision and carries 0.5.1-draft. The
+broker profile moves to 0.5.0-draft in lockstep.
+
 ### Changed
 
 - `trust_class` (Section 4.2, and the DA through Section 5.3) uses the capability grammar of
@@ -587,6 +594,17 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   "capital letter", and that the sentence that says such a noun is found before gate has
   both and "A to Z". A new test pins that failure and the failure on a sentence that has
   both and not "A to Z". The patterns and the decision notes are unchanged.
+- The changelog tests of `scripts/test_decision_note_terms.py` read the entries of the
+  newest section that has an entry with the path directly between two backticks. While an
+  entry under [Unreleased] has the path directly between two backticks, that section is
+  [Unreleased], as before. A release moves each entry under [Unreleased] into its own
+  section unchanged, so just after one no entry under [Unreleased] has the path directly
+  between two backticks; read from [Unreleased] alone, the list was empty and three tests
+  failed: the test that entries are read, the test that a sentence of an entry read names
+  [Unreleased], and the test on a common noun with a capital letter, A to Z. The tests then
+  read the entries of the newest released section that has such an entry, in the same way. A
+  new test pins both readings, and that an older released section is read only when no newer
+  one has such an entry. The patterns and the decision notes are unchanged.
 - `scripts/test_worked_example_status.py` counts each section number of a list in the
   paragraph after the resolution flow of `examples/orders-db-exchange.md`, reading a list
   after "Sections" or "§§" as `scripts/check_section_citations.py` does ("Sections 6.8 and
@@ -823,8 +841,9 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ### Added
 
-- `draft-fane-opena2a-aap-03`, the next Internet-Draft revision (document date
-  2026-10-21): its XML source and the text render generated from it. Its Section 9.4
+- `draft-fane-opena2a-aap-03`, the next Internet-Draft revision (document date 2026-11-02;
+  first rendered with the date 2026-10-21 and re-dated for the upload): its XML source and
+  the text render generated from it. Its Section 9.4
   sentence reads "ATX and ATP cite this rule", where `draft-fane-opena2a-aap-02`, left as
   filed, reads "ATX, ATP and AIP cite this rule". It carries these changes recorded in
   this section for AAP-SPEC.md into the render: the capability grammar of AIP Section 4.1
@@ -861,7 +880,12 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   the consensus default, which the -02 source also produces); no line of the text render
   exceeds 72 characters. `scripts/test_signature_gate_citers.py` fails when the newest
   render is not a revision after -02, or when its XML source or its text render does not
-  name exactly ATX and ATP as citing Section 9.4.
+  name exactly ATX and ATP as citing Section 9.4. The render does not carry the Reference
+  implementation paragraph of AAP-SPEC.md (its implementation status sentences name the
+  record that holds the status), so the clause that paragraph gained on the Section 7.1
+  refusal at load (#161) is outside the render by construction, and the broker profile's
+  Section 7.1 and Section 9 changes (#161) are profile text, which the render cites by
+  address and does not carry.
 - Section 2 defines the term DID: a `did:opena2a` identifier, the value type the claim
   tables name DID. The entry cites `did-method-opena2a` Sections 3.1 and 3.1.1, the two
   sections that Section 3.1 of that specification names as the one home of the
