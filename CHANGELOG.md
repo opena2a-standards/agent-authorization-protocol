@@ -459,8 +459,8 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   double quotation mark or an opening parenthesis. The patterns and the decision notes are
   unchanged.
 - The resolution flow of `examples/orders-db-exchange.md` marks the three steps the v1
-  reference implementation does not perform as drawn, with a `v1:` note in the form the
-  policy sample uses for `jurisdiction`: version negotiation (step 2) is marked as a
+  reference implementation does not perform as drawn, with a `v1:` note in the form step 7
+  uses ("v1: audit record written, not signed"): version negotiation (step 2) is marked as a
   conformance Level 2 requirement and not performed, the broker's signing key (step 4) as
   held in memory and not rotated, and the audit record (step 7) as written and not signed.
   A paragraph after the flow names the broker profile section that defines each (Section
@@ -818,7 +818,8 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   resolution flow the v1 reference does not perform. `scripts/test_worked_example_status.py`
   checks that the form of a `v1:` note the example names is a note a step carries, that the
   policy sample carries no `v1:` note, and that the reference spelling note names both
-  predicates. (#161)
+  predicates. The entry above on the `v1:` notes of the resolution flow now names the form
+  step 7 uses, where it named the form the policy sample used for `jurisdiction`. (#161)
 
 ### Added
 
