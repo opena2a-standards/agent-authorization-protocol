@@ -459,8 +459,8 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   double quotation mark or an opening parenthesis. The patterns and the decision notes are
   unchanged.
 - The resolution flow of `examples/orders-db-exchange.md` marks the three steps the v1
-  reference implementation does not perform as drawn, with a `v1:` note in the form the
-  policy sample uses for `jurisdiction`: version negotiation (step 2) is marked as a
+  reference implementation does not perform as drawn, with a `v1:` note in the form step 7
+  uses ("v1: audit record written, not signed"): version negotiation (step 2) is marked as a
   conformance Level 2 requirement and not performed, the broker's signing key (step 4) as
   held in memory and not rotated, and the audit record (step 7) as written and not signed.
   A paragraph after the flow names the broker profile section that defines each (Section
@@ -798,6 +798,28 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   carriage return and a line break, and the value preceded by a line break exactly when
   ECMA-262 matches it, reading the final `$` of a pattern as Python's `\Z`. It runs in CI
   through `scripts/validate_examples.py`, which runs the unit tests in `scripts/`.
+- Broker profile Section 7.1 no longer lets a v1 broker treat the federation-only predicates
+  as always satisfied: a broker MUST NOT treat a predicate as satisfied without evaluating
+  it, a predicate over a claim the presented ATX does not carry is not satisfied, and a
+  broker that does not evaluate a predicate present in a clause
+  MUST refuse to load that clause, naming the predicate; Section 9 says the same of
+  `jurisdiction` in place of 'not required to enforce it'. The grammar is unchanged and a
+  clause refused by a broker below Level 3 loads unchanged on a broker that evaluates it.
+  The broker profile gains two MUST and one MUST NOT and loses one MAY (34 MUST,
+  22 MUST NOT, 8 SHOULD, 1 SHOULD NOT, 9 MAY). (#161)
+- The implementation status note of broker profile Section 14 and the Reference
+  implementation paragraph of AAP-SPEC.md name the refusal at load of broker profile
+  Section 7.1 among what sits outside the reference implementation's described surface.
+  The reference spelling note of `examples/orders-db-exchange.md` says that the reference
+  implementation at commit `660af0d` loads a clause carrying `issuerChainIncludes` or
+  `jurisdiction` and evaluates neither predicate, which Section 7.1 requires a broker that
+  does not evaluate them to refuse at load; the comments on those two predicates of its
+  policy sample cite Section 7.1 in place of a `v1:` note, which marks a step of the
+  resolution flow the v1 reference does not perform. `scripts/test_worked_example_status.py`
+  checks that the form of a `v1:` note the example names is a note a step carries, that the
+  policy sample carries no `v1:` note, and that the reference spelling note names both
+  predicates. The entry above on the `v1:` notes of the resolution flow now names the form
+  step 7 uses, where it named the form the policy sample used for `jurisdiction`. (#161)
 
 ### Added
 
