@@ -4,8 +4,8 @@
 
 Individual Submission                                            A. Fane
 Internet-Draft                                                   OpenA2A
-Intended status: Standards Track                         21 October 2026
-Expires: 24 April 2027
+Intended status: Standards Track                         2 November 2026
+Expires: 6 May 2027
 
 
                OpenA2A Agent Authorization Protocol (AAP)
@@ -53,9 +53,9 @@ Status of This Memo
 
 
 
-Fane                      Expires 24 April 2027                 [Page 1]
+Fane                       Expires 6 May 2027                   [Page 1]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    Internet-Drafts are draft documents valid for a maximum of six months
@@ -63,7 +63,7 @@ Internet-Draft                     AAP                      October 2026
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 24 April 2027.
+   This Internet-Draft will expire on 6 May 2027.
 
 Copyright Notice
 
@@ -109,9 +109,9 @@ Table of Contents
 
 
 
-Fane                      Expires 24 April 2027                 [Page 2]
+Fane                       Expires 6 May 2027                   [Page 2]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
      9.4.  Multi-Signature Form  . . . . . . . . . . . . . . . . . .  22
@@ -165,9 +165,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                 [Page 3]
+Fane                       Expires 6 May 2027                   [Page 3]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    AAP is positioned as the authorization complement to agent
@@ -221,9 +221,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                 [Page 4]
+Fane                       Expires 6 May 2027                   [Page 4]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    Broker  A local, operator-controlled component that resolves an
@@ -277,9 +277,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                 [Page 5]
+Fane                       Expires 6 May 2027                   [Page 5]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    NOTE: '\' line wrapping per RFC 8792
@@ -333,9 +333,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                 [Page 6]
+Fane                       Expires 6 May 2027                   [Page 6]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    claims and nothing else are the ratified baseline.  The
@@ -389,9 +389,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                 [Page 7]
+Fane                       Expires 6 May 2027                   [Page 7]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    In a broker deployment the CGT is used as the OAuth 2.0 Token
@@ -445,9 +445,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                 [Page 8]
+Fane                       Expires 6 May 2027                   [Page 8]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    "locations", "actions", "datatypes", "identifier", and "privileges"
@@ -501,9 +501,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                 [Page 9]
+Fane                       Expires 6 May 2027                   [Page 9]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
       "amount" and an ISO 4217 "currency"), "rate" (an object with an
@@ -557,9 +557,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 10]
+Fane                       Expires 6 May 2027                  [Page 10]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
 4.3.  Proof of Possession
@@ -613,9 +613,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 11]
+Fane                       Expires 6 May 2027                  [Page 11]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    {
@@ -669,9 +669,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 12]
+Fane                       Expires 6 May 2027                  [Page 12]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    A DA is an AAP token in the form of Section 9: the CGT claim set plus
@@ -725,9 +725,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 13]
+Fane                       Expires 6 May 2027                  [Page 13]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
 5.1.  Attenuation
@@ -781,9 +781,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 14]
+Fane                       Expires 6 May 2027                  [Page 14]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    A DA is valid only if every entry in its "authorization_details" is
@@ -837,9 +837,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 15]
+Fane                       Expires 6 May 2027                  [Page 15]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    NOTE: '\' line wrapping per RFC 8792
@@ -893,9 +893,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 16]
+Fane                       Expires 6 May 2027                  [Page 16]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    1  Build-time attestation: the "atx_reference".
@@ -949,9 +949,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 17]
+Fane                       Expires 6 May 2027                  [Page 17]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
 7.  Cross-Organizational Federation
@@ -1005,9 +1005,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 18]
+Fane                       Expires 6 May 2027                  [Page 18]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
 8.1.  Replay Prevention
@@ -1061,9 +1061,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 19]
+Fane                       Expires 6 May 2027                  [Page 19]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    The aap-conformance suite [AAP-CONFORMANCE] exercises the hybrid
@@ -1117,9 +1117,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 20]
+Fane                       Expires 6 May 2027                  [Page 20]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
 8.7.  A Constraint a Verifier May Ignore Is Not a Constraint
@@ -1173,9 +1173,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 21]
+Fane                       Expires 6 May 2027                  [Page 21]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
 9.3.  Compact Serialization
@@ -1229,9 +1229,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 22]
+Fane                       Expires 6 May 2027                  [Page 22]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    *  cgt-hybrid-missing-mldsa65.json
@@ -1285,9 +1285,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 23]
+Fane                       Expires 6 May 2027                  [Page 23]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    managed within this specification.  The concrete registration
@@ -1341,9 +1341,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 24]
+Fane                       Expires 6 May 2027                  [Page 24]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    [RFC7638]  Jones, M. and N. Sakimura, "JSON Web Key (JWK)
@@ -1397,9 +1397,9 @@ Internet-Draft                     AAP                      October 2026
 
 
 
-Fane                      Expires 24 April 2027                [Page 25]
+Fane                       Expires 6 May 2027                  [Page 25]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    [AAP-CONFORMANCE]
@@ -1453,9 +1453,9 @@ Appendix A.  Related Work
 
 
 
-Fane                      Expires 24 April 2027                [Page 26]
+Fane                       Expires 6 May 2027                  [Page 26]
 
-Internet-Draft                     AAP                      October 2026
+Internet-Draft                     AAP                     November 2026
 
 
    credential-confinement layer, and a federation and revocation model.
@@ -1509,4 +1509,4 @@ Author's Address
 
 
 
-Fane                      Expires 24 April 2027                [Page 27]
+Fane                       Expires 6 May 2027                  [Page 27]

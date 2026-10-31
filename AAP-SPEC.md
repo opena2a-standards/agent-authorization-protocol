@@ -2,7 +2,7 @@
 
 ## Scoped, Attested Authorization for AI Agent Systems
 
-**Version:** 0.5.1-draft plus unreleased changes (see [Unreleased] in [CHANGELOG.md](./CHANGELOG.md))
+**Version:** 0.6.0-draft
 **Authors:** OpenA2A
 **Date:** October 2026
 **Intended status:** Standards Track (IETF Internet-Draft; named individual authors will be attributed at Internet-Draft submission per IETF convention)
