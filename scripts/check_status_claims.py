@@ -39,16 +39,20 @@ docs/use-cases.md (their use cases state what the reference implementation
 does), docs/reference-implementation.md (what the reference implementation
 does and its limits), docs/status.md (the released versions and the current
 Internet-Draft revision), schemas/README.md (its Status column states what the
-reference implementation mints) and the XML source of every Internet-Draft
+reference implementation mints), every JSON file in schemas/ (schemas/*.json),
+of which the check reads each "description" string, at any depth, as prose and
+reports the line of that string, and the XML source of every Internet-Draft
 (draft-*.xml at the top level) except the filed revisions -00 to -02 of
 draft-fane-opena2a-aap, which are left as filed. A document that is not valid
-UTF-8 fails with the line of the first byte that does not decode.
+UTF-8 fails with the line of the first byte that does not decode, and a JSON
+file that does not parse fails with the line of the error.
 
 Exit code 0 = every document passes. Also run by validate_examples.py so the
 check runs in CI.
 """
 
 import bisect
+import json
 import pathlib
 import re
 import sys
@@ -66,6 +70,13 @@ DOCUMENTS = (
     "docs/status.md",
     "schemas/README.md",
 )
+
+# The JSON files whose "description" strings the check reads as prose.
+SCHEMA_DIR = "schemas"
+
+# A JSON string token. Outside a string, valid JSON holds no quotation mark, so one
+# left-to-right scan finds every string of a document that parses.
+JSON_STRING = re.compile(r'"(?:[^"\\]|\\.)*"')
 
 # Internet-Draft revisions filed before this check existed; their text is not changed.
 LAST_FILED_REVISION = 2
@@ -181,15 +192,44 @@ def findings(text: str) -> list[str]:
     return [f"line {lineno}: {name}: {words!r}" for lineno, name, words in matches(text)]
 
 
+def descriptions(text: str) -> list[tuple[int, str]]:
+    """Return (line number, value) for every "description" member whose value is a string.
+
+    text must parse as JSON. A string token followed by a colon is a member name, and a
+    string that follows the name "description" and its colon is that member's value, at
+    any depth of the document.
+    """
+    line_starts = [0, *(match.end() for match in re.finditer("\n", text))]
+    tokens = list(JSON_STRING.finditer(text))
+    return [
+        (bisect.bisect_right(line_starts, value.start()), json.loads(value.group(0)))
+        for name, value in zip(tokens, tokens[1:])
+        if json.loads(name.group(0)) == "description"
+        and re.fullmatch(r"\s*:\s*", text[name.end():value.start()])
+    ]
+
+
+def description_matches(text: str) -> list[tuple[int, str, str]]:
+    """Return (line number, rule name, matched words) per match in a description string.
+
+    Each description is read on its own, so words in two descriptions never form one
+    match, and a match is reported at the line of its string in the JSON file.
+    """
+    return [(lineno, name, words)
+            for lineno, description in descriptions(text)
+            for _, name, words in matches(description)]
+
+
 def documents(root: pathlib.Path = ROOT) -> list[str]:
     """Return the documents the check covers, as paths relative to root."""
+    schemas = sorted(f"{SCHEMA_DIR}/{path.name}" for path in (root / SCHEMA_DIR).glob("*.json"))
     drafts = sorted(
         path.name
         for path in root.glob("draft-*.xml")
         if not ((match := DRAFT.fullmatch(path.name))
                 and int(match.group(1)) <= LAST_FILED_REVISION)
     )
-    return [*DOCUMENTS, *drafts]
+    return [*DOCUMENTS, *schemas, *drafts]
 
 
 def check(root: pathlib.Path = ROOT) -> int:
@@ -206,7 +246,18 @@ def check(root: pathlib.Path = ROOT) -> int:
             print(f"FAIL  {name}: {error}")
             failures += 1
             continue
-        found = matches(text)
+        if name.endswith(".json"):
+            try:
+                json.loads(text)
+            except json.JSONDecodeError as invalid:
+                print(f"FAIL  {name}: line {invalid.lineno}: not valid JSON ({invalid.msg} at "
+                      f"column {invalid.colno}); correct the JSON so the check can read its "
+                      "description strings")
+                failures += 1
+                continue
+            found = description_matches(text)
+        else:
+            found = matches(text)
         for lineno, rule, words in found:
             print(f"FAIL  {name}: line {lineno}: {rule}: {words!r}; {ACCEPTED[rule]}")
         if found:

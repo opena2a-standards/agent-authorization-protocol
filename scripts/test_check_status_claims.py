@@ -6,6 +6,7 @@ CI runs them through validate_examples.py.
 
 import contextlib
 import io
+import json
 import pathlib
 import shutil
 import sys
@@ -225,6 +226,16 @@ class RepositoryDocumentsTest(unittest.TestCase):
             with self.subTest(document=name):
                 self.assertIn(name, names)
 
+    def test_claim_schemas_are_covered_and_pass(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            check_status_claims.check()
+        lines = out.getvalue().splitlines()
+        for name in ("schemas/ait-claims-v1.schema.json", "schemas/bac-claims-v1.schema.json",
+                     "schemas/cgt-claims-v1.schema.json", "schemas/da-claims-v1.schema.json"):
+            with self.subTest(document=name):
+                self.assertIn(f"ok    {name}: no rejected implementation-status wording", lines)
+
     def test_repository_check_has_no_failures(self):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(check_status_claims.check(), 0)
@@ -327,6 +338,81 @@ class DiscoveryTest(unittest.TestCase):
                       '"yet", and name the record that holds the status', out.getvalue())
         self.assertIn("FAIL  schemas/README.md: line 3: unscoped universal negative: "
                       "'no reference implementation'", out.getvalue())
+
+    def test_status_wording_in_a_schema_description_fails(self):
+        write(self.root, "schemas/bac-claims-v1.schema.json",
+              '{\n  "title": "BAC claims",\n'
+              '  "description": "Claims of the BAC. No reference implementation mints BACs yet.",\n'
+              '  "type": "object"\n}\n')
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(check_status_claims.check(self.root), 1)
+        lines = out.getvalue().splitlines()
+        self.assertIn("FAIL  schemas/bac-claims-v1.schema.json: line 3: status stated with yet: "
+                      "'No reference implementation mints BACs yet'; state what the text defines "
+                      'without "yet", and name the record that holds the status (broker profile '
+                      "Section 14, the reference implementation's repository, or the "
+                      "aap-conformance repository's conformance.json)", lines)
+        self.assertIn("FAIL  schemas/bac-claims-v1.schema.json: line 3: unscoped universal "
+                      "negative: 'No reference implementation'; write \"no known implementation\", "
+                      "or name the record that holds the status (broker profile Section 14, the "
+                      "reference implementation's repository, or the aap-conformance repository's "
+                      "conformance.json)", lines)
+        self.assertEqual(len([line for line in lines if line.startswith("FAIL")]), 2)
+
+    def test_schema_descriptions_that_name_the_record_pass(self):
+        # The sentences that replace the status wording of the AIT and BAC claim schemas.
+        for name, sentence in (
+                ("schemas/ait-claims-v1.schema.json",
+                 "This schema and the generated example pin the form for implementers; which "
+                 "implementations mint AITs is recorded where the implementation status note of "
+                 "AAP-SPEC section 3.2 says (the issuing Registry implementation's own "
+                 "repository)."),
+                ("schemas/bac-claims-v1.schema.json",
+                 "Which implementations mint BACs is recorded where the implementation status "
+                 "note of AAP-SPEC section 6.3 says (the issuing Registry implementation's own "
+                 "repository).")):
+            write(self.root, name, json.dumps({"description": sentence}, indent=2) + "\n")
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(check_status_claims.check(self.root), 0)
+        lines = out.getvalue().splitlines()
+        for name in ("schemas/ait-claims-v1.schema.json", "schemas/bac-claims-v1.schema.json"):
+            with self.subTest(document=name):
+                self.assertIn(f"ok    {name}: no rejected implementation-status wording", lines)
+
+    def test_descriptions_are_read_at_any_depth_and_report_their_line(self):
+        write(self.root, "schemas/cgt-claims-v1.schema.json", "\n".join((
+            "{",
+            '  "description": "Claims of the CGT.",',
+            '  "properties": {',
+            '    "description": {"type": "string", "description": "A member named description."},',
+            '    "fga_constraints": {',
+            '      "description": "Deprecated. No implementation minted it."',
+            "    }",
+            "  },",
+            '  "$defs": {"x": {"anyOf": [{"description": "The daemon does not \\u0079et mint it."}]}}',
+            "}",
+            "")))
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(check_status_claims.check(self.root), 1)
+        fails = [line for line in out.getvalue().splitlines() if line.startswith("FAIL")]
+        self.assertEqual([line.split(";")[0] for line in fails],
+                         ["FAIL  schemas/cgt-claims-v1.schema.json: line 6: unscoped universal "
+                          "negative: 'No implementation'",
+                          "FAIL  schemas/cgt-claims-v1.schema.json: line 9: status stated with yet: "
+                          "'not yet'"])
+
+    def test_schema_that_is_not_json_fails_without_a_traceback(self):
+        write(self.root, "schemas/da-claims-v1.schema.json",
+              '{\n  "description": "Claims of the DA."\n  "type": "object"\n}\n')
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.assertEqual(check_status_claims.check(self.root), 1)
+        self.assertIn("FAIL  schemas/da-claims-v1.schema.json: line 3: not valid JSON (Expecting "
+                      "',' delimiter at column 3); correct the JSON so the check can read its "
+                      "description strings", out.getvalue().splitlines())
 
     def test_not_yet_in_the_readme_fails(self):
         write(self.root, "README.md",

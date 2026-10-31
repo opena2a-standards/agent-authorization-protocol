@@ -2,7 +2,7 @@
 
 ## Scoped, Attested Authorization for AI Agent Systems
 
-**Version:** 0.6.0-draft
+**Version:** 0.6.0-draft plus unreleased changes (see [Unreleased] in [CHANGELOG.md](./CHANGELOG.md))
 **Authors:** OpenA2A
 **Date:** October 2026
 **Intended status:** Standards Track (IETF Internet-Draft; named individual authors will be attributed at Internet-Draft submission per IETF convention)
@@ -326,6 +326,11 @@ derived from this subsection and changes no rule.
   `sub`; it is reset only by a deployment defined context reset recorded in ASC, and a
   deployment that issues data grants MUST define that reset. A CGT lifetime is the
   minimum session, not its bound.
+- The session label is **per broker**. In this revision no token or message carries an
+  accumulated session label across a `peer_agent` hop: the receiving broker's session
+  label is the union of what that broker admits, and the `session_label` of the sending
+  agent's BAC (§6.4) reports the sender's session, not the data that crossed. A later
+  revision defines the carrier.
 - An entry with an **egress ceiling** E admits the session's data out only if the session
   label is a subset of E. The default E is the empty set, so a session that has admitted
   any labeled field is denied egress through an entry that carries no ceiling, while a
@@ -590,6 +595,18 @@ profile Section 14).
 The BAC is a short-lived (60-second TTL) signed assertion of an agent's current behavioral
 state. It has no internet parallel, it exists because agents are non-deterministic.
 
+The BAC attests state and confers no authority: as for the AIT and the ATX (§8.4), it is
+an assertion about the agent, not permission to touch a resource. A receiver MAY condition
+a decision on a fact the BAC attests and MUST NOT derive a permission from the BAC alone;
+authority is carried by the CGT and the DA (Sections 4 and 5), and the data clearance
+rules of broker profile §6.10 are the duty of the broker that holds the session, never of
+a receiver of the BAC. Because no BAC claim constrains an authority, every BAC claim is
+optional-to-ignore (broker profile §8.3) and the BAC carries no `aap_crit`.
+`session_label` (§6.4) is the signed report of the session high water mark: a receiver
+that understands it MAY refuse the subject on it or add it to its own session label (a
+union only adds labels), and a receiver that does not understand it loses a report, not a
+constraint.
+
 ### 6.2 Three Levels
 - L1: build-time attestation (ATX + scan results).
 - L2: runtime self-attestation (binary hash match).
@@ -623,7 +640,7 @@ cumulative: an L2 BAC carries the L1 members, an L3 BAC carries all.
 | `drift_score` | MUST (L3) | number 0–1 | Behavioral drift measure. |
 | `anomaly_state` | MUST (L3) | string | Current anomaly state (vocabulary implementation-defined in v1). |
 | `intent_verified` | MUST (L3) | boolean | NanoMind intent verification state. |
-| `session_label` | L3 only; MUST when the issuer holds a session high water mark for the subject (broker profile §6.10) | string array (a set) | The union of the label sets of every field admitted into the session so far (§4.4.2). MUST NOT appear at L1 or L2. Labels are a set, not a level. An empty array means the session has admitted no labeled field; absence means the issuer holds no high water mark for the subject. The two are distinct. |
+| `session_label` | L3 only; MUST when the issuer holds a session high water mark for the subject (broker profile §6.10) | string array (a set) | The union of the label sets of every field admitted into the session so far (§4.4.2). MUST NOT appear at L1 or L2. Labels are a set, not a level. An empty array means the session has admitted no labeled field; absence means the issuer holds no high water mark for the subject. The two are distinct. Optional-to-ignore at the receiver (§6.1). |
 | `iat` / `exp` | MUST | NumericDate | `exp - iat` MUST be ≤ 60 (the 60-second TTL, §6.1). |
 | `jti` | MUST | 32 hex chars | Unique token id (§8.1). |
 | `aap_ver` | MAY (v1) | integer | Claim-schema version (Section 9.6). |
