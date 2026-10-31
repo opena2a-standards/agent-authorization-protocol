@@ -587,6 +587,17 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   "capital letter", and that the sentence that says such a noun is found before gate has
   both and "A to Z". A new test pins that failure and the failure on a sentence that has
   both and not "A to Z". The patterns and the decision notes are unchanged.
+- The changelog tests of `scripts/test_decision_note_terms.py` read the entries of the
+  newest section that has an entry with the path directly between two backticks. While an
+  entry under [Unreleased] has the path directly between two backticks, that section is
+  [Unreleased], as before. A release moves each entry under [Unreleased] into its own
+  section unchanged, so just after one no entry under [Unreleased] has the path directly
+  between two backticks; read from [Unreleased] alone, the list was empty and three tests
+  failed: the test that entries are read, the test that a sentence of an entry read names
+  [Unreleased], and the test on a common noun with a capital letter, A to Z. The tests then
+  read the entries of the newest released section that has such an entry, in the same way. A
+  new test pins both readings, and that an older released section is read only when no newer
+  one has such an entry. The patterns and the decision notes are unchanged.
 - `scripts/test_worked_example_status.py` counts each section number of a list in the
   paragraph after the resolution flow of `examples/orders-db-exchange.md`, reading a list
   after "Sections" or "§§" as `scripts/check_section_citations.py` does ("Sections 6.8 and

@@ -390,6 +390,15 @@ class PatternFormsTest(unittest.TestCase):
         )
 
 
+def section_entries(section):
+    """Each entry of the changelog section `section` that carries PATH_IN_BACKTICKS, as one line."""
+    return [
+        " ".join(entry.split())
+        for entry in re.split(r"\n(?=- )", section)
+        if PATH_IN_BACKTICKS in entry
+    ]
+
+
 def entries_read(changelog):
     """Each entry under [Unreleased] in `changelog` that carries PATH_IN_BACKTICKS, as one line.
 
@@ -398,16 +407,32 @@ def entries_read(changelog):
     """
     start = changelog.index("## [Unreleased]")
     end = changelog.find("\n## [", start + 1)
-    return [
-        " ".join(entry.split())
-        for entry in re.split(r"\n(?=- )", changelog[start:end])
-        if PATH_IN_BACKTICKS in entry
-    ]
+    return section_entries(changelog[start:end])
+
+
+def newest_entries_read(changelog):
+    """The entries read in the newest section of `changelog` that has one, each as one line.
+
+    That section is [Unreleased] while one of its entries carries
+    PATH_IN_BACKTICKS, and its entries are the ones entries_read() returns. A
+    release moves each entry under [Unreleased] into its own section unchanged,
+    so just after a release [Unreleased] has none; the entries are then read in
+    the newest released section that has one, in the same way.
+    """
+    entries = entries_read(changelog)
+    if entries:
+        return entries
+    start = changelog.index("## [Unreleased]")
+    for section in re.split(r"\n(?=## \[)", changelog[start:])[1:]:
+        entries = section_entries(section)
+        if entries:
+            return entries
+    return []
 
 
 def changelog_entries():
-    """The entries of CHANGELOG.md that entries_read() returns."""
-    return entries_read((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
+    """The entries of CHANGELOG.md that newest_entries_read() returns."""
+    return newest_entries_read((ROOT / "CHANGELOG.md").read_text(encoding="utf-8"))
 
 
 def sentences(entry):
@@ -498,6 +523,39 @@ class ChangelogEntriesTest(unittest.TestCase):
         ):
             with self.subTest(not_read=entry):
                 self.assertEqual(entries_read(changelog_with(entry)), [])
+
+    def test_the_newest_section_with_an_entry_read_is_read(self):
+        entry = f"- {PATH_IN_BACKTICKS} finds one more form."
+        moved = f"- {PATH_IN_BACKTICKS} is named in the newest released section."
+        older = f"- {PATH_IN_BACKTICKS} is named in an older released section."
+
+        def changelog(unreleased, newest):
+            return (
+                f"# Changelog\n\n## [Unreleased]\n\n{unreleased}"
+                "## [0.2.0-draft] - 2026-07-01\n\n### Changed\n\n"
+                f"{newest}- Another change.\n\n"
+                "## [0.1.0-draft] - 2026-06-01\n\n### Added\n\n"
+                f"{older}\n"
+            )
+
+        # Just after a release [Unreleased] has no entry: the entries the release
+        # moved are read, and not those of an older release.
+        released = changelog("", f"{moved}\n")
+        self.assertEqual(entries_read(released), [])
+        self.assertEqual(newest_entries_read(released), [moved])
+        # A newest release with no entry read: the next older one that has one.
+        self.assertEqual(newest_entries_read(changelog("", "")), [older])
+        # An entry under [Unreleased] that is not read leaves the released one read.
+        not_read = "### Changed\n\n- The match of scripts/test_decision_note_terms.py changed.\n\n"
+        self.assertEqual(entries_read(changelog(not_read, f"{moved}\n")), [])
+        self.assertEqual(newest_entries_read(changelog(not_read, f"{moved}\n")), [moved])
+        # While an entry under [Unreleased] is read, no released section is read.
+        unreleased = f"### Changed\n\n{entry}\n\n"
+        self.assertEqual(newest_entries_read(changelog(unreleased, f"{moved}\n")), [entry])
+        self.assertEqual(newest_entries_read(changelog_with(entry)), [entry])
+        # No section has an entry read.
+        none_read = "# Changelog\n\n## [Unreleased]\n\n## [0.1.0-draft] - 2026-06-01\n\n- A change.\n"
+        self.assertEqual(newest_entries_read(none_read), [])
 
     def assert_the_entries_read_are_stated_with_the_backticks(self, entries):
         """Fail on a sentence of `entries` that names UNRELEASED and not the backticks.
