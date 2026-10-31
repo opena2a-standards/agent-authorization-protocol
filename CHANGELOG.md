@@ -6,6 +6,24 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ## [Unreleased]
 
+### Changed
+
+- The BAC is an attestation of state, not an instrument of authority: Section 6.1 says a
+  receiver MAY condition a decision on a fact it attests and MUST NOT derive a permission
+  from it alone, that every BAC claim is optional-to-ignore (broker profile Section 8.3)
+  and that the BAC carries no `aap_crit`; the `session_label` row of Section 6.4 names it
+  optional-to-ignore at the receiver; Section 4.4.2 states that no token or message
+  carries an accumulated session label across a `peer_agent` hop in this revision. One
+  MUST NOT and two MAY are added to AAP-SPEC.md; the claim schemas, the generated fixtures
+  and the broker profile's requirement counts are unchanged. (#33)
+- The AIT and BAC claim schemas no longer state that no reference implementation mints
+  them; each description names the implementation status note of AAP-SPEC (Sections 3.2
+  and 6.3) as the record, and `scripts/check_status_claims.py` walks the description
+  strings of `schemas/*.json` so that wording cannot return there. (#33)
+- The CGT and DA claim schemas describe the deprecated `fga_constraints` member with the
+  words of AAP-SPEC Section 4.2, "No known implementation minted it", in place of a dated
+  statement. (#33)
+
 ## [0.6.0-draft] - 2026-10-31
 
 Internet-Draft pairing: `draft-fane-opena2a-aap-03` (document date 2026-11-02) carries this
