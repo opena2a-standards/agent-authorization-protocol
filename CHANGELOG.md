@@ -23,6 +23,14 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 - The CGT and DA claim schemas describe the deprecated `fga_constraints` member with the
   words of AAP-SPEC Section 4.2, "No known implementation minted it", in place of a dated
   statement. (#33)
+- `docs/examples.json` listed the conformance-suite command under `README.md`, which has
+  neither the section the entry names nor a fenced block; the entry is now under
+  `docs/use-cases.md`, whose section "The key an agent should never hold" shows the
+  command, and its `noexec` reason says that page shows the command and a summary comment
+  line in the same block, and no output block. `scripts/test_examples_record.py` checks,
+  for each entry, that its document has a heading titled as its section and that a line
+  of a fenced block in that section is its command. No requirement, schema or token
+  changes. (#165)
 
 ## [0.6.0-draft] - 2026-10-31
 
