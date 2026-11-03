@@ -603,9 +603,11 @@ rules of broker profile §6.10 are the duty of the broker that holds the session
 a receiver of the BAC. Because no BAC claim constrains an authority, every BAC claim is
 optional-to-ignore (broker profile §8.3) and the BAC carries no `aap_crit`.
 `session_label` (§6.4) is the signed report of the session high water mark: a receiver
-that understands it MAY refuse the subject on it or add it to its own session label (a
-union only adds labels), and a receiver that does not understand it loses a report, not a
-constraint.
+that understands it MAY refuse the subject on it, and a receiver that does not understand
+it loses a report, not a constraint. The report does not enter the receiving broker's
+session label, which is the union of what that broker admits (§4.4.2 and broker profile
+§6.10, Rule 2): in this revision the BAC is not a carrier of an accumulated session label
+across a `peer_agent` hop.
 
 ### 6.2 Three Levels
 - L1: build-time attestation (ATX + scan results).
