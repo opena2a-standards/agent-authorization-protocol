@@ -23,9 +23,8 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   the three sections give one rule: in this revision the BAC is not a carrier of an
   accumulated session label across a `peer_agent` hop. One permission is removed from a
   MAY sentence and the number of BCP 14 keywords in AAP-SPEC.md is unchanged.
-  `scripts/test_session_label_per_broker.py` fails on a sentence of AAP-SPEC.md or the
-  broker profile that names the BAC and grants or requires a receiver to add, merge or
-  union into its own session label. (#170)
+  `scripts/test_session_label_per_broker.py` fails on the previous Section 6.1 sentence
+  and passes on the new one. (#170)
 - The AIT and BAC claim schemas no longer state that no reference implementation mints
   them; each description names the implementation status note of AAP-SPEC (Sections 3.2
   and 6.3) as the record, and `scripts/check_status_claims.py` walks the description
