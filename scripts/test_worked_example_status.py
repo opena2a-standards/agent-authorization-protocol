@@ -5,14 +5,18 @@ examples/orders-db-exchange.md walks the v1 resolution in numbered steps. A step
 the v1 reference implementation does not perform carries a "v1:" note ("v1: audit
 record written, not signed" on step 7), so the flow does not present the step as
 performed, and the paragraph after the flow names the form of such a note by
-quoting one that a step carries. The policy sample carries no "v1:" note: its
-`issuerChainIncludes` and `jurisdiction` predicates are governed by broker profile
-Section 7.1, under which a broker that does not evaluate a predicate refuses at
-load a clause carrying it, and the example's reference spelling note names both
-predicates and says what the reference implementation does with them. Version
-negotiation is also marked as a conformance Level 2 requirement (broker profile
-Section 13). The implementation status note of broker profile Section 14 names
-the signature on audit records among what its list does not describe.
+quoting one that a step carries. The policy sample carries no "v1:" note, and its
+`match` clause carries only predicates that broker profile Section 7.1, in the
+sentence that names them, has a broker evaluate at every conformance level: the
+flow grants the sample at step 3, the v1 reference targets Level 1, and under
+Section 7.1 a broker that does not evaluate a predicate refuses at load a clause
+carrying it. The note under the sample names each predicate of the Section 7.1
+clause that the sample leaves out, and the example's reference spelling note
+names `issuerChainIncludes` and `jurisdiction` and says what the reference
+implementation does with them. Version negotiation is also marked as a
+conformance Level 2 requirement (broker profile Section 13). The implementation
+status note of broker profile Section 14 names the signature on audit records
+among what its list does not describe.
 
 The paragraph after the flow cites, for each of the three steps, the broker
 profile section that defines it: the first broker profile section the paragraph
@@ -68,6 +72,29 @@ STATUS_PARAGRAPH = "A `v1:` note marks"
 # whose note the paragraph quotes as the form of a `v1:` note, and the note.
 NOTE_FORM = re.compile(r'in the form step (\d+) uses \("(v1: [^"]+)"\)')
 REFERENCE_NOTE = "**Reference spelling.**"
+# The note under the policy sample on the predicates of the canonical federation
+# clause of broker profile Section 7.1 that the sample leaves out.
+LEVEL_1_NOTE = "**Level 1 binding.**"
+# A predicate of the `match` clause of a policy binding: "    oasbLevel: ...".
+MATCH_ENTRY = re.compile(r"    (?P<name>[A-Za-z]+): \S")
+# The sentence of broker profile Section 7.1 that names what a broker evaluates
+# at every conformance level: "`trustClass`, `oasbLevel`, `mode`, `scope` and
+# `ttl` are evaluated at every conformance level".
+EVERY_LEVEL = re.compile(
+    r"((?:`\w+`(?:, |,? and ))*`\w+`) are evaluated at every conformance level"
+)
+# The policy sample with the `match` predicates it carried when it printed the
+# canonical federation clause of broker profile Section 7.1, comments left out.
+FEDERATION_SAMPLE = """\
+- grant: grant://orders-db
+  match:
+    issuerChainIncludes: { partnersSet: trusted-partners }
+    oasbLevel: ">=L2"
+    trustClass: acme.com/orders:read
+    jurisdiction: { in: [us, eu] }
+  resolve:
+    mode: exchange
+"""
 # The match predicates the reference policy loader loads without evaluating,
 # read from `src/broker/grant-policy.ts` at commit 660af0d, the commit the
 # reference spelling note cites. Broker profile Section 7.1 requires a broker
@@ -119,27 +146,70 @@ def implementation_status_note():
     return " ".join(note[:note.index("\n\n")].split())
 
 
+def example_paragraph(opening):
+    """The paragraph of the example that starts with `opening`, line breaks read as spaces."""
+    text = EXAMPLE.read_text(encoding="utf-8")
+    start = text.index(opening)
+    return " ".join(text[start:text.index("\n\n", start)].split())
+
+
 def status_paragraph():
     """The paragraph after the flow that cites the sections, line breaks read as spaces."""
-    text = EXAMPLE.read_text(encoding="utf-8")
-    start = text.index(STATUS_PARAGRAPH)
-    return " ".join(text[start:text.index("\n\n", start)].split())
+    return example_paragraph(STATUS_PARAGRAPH)
 
 
 def reference_spelling_note():
     """The note under the policy sample on the reference spelling, line breaks read as spaces."""
-    text = EXAMPLE.read_text(encoding="utf-8")
-    start = text.index(REFERENCE_NOTE)
-    return " ".join(text[start:text.index("\n\n", start)].split())
+    return example_paragraph(REFERENCE_NOTE)
 
 
-def policy_sample():
-    """The lines of the example's policy sample, its one fenced yaml block."""
-    text = EXAMPLE.read_text(encoding="utf-8")
+def level_1_note():
+    """The note under the policy sample on the predicates it leaves to Section 7.1."""
+    return example_paragraph(LEVEL_1_NOTE)
+
+
+def policy_sample(document=EXAMPLE):
+    """The lines of the one fenced yaml block of `document`: the example's policy sample,
+    or the canonical federation clause of Section 7.1 when `document` is the broker profile."""
+    text = document.read_text(encoding="utf-8")
     blocks = re.findall(r"^```yaml\n(.*?)^```$", text, flags=re.M | re.S)
     if len(blocks) != 1:
-        raise AssertionError(f"{EXAMPLE.name}: {len(blocks)} fenced yaml blocks, want 1")
+        raise AssertionError(f"{document.name}: {len(blocks)} fenced yaml blocks, want 1")
     return blocks[0].splitlines()
+
+
+def match_predicates(lines):
+    """The names of the predicates of the `match` clause of a policy binding, in order."""
+    start = lines.index("  match:")
+    names = []
+    for line in lines[start + 1:]:
+        if not line.startswith("    "):
+            break
+        entry = MATCH_ENTRY.match(line)
+        if entry is None:
+            raise AssertionError(f"not a predicate of a match clause: {line!r}")
+        names.append(entry["name"])
+    if not names:
+        raise AssertionError("the match clause has no predicates")
+    return names
+
+
+def evaluated_at_every_level():
+    """The names broker profile Section 7.1 has a broker evaluate at every conformance level."""
+    found = EVERY_LEVEL.findall(profile_section("7.1") or "")
+    if len(found) != 1:
+        raise AssertionError(
+            f"broker profile Section 7.1: {len(found)} sentences name what a broker evaluates"
+            " at every conformance level, want 1"
+        )
+    return re.findall(r"`(\w+)`", found[0])
+
+
+def not_evaluated_at_every_level(predicates):
+    """The predicates that broker profile Section 7.1 does not name among those a broker
+    evaluates at every conformance level, in order."""
+    every_level = evaluated_at_every_level()
+    return [name for name in predicates if name not in every_level]
 
 
 def profile_section(number):
@@ -222,6 +292,37 @@ class WorkedExampleStatusTest(unittest.TestCase):
                 self.assertIn(f"`{predicate}`", note)
         self.assertIn("does not evaluate them to refuse at load", note)
         self.assertIn("broker profile §7.1", note)
+
+    def test_the_policy_sample_matches_only_on_what_every_level_evaluates(self):
+        # The flow grants the sample at step 3, and the v1 reference targets
+        # Level 1. Under broker profile Section 7.1 a broker that does not
+        # evaluate a predicate refuses at load a clause carrying it, so the
+        # sample matches only on what Section 7.1 has a broker evaluate at
+        # every conformance level.
+        self.assertIn("evaluate policy", flow_steps()[3])
+        self.assertEqual(not_evaluated_at_every_level(match_predicates(policy_sample())), [])
+
+    def test_a_federation_predicate_in_the_policy_sample_is_detected(self):
+        self.assertEqual(
+            not_evaluated_at_every_level(match_predicates(FEDERATION_SAMPLE.splitlines())),
+            ["issuerChainIncludes", "jurisdiction"],
+        )
+
+    def test_the_note_names_each_predicate_the_sample_leaves_to_section_7_1(self):
+        # The canonical federation clause of Section 7.1 grants the same resource
+        # with predicates the sample leaves out; the note under the sample names
+        # each, cites the refusal at load of Section 7.1 and the missing ATX claim
+        # of Section 9, and names the step at which a broker denies.
+        sample = match_predicates(policy_sample())
+        left = [name for name in match_predicates(policy_sample(PROFILE)) if name not in sample]
+        self.assertTrue(left, "the policy sample carries each predicate of the Section 7.1 clause")
+        note = level_1_note()
+        for name in left:
+            with self.subTest(predicate=name):
+                self.assertIn(f"`{name}`", note)
+        for phrase in ("broker profile §7.1", "broker profile §9", "at load", "at step 3"):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, note)
 
     def test_each_unperformed_step_cites_the_section_that_defines_it(self):
         cited = {int(step): number for step, number in STEP_SECTION.findall(status_paragraph())}

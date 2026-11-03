@@ -31,6 +31,23 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   for each entry, that its document has a heading titled as its section and that a line
   of a fenced block in that section is its command. No requirement, schema or token
   changes. (#165)
+- The policy sample of `examples/orders-db-exchange.md` matches on `oasbLevel` and
+  `trustClass` only, which broker profile Section 7.1 has a broker evaluate at every
+  conformance level, so the clause the resolution flow grants at step 3 carries only
+  predicates a Level 1 broker evaluates. The sample printed the canonical federation clause
+  of Section 7.1, whose `issuerChainIncludes` and `jurisdiction` predicates are required to
+  be evaluated only at Level 3: a broker that leaves either unevaluated refuses that clause
+  at load, and an ATX as currently specified carries no jurisdiction claim (Section 9), so a
+  broker that evaluates `jurisdiction` denies at step 3, and with such an ATX the flow did
+  not reach the exchange it drew. A note under the sample names both predicates and leaves
+  that clause to Section 7.1, and the reference spelling note says what the reference
+  implementation at commit `660af0d` does with the clause that carries them, where it said
+  it of the sample. AAP-SPEC.md and the broker profile are unchanged.
+  `scripts/test_worked_example_status.py` checks that each `match` predicate of the sample
+  is named in the Section 7.1 sentence on what a broker evaluates at every conformance
+  level, that the predicates the sample printed before fail that check, and that the note
+  under the sample names each predicate of the Section 7.1 clause that the sample leaves
+  out. (#167)
 
 ## [0.6.0-draft] - 2026-10-31
 

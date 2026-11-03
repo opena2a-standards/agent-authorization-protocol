@@ -34,10 +34,8 @@ grant resolves through an OAuth token exchange rather than a vaulted secret or a
 # Lives on the operator's host. The agent never sees any of this.
 - grant: grant://orders-db
   match:
-    issuerChainIncludes: { partnersSet: trusted-partners }   # broker profile §7.1: refused at load by a broker that does not evaluate it
     oasbLevel: ">=L2"                                         # from ATX scanSummary
     trustClass: acme.com/orders:read                          # ATX capability
-    jurisdiction: { in: [us, eu] }                            # broker profile §7.1: refused at load by a broker that does not evaluate it
   resolve:
     mode: exchange
     provider: orders-idp        # thin adapter (e.g. Okta), name lives ONLY here (reference loader: providerId)
@@ -46,17 +44,27 @@ grant resolves through an OAuth token exchange rather than a vaulted secret or a
     ttl: 300s                   # reference loader: ttlSeconds: 300
 ```
 
+**Level 1 binding.** The `match` clause above carries only `oasbLevel` and `trustClass`, which
+broker profile §7.1 has a broker evaluate at every conformance level, so a Level 1 broker evaluates
+both, against the scan summary and the capabilities of the presented ATX. The canonical federation
+clause of broker profile §7.1 grants the same resource and also matches on `issuerChainIncludes`
+and `jurisdiction`, which are required to be evaluated only at Level 3. This example leaves that
+clause to broker profile §7.1 because, with an ATX as currently specified, the flow below would
+not reach the exchange of step 5 with it: a broker that leaves either predicate unevaluated
+refuses that clause at load, and such an ATX carries no jurisdiction claim (broker profile §9), so
+a broker that evaluates `jurisdiction` finds that predicate not satisfied and denies at step 3.
+
 **Reference spelling.** The binding above is written in the policy grammar of broker profile §7.1.
 At commit `660af0d` the policy loader of the reference implementation accepts `mode`, `providerId`,
 `scope`, `audience` and `ttlSeconds` in a `resolve` clause and refuses any other key, so it refuses
-the binding as written. It loads the binding once `provider: orders-idp` reads
-`providerId: orders-idp` and `ttl: 300s` reads `ttlSeconds: 300`; the `match` clause loads as
-written, `issuerChainIncludes` and `jurisdiction` included: at that commit the loader checks the
-shape of those two predicates and loads them, and the evaluation of a loaded clause reads neither,
-so the clause grants as if both were satisfied, which broker profile §7.1 requires a broker that
-does not evaluate them to refuse at load. The keys a given release accepts, and whether it refuses
-such a clause, are recorded in the reference implementation's repository, in
-`src/broker/grant-policy.ts`.
+the binding as written; it takes `providerId: orders-idp` for `provider: orders-idp` and
+`ttlSeconds: 300` for `ttl: 300s`. At that commit the loader loads the federation clause of broker
+profile §7.1 once its `resolve` clause is spelled the same way, `issuerChainIncludes` and
+`jurisdiction` included: it checks the shape of those two predicates and loads them, and the
+evaluation of a loaded clause reads neither, so that clause grants as if both were satisfied,
+which broker profile §7.1 requires a broker that does not evaluate them to refuse at load. The
+keys a given release accepts, and whether it refuses such a clause, are recorded in the reference
+implementation's repository, in `src/broker/grant-policy.ts`.
 
 ## 3. Resolution flow (Section 6 of the broker profile)
 
