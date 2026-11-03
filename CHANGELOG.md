@@ -16,6 +16,15 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   carries an accumulated session label across a `peer_agent` hop in this revision. One
   MUST NOT and two MAY are added to AAP-SPEC.md; the claim schemas, the generated fixtures
   and the broker profile's requirement counts are unchanged. (#33)
+- Section 6.1 no longer lets a receiver that understands the BAC `session_label` add it
+  to its own session label; it MAY still refuse the subject on it. The section now states
+  that the report does not enter the receiving broker's session label, which is the union
+  of what that broker admits (Section 4.4.2 and broker profile Section 6.10, Rule 2), so
+  the three sections give one rule: in this revision the BAC is not a carrier of an
+  accumulated session label across a `peer_agent` hop. One permission is removed from a
+  MAY sentence and the number of BCP 14 keywords in AAP-SPEC.md is unchanged.
+  `scripts/test_session_label_per_broker.py` fails on the previous Section 6.1 sentence
+  and passes on the new one. (#170)
 - The AIT and BAC claim schemas no longer state that no reference implementation mints
   them; each description names the implementation status note of AAP-SPEC (Sections 3.2
   and 6.3) as the record, and `scripts/check_status_claims.py` walks the description
@@ -23,6 +32,31 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 - The CGT and DA claim schemas describe the deprecated `fga_constraints` member with the
   words of AAP-SPEC Section 4.2, "No known implementation minted it", in place of a dated
   statement. (#33)
+- `docs/examples.json` listed the conformance-suite command under `README.md`, which has
+  neither the section the entry names nor a fenced block; the entry is now under
+  `docs/use-cases.md`, whose section "The key an agent should never hold" shows the
+  command, and its `noexec` reason says that page shows the command and a summary comment
+  line in the same block, and no output block. `scripts/test_examples_record.py` checks,
+  for each entry, that its document has a heading titled as its section and that a line
+  of a fenced block in that section is its command. No requirement, schema or token
+  changes. (#165)
+- The policy sample of `examples/orders-db-exchange.md` matches on `oasbLevel` and
+  `trustClass` only, which broker profile Section 7.1 has a broker evaluate at every
+  conformance level, so the clause the resolution flow grants at step 3 carries only
+  predicates a Level 1 broker evaluates. The sample printed the canonical federation clause
+  of Section 7.1, whose `issuerChainIncludes` and `jurisdiction` predicates are required to
+  be evaluated only at Level 3: a broker that leaves either unevaluated refuses that clause
+  at load, and an ATX as currently specified carries no jurisdiction claim (Section 9), so a
+  broker that evaluates `jurisdiction` denies at step 3, and with such an ATX the flow did
+  not reach the exchange it drew. A note under the sample names both predicates and leaves
+  that clause to Section 7.1, and the reference spelling note says what the reference
+  implementation at commit `660af0d` does with the clause that carries them, where it said
+  it of the sample. AAP-SPEC.md and the broker profile are unchanged.
+  `scripts/test_worked_example_status.py` checks that each `match` predicate of the sample
+  is named in the Section 7.1 sentence on what a broker evaluates at every conformance
+  level, that the predicates the sample printed before fail that check, and that the note
+  under the sample names each predicate of the Section 7.1 clause that the sample leaves
+  out. (#167)
 
 ## [0.6.0-draft] - 2026-10-31
 
