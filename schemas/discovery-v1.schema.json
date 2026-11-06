@@ -94,8 +94,8 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 255,
-      "pattern": "^/(?![/\\\\])",
-      "not": { "pattern": "[\\\\\\u0000-\\u0020\\u007f]" }
+      "pattern": "^/([^/\\\\]|$)",
+      "not": { "pattern": "[\\\\\\x00-\\x20\\x7f]" }
     },
     "browserSession": {
       "description": "The browser session member (broker profile section 8.5.2): the requests to the origin that serves the document which a browser-side consumer holds when an agent makes them in a customer's signed-in session. The member only restricts: a consumer never holds fewer requests, and never lets a held request go, because of it.",
@@ -123,7 +123,7 @@
                 "minLength": 1,
                 "maxLength": 255,
                 "pattern": "^/",
-                "not": { "pattern": "[*^|?#\\\\\\u0000-\\u0020\\u007f]" }
+                "not": { "pattern": "[*^|?#\\\\\\x00-\\x20\\x7f]" }
               },
               "category": {
                 "description": "What kind of request the entry holds. A consumer describes a held request in its own words from this value.",

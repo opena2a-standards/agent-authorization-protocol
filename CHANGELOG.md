@@ -101,6 +101,23 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   level, that the predicates the sample printed before fail that check, and that the note
   under the sample names each predicate of the Section 7.1 clause that the sample leaves
   out. (#167)
+- Three patterns of `schemas/discovery-v1.schema.json` now compile under Go's `regexp`,
+  which accepts RE2 syntax and refused all three, so a validator that compiles the schema's
+  patterns with it could not use the schema. Written as the engine receives each after JSON
+  decoding: the `delegationPath` pattern, `^/(?![/\\])`, a lookahead, is now
+  `^/([^/\\]|$)`, and the `not` patterns of `delegationPath` and of each `pathPrefix` spell
+  the characters U+0000 to U+0020 and U+007F as `\x00-\x20\x7f`, where they used `\u`
+  escapes. Under Python's `re` and under ECMA-262 with the `u` flag, each new pattern
+  accepts the same strings as the one it replaces over the 168,421 strings of up to four
+  characters drawn from 20 characters that include `/`, a backslash, the space, line breaks
+  and other controls, and Go's `regexp` accepts the same strings with each new pattern. Go's
+  `regexp` compiles each of the 57 patterns of `schemas/`.
+  `scripts/test_schema_pattern_syntax.py` refuses, in each pattern of `schemas/`, a group
+  that opens with `(?` other than `(?:`, and an escape other than a backslash before one of
+  `^$\.*+?()[]{}|/` (or `-` inside a character class), `\f`, `\n`, `\r`, `\t`, `\v`, or `\x`
+  and two hexadecimal digits. Each escape it allows matches the same one character under
+  the three engines, over the code points U+0000 to U+FFFF outside the surrogates and three
+  above them. One of its ten tests fails on the tree before this change. (#173)
 
 ## [0.6.0-draft] - 2026-10-31
 
