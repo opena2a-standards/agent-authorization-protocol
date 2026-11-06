@@ -653,11 +653,135 @@ initial bindings are:
 A broker publishes a discovery document (supported AAP versions, supported suites, the set of
 `authorization_details` entry types it understands, with the semantics of RFC 9396 §10
 `authorization_details_types_supported`, the presentation bindings it accepts, and static public
-key material for its broker-assertion signing key) at a well-known location on the **operator's own
-domain**. The member that carries the entry type set is named by the discovery document's own
-schema. A producer MUST NOT emit `authorization_details` toward a counterparty whose discovery
+key material for its broker-assertion signing key) at `/.well-known/aap` on the **operator's own
+origin** (Section 8.5.1). The member that carries the entry type set is named by the discovery
+document's own schema, `schemas/discovery-v1.schema.json`: it is `authorizationDetailsTypes`. A
+producer MUST NOT emit `authorization_details` toward a counterparty whose discovery
 document does not advertise every entry type the token carries (AAP-SPEC §4.4, producer rule). OpenA2A is never in
 the hot path of a resolution.
+
+#### 8.5.1 The discovery document
+
+An operator serves the discovery document, a JSON object (RFC 8259), at the path
+`/.well-known/aap` (RFC 8615) of its own origin: for the origin `https://bank.example` the
+document is `https://bank.example/.well-known/aap`. The document's schema is
+`schemas/discovery-v1.schema.json`, which names these members:
+
+| Member | Present | Value |
+|---|---|---|
+| `aapVersions` | when the operator runs a broker | the AAP protocol versions the broker supports (Section 8.1), as integers; v1 is `1` |
+| `signatureSuites` | when the operator runs a broker | the JOSE `alg` of each suite the broker supports, from the registry of AAP-SPEC §9.5 |
+| `authorizationDetailsTypes` | when the operator runs a broker | the `authorization_details` entry types the broker understands, as the registry URIs of AAP-SPEC §4.4.1; an empty array when it understands none |
+| `presentationBindings` | when the operator runs a broker | the bindings of Section 8.5 the broker accepts: `http`, `a2a-agent-card`, `mcp-manifest` |
+| `jwks` | when the operator runs a broker | a JWK Set (RFC 7517) with the public key of the broker-assertion signing key, under the `kid` a broker assertion names (AAP-SPEC §9.2); a key that carries a private member is invalid |
+| `acceptedIssuers` | optional | the DIDs of the credential issuers whose credentials the operator, as relying party, accepts; DIDs only, never a web address or a name |
+| `delegationPath` | optional | the path on the operator's origin where an agent obtains delegated authority from the operator, in place of acting in a customer's signed-in session (Section 8.5.2) |
+| `browserSession` | optional | the browser session member (Section 8.5.2) |
+
+The five broker members are present together or not at all: an operator that runs a broker
+publishes all five, and an operator that runs none publishes none of them. A document that holds
+only `browserSession` is valid. `acceptedIssuers` and `delegationPath` sit at the top level of the
+document because a counterparty of the broker and a browser-side consumer both read them. A reader
+ignores a member it does not know, as a verifier ignores an unknown optional claim (Section 8.3),
+and a value it does not know in `signatureSuites` or `presentationBindings`. No member carries
+text for a reader to display. This example, the schema's first, is the document of an operator
+that runs a broker and publishes the browser session member; its paths are illustrative, and its
+key is `broker-key-1` of `examples/tokens/test-keys.json`, the key that signs the compact EdDSA
+CGT and DA fixtures there:
+
+```json
+{
+  "aapVersions": [1],
+  "signatureSuites": ["EdDSA"],
+  "authorizationDetailsTypes": [
+    "https://specs.opena2a.org/aap/types/data",
+    "https://specs.opena2a.org/aap/types/budget"
+  ],
+  "presentationBindings": ["http"],
+  "jwks": {
+    "keys": [
+      {
+        "kty": "OKP",
+        "crv": "Ed25519",
+        "x": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+        "kid": "broker-key-1",
+        "use": "sig",
+        "alg": "EdDSA"
+      }
+    ]
+  },
+  "acceptedIssuers": ["did:opena2a:authority:opena2a.org"],
+  "delegationPath": "/agents/delegate",
+  "browserSession": {
+    "profile": "1",
+    "protectedRequests": [
+      { "method": "POST", "pathPrefix": "/api/session", "category": "sign-in" },
+      { "method": "POST", "pathPrefix": "/api/transfers", "category": "payment" },
+      { "method": "PUT", "pathPrefix": "/api/payees/", "category": "payee" },
+      { "method": "PATCH", "pathPrefix": "/api/profile/contact", "category": "contact" },
+      { "method": "DELETE", "pathPrefix": "/api/security/devices/", "category": "security-setting" }
+    ]
+  }
+}
+```
+
+#### 8.5.2 The browser session member
+
+The `browserSession` member lets an operator, such as a bank, name the requests to its origin that
+a browser-side consumer holds when an agent makes them in a customer's signed-in session. A
+*consumer* is a component of the customer's browser, such as an extension, that sees the requests
+an agent makes in that session and can hold them. To *hold* a request is to keep it from being
+sent on the agent's action alone: the consumer sends it only after the customer confirms it in the
+consumer's own interface, and otherwise cancels it. How a consumer tells an agent's request from
+the customer's own, and how it asks the customer, are outside this profile.
+
+The member holds `profile`, the string `"1"` for this profile, and `protectedRequests`, 1 to 64
+entries of three members each:
+
+- `method`: `POST`, `PUT`, `PATCH` or `DELETE`;
+- `pathPrefix`: a literal path that starts with `/`, at most 255 characters, holding none of `*`,
+  `^`, `|`, `?`, `#` and `\`, and no space or control character;
+- `category`: `sign-in`, `payment`, `payee`, `contact` or `security-setting`, the kind of request
+  the entry holds.
+
+No member of the entry is free text. A `profile` other than `"1"` fails validation, so a consumer
+that knows only this version reads a later one as a member that fails validation (rule 6).
+
+A consumer that reads the member follows these rules:
+
+1. **The member only restricts.** A consumer holds each request an entry matches, in addition to
+   any request its own configuration holds. It MUST NOT hold fewer requests, or let a held request
+   go, because of the member or of any other member of the document.
+2. **The scope is the exact origin.** An entry applies only to requests to the origin (scheme,
+   host and port, RFC 6454) that served the document. It never applies to a subdomain of that
+   host, to the same host under another scheme or port, or to another origin. An operator whose
+   requests go to more than one origin publishes a document on each.
+3. **Matching.** A request matches an entry when its method is the entry's `method` and the path
+   of its URL, as the URL Standard serializes it, starts with the entry's `pathPrefix` after the
+   consumer percent-encodes the prefix with the path percent-encode set of the URL Standard. The
+   consumer compares ASCII letters without regard to case. It MAY hold a request that no entry
+   matches.
+4. **Fetch.** A consumer fetches the document with a GET request to `/.well-known/aap` on the
+   origin, over HTTPS only. It follows no redirect: a 3xx response is a failed fetch. It sends no
+   cookie and no other credential (the credentials mode `omit` of the Fetch Standard). It reads at
+   most 65,536 bytes of the body, and a longer body is a failed fetch. It accepts only a 200
+   response whose media type is `application/json`. A 404 or 410 response means that the origin
+   publishes no document.
+5. **The delegation path stays on the origin.** A consumer resolves `delegationPath` against the
+   document's origin, with the URL parser it uses to open the result, and drops the value unless
+   the result's origin equals the document's origin. It opens no value it dropped, and opening the
+   delegation path never lets a held request go.
+6. **A member that fails validation yields the floor.** For an origin that the consumer's own
+   configuration lists, a `browserSession` member that fails validation against its subschema in
+   `schemas/discovery-v1.schema.json` yields the floor of this profile: the consumer holds every
+   POST, PUT, PATCH and DELETE request to that origin. A fetch that fails under rule 4, other than
+   a 404 or 410 response, and a body that is not a JSON object yield the floor too. A consumer
+   never applies an absent or looser policy in their place. A member of the document that the
+   consumer does not read does not change how it reads `browserSession`.
+7. **No text from the document.** A consumer MUST NOT show the customer text taken from the
+   document. It describes a held request in its own words, from the entry's `category`.
+
+Section 12.5 gives the security reasons for these rules.
 
 ---
 
@@ -698,8 +822,9 @@ coherent.
   - version negotiation (8.1), cryptographic agility (8.2), and safe-ignore claim handling (8.3);
   - the meaning of the base trust-class and federation attributes consumed from the ATX.
 - **Extensible edge (fast-changing), out of conformance scope:** CPI provider implementations,
-  policy-grammar vendor extensions, optional claims, additional transports and bindings, and
-  deployment-specific scopes.
+  policy-grammar vendor extensions, optional claims, additional transports and bindings,
+  deployment-specific scopes, and the location of the discovery document (`/.well-known/aap`,
+  Section 8.5.1) with its `browserSession` member (Section 8.5.2).
 
 The conformance program polices the core and stays out of the edge.
 
@@ -768,6 +893,29 @@ preferred (Section 5.4).
 Opaque denials (Section 6.6) prevent an adversary from mapping a deployment's backends, providers,
 or policy by probing grant references. The audit log retains full diagnostic detail for operators.
 
+### 12.5 The browser session member
+
+The rules of Section 8.5.2 are written for a discovery document that is wrong or that an attacker
+controls.
+
+- **Restricting only.** A document can add requests that a consumer holds and can remove none, so
+  an altered document can delay the requests it names and cannot release a request the consumer's
+  own configuration holds.
+- **The exact origin.** A page on a subdomain or on another origin cannot publish a member that
+  governs the operator's requests, and the operator's member governs requests to no other origin.
+- **The delegation path.** A URL parser reads a backslash as `/` and removes a tab or a line
+  break, so a value that starts with `/` can still name another origin. Rule 5 compares origins
+  after resolution, so it does not depend on the form of the value.
+- **The fetch.** A consumer follows no redirect, so the document cannot come from another origin,
+  and it sends no cookie, so the response cannot depend on the customer's session.
+- **No text.** A consumer that showed text from the document would show its author's words in an
+  interface the customer trusts. Its own words for each `category` keep a phishing message out of
+  that interface.
+- **What a prefix covers.** A server can route a path that a consumer reads as different (a
+  percent-encoded unreserved character, a repeated slash, a parameter after a semicolon) to the
+  handler an entry holds. An entry holds only the paths its prefix matches, so an operator lists
+  the shortest prefix that covers each handler; the prefix `/` covers every path of the origin.
+
 ---
 
 ## 13. Conformance Levels
@@ -825,7 +973,9 @@ value or backend identifier appear in the agent context.
 
 A future Internet-Draft will request registries for: AAP protocol versions; CPI mode identifiers;
 signature suite identifiers (coordinated with the ATX suite registry); and the `grant` URI scheme.
-Until then, identifiers are managed in this specification.
+Until then, identifiers are managed in this specification. AAP-SPEC Section 10 requests the `aap`
+suffix in the Well-Known URIs registry (RFC 8615) for the location of the discovery document
+(Section 8.5.1).
 
 ---
 
@@ -835,6 +985,15 @@ Until then, identifiers are managed in this specification.
 
 - **RFC 2119 / RFC 8174**, Key words for requirement levels.
 - **RFC 3986**, Uniform Resource Identifier (URI): Generic Syntax.
+- **RFC 6454**, The Web Origin Concept (the origin of Section 8.5.2).
+- **RFC 7517**, JSON Web Key (JWK) (the `jwks` member of Section 8.5.1).
+- **RFC 8259**, The JavaScript Object Notation (JSON) Data Interchange Format (the discovery
+  document of Section 8.5.1).
+- **RFC 8615**, Well-Known Uniform Resource Identifiers (URIs) (the location of Section 8.5.1).
+- **URL Standard**, WHATWG, https://url.spec.whatwg.org/ (the path serialization and the path
+  percent-encode set of Section 8.5.2).
+- **Fetch Standard**, WHATWG, https://fetch.spec.whatwg.org/ (the credentials mode of
+  Section 8.5.2).
 - **RFC 8693**, OAuth 2.0 Token Exchange.
 - **RFC 7009**, OAuth 2.0 Token Revocation (the downstream credential revocation of Section 6.13).
 - **RFC 9396**, OAuth 2.0 Rich Authorization Requests (the `authorization_details` claim).

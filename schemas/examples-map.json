@@ -38,5 +38,10 @@
     "file": "AAP-SPEC.md",
     "heading": "### 6.5 Example with a session label",
     "schema": "schemas/bac-claims-v1.schema.json"
+  },
+  {
+    "file": "AAP-BROKER-PROFILE.md",
+    "heading": "#### 8.5.1 The discovery document",
+    "schema": "schemas/discovery-v1.schema.json"
   }
 ]

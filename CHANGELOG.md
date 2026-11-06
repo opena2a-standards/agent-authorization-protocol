@@ -6,6 +6,50 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
 
 ## [Unreleased]
 
+### Added
+
+- The discovery document has a location and a schema. Broker profile Section 8.5 places it at
+  `/.well-known/aap` on the operator's own origin, and the new Section 8.5.1 defines it:
+  `schemas/discovery-v1.schema.json` names the five broker members (`aapVersions`,
+  `signatureSuites`, `authorizationDetailsTypes`, `presentationBindings` and `jwks`), present
+  together when the operator runs a broker, of which `authorizationDetailsTypes` carries the
+  entry type set that the producer rule of AAP-SPEC Section 4.4 reads; `acceptedIssuers`, the DIDs
+  of the credential issuers the operator accepts as relying party; `delegationPath`; and
+  `browserSession`. A document that holds only `browserSession` is valid, the schema allows
+  unknown members at every level, and a key in `jwks` that carries a private member is rejected.
+  The example of Section 8.5.1 is the schema's first example, and `schemas/examples-map.json` maps
+  it to the schema, so `scripts/validate_examples.py` validates it.
+- Broker profile Section 8.5.2, the browser session member: an operator such as a bank names 1 to
+  64 requests to its origin, each a `method` (POST, PUT, PATCH or DELETE), a literal `pathPrefix`
+  and a `category` (`sign-in`, `payment`, `payee`, `contact` or `security-setting`), that a
+  browser-side consumer holds when an agent makes them in a customer's signed-in session. Seven
+  rules bind a consumer: the member only restricts; an entry applies to the exact origin that
+  served the document and to no subdomain or other origin; how an entry matches a request; the
+  fetch (HTTPS only, no redirect followed, no cookie, at most 65,536 bytes of body,
+  `application/json`); a `delegationPath` that does not resolve to the document's origin is
+  dropped; a member that fails validation, for an origin the consumer's own configuration lists,
+  yields the floor (every POST, PUT, PATCH and DELETE request to that origin held), never an
+  absent or looser policy; and a consumer shows no text taken from the document. Section 12.5
+  gives the security reasons, and Section 10 lists the location and the member in the extensible
+  edge, not the mandatory core. The broker profile gains two MUST NOT and one MAY, and its
+  normative references gain RFC 6454, RFC 7517, RFC 8259, RFC 8615, the URL Standard and the
+  Fetch Standard.
+- AAP-SPEC Section 10 requests the `aap` suffix in the Well-Known URIs registry (RFC 8615), and
+  RFC 8615 joins the normative references of AAP-SPEC.md. The number of BCP 14 keywords in
+  AAP-SPEC.md is unchanged. The Internet-Draft renders are unchanged, so
+  `draft-fane-opena2a-aap-03` does not carry the registration.
+- `scripts/test_discovery_document.py` validates 46 documents against the schema, 12 with the
+  outcome ACCEPT and 34 with REJECT. Among them: a document with the broker members and
+  `browserSession`, and one with `browserSession` alone, are accepted; a `delegationPath` of
+  `//other.example/x`, a `delegationPath` that is an absolute URL, a `pathPrefix` containing `*`,
+  a `method` of GET and 65 entries are rejected; and a document with an unknown member is
+  accepted. The file also checks that Section 8.5 names the location, that the example of
+  Section 8.5.1 equals the schema's first example, that the floor of Section 8.5.2 names each
+  method the schema allows, that AAP-SPEC Section 10 names the suffix and RFC 8615, and that
+  broker profile Section 10 lists the location and the member under the extensible edge only.
+  Ten of its eleven tests fail on the tree before this change. `scripts/test_schema_line_breaks.py`
+  lists the one pattern of the new schema that ends with `$`.
+
 ### Changed
 
 - The BAC is an attestation of state, not an instrument of authority: Section 6.1 says a
