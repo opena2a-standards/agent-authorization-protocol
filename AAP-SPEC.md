@@ -992,6 +992,15 @@ Claims registry by RFC 9396 and RFC 7800; `aap_crit` would be registered by a fu
 revision. Until IANA registries exist, the suite registry of Section 9.5 and the entry
 type registry of Section 4.4.1 are managed in this specification.
 
+This document also requests registration of the `aap` suffix in the Well-Known URIs registry
+that RFC 8615 establishes, for the discovery document of broker profile Section 8.5.1:
+
+- URI suffix: `aap`
+- Change controller: IETF
+- Specification document(s): this document and broker profile Section 8.5.1
+- Status: permanent
+- Related information: none
+
 ## 11. References
 
 ### Normative References
@@ -1001,6 +1010,7 @@ type registry of Section 4.4.1 are managed in this specification.
 - [RFC 7519], JSON Web Token (JWT).
 - [RFC 8037], CFRG Elliptic Curve Signatures in JOSE (`EdDSA`).
 - [RFC 8693], OAuth 2.0 Token Exchange.
+- [RFC 8615], Well-Known Uniform Resource Identifiers (URIs) (the `aap` suffix, Section 10).
 - [RFC 9396], OAuth 2.0 Rich Authorization Requests (the `authorization_details` claim).
 - [RFC 7800], Proof-of-Possession Key Semantics for JSON Web Tokens (the `cnf` claim).
 - [RFC 7638], JSON Web Key (JWK) Thumbprint.

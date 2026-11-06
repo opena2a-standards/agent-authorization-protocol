@@ -70,6 +70,8 @@ FIELDS = (
      "da-v1.fgc.claims.json", ("authorization_details", 0, "type")),
     ("da-claims-v1.schema.json", "/$defs/cnf/properties/jkt",
      "da-v1.fgc.claims.json", ("cnf", "jkt")),
+    ("discovery-v1.schema.json", "/properties/authorizationDetailsTypes/items",
+     None, ("authorizationDetailsTypes", 0)),
     ("grant-reference-v1.schema.json", "", None, ()),
     ("jws-general-v1.schema.json", "/properties/payload", "cgt-v1.general.json", ("payload",)),
     ("jws-general-v1.schema.json", "/properties/signatures/items/properties/protected",

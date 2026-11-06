@@ -19,6 +19,7 @@ hand-authored — by `scripts/generate_examples.py`, with a CI drift gate.
 | `da-claims-v1.schema.json` | AAP-SPEC §5.3 | Pinned, normative (reference realizes delegation via Exchange; whether a given release mints standalone DAs with an `act` chain is recorded in the reference implementation's repository, AAP-SPEC §5.5) |
 | `bac-claims-v1.schema.json` | AAP-SPEC §6.4 | Pinned, normative (which implementations mint BACs: the implementation status note of AAP-SPEC §6.3 names the record) |
 | `jws-general-v1.schema.json` | AAP-SPEC §9.4 | Pinned, normative (multi-suite container; hybrid Ed25519 + ML-DSA-65 profile active as of 0.4, RFC 9964) |
+| `discovery-v1.schema.json` | AAP-BROKER-PROFILE.md §8.5.1 and §8.5.2 | Pinned, normative (the discovery document at `/.well-known/aap`; its location and its `browserSession` member are in the extensible edge, broker profile §10) |
 
 ## The former blockers, and what pinned each
 

@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://specs.opena2a.org/schemas/aap/discovery-v1.schema.json",
+  "title": "AAP discovery document (broker profile, sections 8.5.1 and 8.5.2)",
+  "description": "The JSON object an operator serves at `/.well-known/aap` on its own origin (broker profile section 8.5.1). The five broker members (`aapVersions`, `signatureSuites`, `authorizationDetailsTypes`, `presentationBindings`, `jwks`) are present when the operator runs a broker, and then all five are present: `dependentRequired` makes each require the other four. A document holds the five broker members, `browserSession` (broker profile section 8.5.2), or both; a document that holds only `browserSession` is valid. `acceptedIssuers` and `delegationPath` sit at the top level because a counterparty of the broker and a browser-side consumer both read them. A reader ignores a member it does not know, as broker profile section 8.3 has a verifier ignore an unknown optional claim, so the schema allows unknown members at every level. No member the schema defines carries text for a reader to display. The `not` keyword beside the pattern of each `authorizationDetailsTypes` item rejects a line break, as in the CGT claim schema: under Python's `re.search`, which the jsonschema package uses, `$` also matches before a final line break. The other patterns end without `$` and reject a line break through their own `not` keyword.",
+  "type": "object",
+  "properties": {
+    "aapVersions": {
+      "description": "The AAP protocol versions the broker supports, for the negotiation of broker profile section 8.1.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "signatureSuites": {
+      "description": "The signature suites the broker supports, each the JOSE `alg` value of a row of the suite registry of AAP-SPEC section 9.5 (`EdDSA`, `ML-DSA-65`). A reader ignores a value it does not know.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "not": { "pattern": "[^A-Za-z0-9._-]" }
+      }
+    },
+    "authorizationDetailsTypes": {
+      "description": "The set of `authorization_details` entry types the broker understands, with the semantics of RFC 9396 section 10 `authorization_details_types_supported`. Each value is the registry URI of AAP-SPEC section 4.4.1, the wire value of an entry's `type`, under the pattern the CGT claim schema gives that `type`. The producer rule of AAP-SPEC section 4.4 reads this member. An empty array says that the broker understands no entry type.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^https://specs\\.opena2a\\.org/aap/types/[a-z_]+$",
+        "not": { "pattern": "\\n" }
+      }
+    },
+    "presentationBindings": {
+      "description": "The presentation bindings of broker profile section 8.5 that the broker accepts: `http` (the `Agent-Trust-Credential` header), `a2a-agent-card` and `mcp-manifest`. A reader ignores a value it does not know.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "not": { "pattern": "[^a-z0-9-]" }
+      }
+    },
+    "jwks": {
+      "description": "Static public key material for the broker-assertion signing key: a JWK Set (RFC 7517 section 5). Each key carries `kid`, the value the protected header of a broker assertion names (AAP-SPEC section 9.2). A key that carries a private or symmetric key member (`d`, `p`, `q`, `dp`, `dq`, `qi`, `oth`, `k`, `priv`) is rejected.",
+      "type": "object",
+      "required": ["keys"],
+      "properties": {
+        "keys": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["kty", "kid"],
+            "properties": {
+              "kty": { "type": "string", "minLength": 1 },
+              "kid": { "type": "string", "minLength": 1 }
+            },
+            "not": {
+              "anyOf": [
+                { "required": ["d"] },
+                { "required": ["p"] },
+                { "required": ["q"] },
+                { "required": ["dp"] },
+                { "required": ["dq"] },
+                { "required": ["qi"] },
+                { "required": ["oth"] },
+                { "required": ["k"] },
+                { "required": ["priv"] }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "acceptedIssuers": {
+      "description": "The DIDs of the credential issuers whose credentials the operator, as relying party, accepts. Each value is a DID: `did:`, a method name of lowercase letters and digits, a colon, and an identifier in the characters of a DID (letters, digits, `.`, `-`, `_`, `%` and `:`, with `/` for the resource identifiers of the did:opena2a method). A web address, a name and a DID URL with a query or a fragment are rejected. A consumer never holds fewer requests, and never lets a held request go, because of this member.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^did:[a-z0-9]+:[A-Za-z0-9._%-]",
+        "not": { "pattern": "[^A-Za-z0-9._:%/-]" }
+      }
+    },
+    "delegationPath": {
+      "description": "The path, on the origin that serves the document, where an agent obtains delegated authority from the operator in place of acting in a customer's signed-in session. A path of at most 255 characters that starts with a single `/`. A value that starts with `//`, or that holds a backslash, a space or a control character, is rejected: a URL parser reads a backslash as `/` and removes a tab or a line break, so either can turn the value into one that starts with `//` and names another origin. A reader resolves the value against the document's origin and drops it unless the result has that origin (broker profile section 8.5.2).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^/(?![/\\\\])",
+      "not": { "pattern": "[\\\\\\u0000-\\u0020\\u007f]" }
+    },
+    "browserSession": {
+      "description": "The browser session member (broker profile section 8.5.2): the requests to the origin that serves the document which a browser-side consumer holds when an agent makes them in a customer's signed-in session. The member only restricts: a consumer never holds fewer requests, and never lets a held request go, because of it.",
+      "type": "object",
+      "required": ["profile", "protectedRequests"],
+      "properties": {
+        "profile": {
+          "description": "The version of the browser session profile. A value other than \"1\" fails validation, so a consumer that knows only this version treats a later one as a member that fails validation (broker profile section 8.5.2).",
+          "const": "1"
+        },
+        "protectedRequests": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "type": "object",
+            "required": ["method", "pathPrefix", "category"],
+            "properties": {
+              "method": {
+                "enum": ["POST", "PUT", "PATCH", "DELETE"]
+              },
+              "pathPrefix": {
+                "description": "A literal path that starts with `/`, at most 255 characters, holding none of `*`, `^`, `|`, `?`, `#` and backslash, and no space or control character, so a consumer can match it as a literal prefix.",
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 255,
+                "pattern": "^/",
+                "not": { "pattern": "[*^|?#\\\\\\u0000-\\u0020\\u007f]" }
+              },
+              "category": {
+                "description": "What kind of request the entry holds. A consumer describes a held request in its own words from this value.",
+                "enum": ["sign-in", "payment", "payee", "contact", "security-setting"]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "anyOf": [
+    { "required": ["aapVersions", "signatureSuites", "authorizationDetailsTypes", "presentationBindings", "jwks"] },
+    { "required": ["browserSession"] }
+  ],
+  "dependentRequired": {
+    "aapVersions": ["signatureSuites", "authorizationDetailsTypes", "presentationBindings", "jwks"],
+    "signatureSuites": ["aapVersions", "authorizationDetailsTypes", "presentationBindings", "jwks"],
+    "authorizationDetailsTypes": ["aapVersions", "signatureSuites", "presentationBindings", "jwks"],
+    "presentationBindings": ["aapVersions", "signatureSuites", "authorizationDetailsTypes", "jwks"],
+    "jwks": ["aapVersions", "signatureSuites", "authorizationDetailsTypes", "presentationBindings"]
+  },
+  "examples": [
+    {
+      "aapVersions": [1],
+      "signatureSuites": ["EdDSA"],
+      "authorizationDetailsTypes": [
+        "https://specs.opena2a.org/aap/types/data",
+        "https://specs.opena2a.org/aap/types/budget"
+      ],
+      "presentationBindings": ["http"],
+      "jwks": {
+        "keys": [
+          {
+            "kty": "OKP",
+            "crv": "Ed25519",
+            "x": "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ",
+            "kid": "broker-key-1",
+            "use": "sig",
+            "alg": "EdDSA"
+          }
+        ]
+      },
+      "acceptedIssuers": ["did:opena2a:authority:opena2a.org"],
+      "delegationPath": "/agents/delegate",
+      "browserSession": {
+        "profile": "1",
+        "protectedRequests": [
+          { "method": "POST", "pathPrefix": "/api/session", "category": "sign-in" },
+          { "method": "POST", "pathPrefix": "/api/transfers", "category": "payment" },
+          { "method": "PUT", "pathPrefix": "/api/payees/", "category": "payee" },
+          { "method": "PATCH", "pathPrefix": "/api/profile/contact", "category": "contact" },
+          { "method": "DELETE", "pathPrefix": "/api/security/devices/", "category": "security-setting" }
+        ]
+      }
+    },
+    {
+      "browserSession": {
+        "profile": "1",
+        "protectedRequests": [
+          { "method": "POST", "pathPrefix": "/transfers/", "category": "payment" }
+        ]
+      }
+    }
+  ]
+}
