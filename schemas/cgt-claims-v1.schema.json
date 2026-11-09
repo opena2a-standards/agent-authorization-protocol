@@ -150,7 +150,7 @@
     },
     "cnf": {
       "type": "object",
-      "description": "RFC 7800 confirmation claim binding the token to the presenter's key (AAP-SPEC section 4.6). Exactly one of `jwk` (RFC 7800 section 3.2) or `jkt` (the RFC 7638 SHA-256 JWK thumbprint, base64url, as registered for `cnf` by RFC 9449).",
+      "description": "RFC 7800 confirmation claim binding the token to the presenter's key (AAP-SPEC section 4.6). Exactly one of `jwk` (RFC 7800 section 3.2) or `jkt` (the RFC 7638 SHA-256 JWK thumbprint, base64url, as registered for `cnf` by RFC 9449); `jwk` carries public key members only (AAP-SPEC section 4.6).",
       "oneOf": [
         { "required": ["jwk"] },
         { "required": ["jkt"] }
@@ -158,7 +158,34 @@
       "properties": {
         "jwk": {
           "type": "object",
-          "required": ["kty"]
+          "description": "RFC 7800 section 3.2, profiled by AAP-SPEC section 4.6: the presenter's public key, carrying only the public key members of a key type of an active row of the suite registry (section 9.5), with `kid` and `use` (`sig`) as the only other members. A member outside that set, a private or symmetric key member (`d`, `k`, `priv` among them) and a key type outside the registry are rejected.",
+          "required": ["kty"],
+          "properties": { "kty": { "enum": ["OKP", "AKP"] } },
+          "oneOf": [
+            {
+              "required": ["kty", "crv", "x"],
+              "properties": {
+                "kty": { "const": "OKP" },
+                "crv": { "const": "Ed25519" },
+                "x": { "type": "string", "minLength": 1 },
+                "kid": { "type": "string", "minLength": 1 },
+                "use": { "const": "sig" },
+                "alg": { "const": "EdDSA" }
+              },
+              "additionalProperties": false
+            },
+            {
+              "required": ["kty", "alg", "pub"],
+              "properties": {
+                "kty": { "const": "AKP" },
+                "alg": { "const": "ML-DSA-65" },
+                "pub": { "type": "string", "minLength": 1 },
+                "kid": { "type": "string", "minLength": 1 },
+                "use": { "const": "sig" }
+              },
+              "additionalProperties": false
+            }
+          ]
         },
         "jkt": {
           "type": "string",
