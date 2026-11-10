@@ -6,6 +6,7 @@ CI runs them through validate_examples.py.
 
 import contextlib
 import io
+import itertools
 import pathlib
 import sys
 import tempfile
@@ -171,9 +172,20 @@ class CitationTest(unittest.TestCase):
     def test_run_time_is_linear_in_a_run_of_unclosed_link_targets(self):
         # Reading the link target after each name to the end of the run took about 5 s
         # on these 100,000 characters; a target is now read up to 256 characters.
-        start = time.perf_counter()
+        # The bound is on the CPU time of this process, which does not grow while
+        # the process waits for a core; wall-clock time does.
+        start = time.process_time()
         self.assertEqual(found("AIP](" * 20000), [])
-        self.assertLess(time.perf_counter() - start, 2.0)
+        self.assertLess(time.process_time() - start, 2.0)
+
+    def test_run_time_bound_does_not_count_time_off_the_cpu(self):
+        # On a loaded machine the process waits for a core while wall clocks run on.
+        # Wall clocks that advance 10 s at each read stand in for that wait.
+        with contextlib.ExitStack() as stack:
+            for clock in ("monotonic", "perf_counter", "time"):
+                stack.enter_context(mock.patch.object(
+                    time, clock, side_effect=itertools.count(0.0, 10.0)))
+            self.test_run_time_is_linear_in_a_run_of_unclosed_link_targets()
 
     def test_a_citation_split_across_lines_carries_its_first_line(self):
         cites = citations("doc.md", "one\ntwo broker profile\n§8.1 three\n")

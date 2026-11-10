@@ -6,6 +6,7 @@ CI runs them through validate_examples.py.
 
 import contextlib
 import io
+import itertools
 import json
 import pathlib
 import shutil
@@ -165,10 +166,21 @@ class FindingsTest(unittest.TestCase):
     def test_run_time_is_linear_in_the_number_of_matches(self):
         # Counting newlines from the start of the text for every match took
         # 4.6 s on 44,444 matches; precomputed line starts take well under 1 s.
+        # The bound is on the CPU time of this process, which does not grow while
+        # the process waits for a core; wall-clock time does.
         text = "no implementation\n" * 44444
-        start = time.perf_counter()
+        start = time.process_time()
         self.assertEqual(len(findings(text)), 44444)
-        self.assertLess(time.perf_counter() - start, 2.0)
+        self.assertLess(time.process_time() - start, 2.0)
+
+    def test_run_time_bound_does_not_count_time_off_the_cpu(self):
+        # On a loaded machine the process waits for a core while wall clocks run on.
+        # Wall clocks that advance 10 s at each read stand in for that wait.
+        with contextlib.ExitStack() as stack:
+            for clock in ("monotonic", "perf_counter", "time"):
+                stack.enter_context(mock.patch.object(
+                    time, clock, side_effect=itertools.count(0.0, 10.0)))
+            self.test_run_time_is_linear_in_the_number_of_matches()
 
     def test_not_yet_status_fails(self):
         for text, words in (
