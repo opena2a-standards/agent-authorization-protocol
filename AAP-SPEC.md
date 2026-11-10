@@ -357,7 +357,17 @@ exists to prevent. Every other claim is optional to ignore per broker profile §
 The `cnf` claim (RFC 7800) binds a CGT or DA to the presenter's key, so that a token seen
 in transit is not a credential. `cnf` carries exactly one of `jwk` (RFC 7800 §3.2, the
 public key itself) or `jkt` (the base64url SHA-256 JWK thumbprint of RFC 7638, as
-registered for `cnf` by RFC 9449 §6.1). The bound key is the key the presentation binding
+registered for `cnf` by RFC 9449 §6.1). A `cnf.jwk` MUST carry only the public key members
+of a key type of an active row of the suite registry (Section 9.5), with `kid` and `use`
+(`sig`) as the only other members: for `OKP`, `kty`, `crv` (`Ed25519`) and `x`, with `alg`
+(`EdDSA`) optional; for `AKP`, `kty`, `alg` (`ML-DSA-65`) and `pub`. A verifier MUST
+reject a token whose `cnf.jwk` carries any other member (a private or symmetric key member
+such as `d`, `k` or `priv` among them) or names any other key type; the claim schemas
+(schemas/cgt-claims-v1.schema.json, schemas/da-claims-v1.schema.json) state the same
+member sets. A `cnf.jwk` that carried a private member would be a broker-signed statement
+of the presenter's private key, and whoever saw the token in transit could produce the
+presentation proof of the broker profile §6.8, which is the credential this section keeps
+off the wire. The bound key is the key the presentation binding
 step of the broker profile (§6, step 3) verified: the ATX subject key where the ATX
 carries one (a later revision of ATX; the current ATX 1.1 format carries no subject key),
 or the key registered for the agent DID under AIP. The presentation proof formats per

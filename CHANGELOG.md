@@ -118,6 +118,19 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   and two hexadecimal digits. Each escape it allows matches the same one character under
   the three engines, over the code points U+0000 to U+FFFF outside the surrogates and three
   above them. One of its ten tests fails on the tree before this change. (#173)
+- `cnf.jwk` carries public key members only (Section 4.6 and both claim schemas): a
+  `cnf.jwk` MUST carry only the public key members of a key type of an active row of the
+  suite registry, `OKP` (`kty`, `crv` `Ed25519`, `x`, optional `alg` `EdDSA`) or `AKP`
+  (`kty`, `alg` `ML-DSA-65`, `pub`), with `kid` and `use` (`sig`) as the only other members,
+  and a verifier MUST reject any other `cnf.jwk`; schemas/cgt-claims-v1.schema.json and
+  schemas/da-claims-v1.schema.json state the same sets with one branch per key type and
+  `additionalProperties` false, so a private or symmetric member (`d`, `k`, `priv`), a key
+  type outside the registry and a member outside the set are rejected where every object
+  with a `kty` was accepted. Two MUST are added to AAP-SPEC.md.
+  `scripts/test_cnf_jwk_public_members.py` holds the cells, built at run time from the
+  published public keys; the generated fixtures are unchanged (they bind by `jkt`), and the
+  Internet-Draft renders are unchanged, so `draft-fane-opena2a-aap-03` does not carry the
+  rule. Reported as #160.
 
 ## [0.6.0-draft] - 2026-10-31
 
