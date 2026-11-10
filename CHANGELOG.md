@@ -131,6 +131,12 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   published public keys; the generated fixtures are unchanged (they bind by `jkt`), and the
   Internet-Draft renders are unchanged, so `draft-fane-opena2a-aap-03` does not carry the
   rule. Reported as #160.
+- The run-time tests of `scripts/check_status_claims.py` and
+  `scripts/check_section_citations.py` bound the CPU time of the test process
+  (`time.process_time()`) instead of wall-clock time, so time the process spends waiting
+  for a core on a loaded runner does not count toward the bound; the 2.0 s bound is
+  unchanged. A new test in each file runs the timed test with wall clocks that advance
+  10 s at each read; both new tests fail against the previous wall-clock bound. (#176)
 
 ## [0.6.0-draft] - 2026-10-31
 
