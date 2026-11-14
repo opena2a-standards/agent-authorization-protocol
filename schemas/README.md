@@ -29,18 +29,19 @@ schemas (and an `aap-conformance` suite). All four are resolved by AAP-SPEC 0.3:
 | # | Blocker (0.2) | Pinned by (0.3) |
 |---|---|---|
 | 1 | No canonical signing serialization for AIT/CGT | AAP-SPEC §9.1: JWS Signing Input — serialization **is** canonicalization; compact JWT baseline ratified byte-for-byte from the reference broker assertion. |
-| 2 | Scalar `signature` member (§3.2/§4.2) vs §8.2 `signatures[]` suite model | Neither: the signature is the JWS segment. Single-suite tokens are compact (§9.3); the multi-suite model is JWS General JSON Serialization (§9.4), isomorphic to the family `{keyId, algorithm, value}` form. |
-| 3 | Missing `jti` / version members | `jti` REQUIRED in every claim set (§8.1: 16 random bytes hex); `aap_ver` defined in §9.6 (OPTIONAL in v1, REQUIRED at federation Level 3); message-level version negotiation unchanged (broker profile §8.1). |
-| 4 | Type-annotation placeholders in §3.2/§4.2; DA/BAC prose-only | §3.2/§4.2 rewritten as normative claims tables with generated example bytes; DA claim set pinned in §5.3; BAC claim set pinned in §6.4. |
+| 2 | Scalar `signature` member (AAP-SPEC §3.2/§4.2) vs AAP-SPEC §8.2 `signatures[]` suite model | Neither: the signature is the JWS segment. Single-suite tokens are compact (AAP-SPEC §9.3); the multi-suite model is JWS General JSON Serialization (AAP-SPEC §9.4), isomorphic to the family `{keyId, algorithm, value}` form. |
+| 3 | Missing `jti` / version members | `jti` REQUIRED in every claim set (AAP-SPEC §8.1: 16 random bytes hex); `aap_ver` defined in AAP-SPEC §9.6 (OPTIONAL in v1, REQUIRED at federation Level 3); message-level version negotiation unchanged (broker profile §8.1). |
+| 4 | Type-annotation placeholders in AAP-SPEC §3.2/§4.2; DA/BAC prose-only | AAP-SPEC §3.2/§4.2 rewritten as normative claims tables with generated example bytes; DA claim set pinned in AAP-SPEC §5.3; BAC claim set pinned in AAP-SPEC §6.4. |
 
 With the token form pinned, the prerequisite list for an `aap-conformance`
 fixture suite is satisfied: fixtures are byte-stable (deterministic generator,
 published test keys), and ACCEPT/REJECT verdicts are decidable against these
 schemas plus the signature rules of AAP-SPEC §9 and the claim-semantics rules
-of §4–§6 (TTL tiers, the BAC 60-second window, DA scope subsetting — prose
+of AAP-SPEC §4–§6 (TTL tiers, the BAC 60-second window, DA scope subsetting: prose
 rules a suite encodes as verifier checks, not schema checks; the schema
 descriptions state which is which).
 
 Interim structural anchors (unchanged): CPI modes (`Retrieve` / `Assume` /
-`Exchange`, §5), CGT TTL tiers (`STANDARD` / `PRIVILEGED` / `SUPER_PRIVILEGED`,
-§4.3), and broker conformance levels 1-3 (broker profile §13).
+`Exchange`, broker profile §5), CGT TTL tiers (`STANDARD` / `PRIVILEGED` /
+`SUPER_PRIVILEGED`, AAP-SPEC §4.3), and broker conformance levels 1-3
+(broker profile §13).

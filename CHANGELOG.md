@@ -137,6 +137,22 @@ Versions follow the OpenA2A spec-family ladder `MAJOR.MINOR.PATCH-{draft|rcN|fin
   for a core on a loaded runner does not count toward the bound; the 2.0 s bound is
   unchanged. A new test in each file runs the timed test with wall clocks that advance
   10 s at each read; both new tests fail against the previous wall-clock bound. (#176)
+- `scripts/check_section_citations.py` fails a section number that names no document in a
+  Markdown document other than AAP-SPEC.md and the broker profile, which use the same
+  numbers for different sections: each number written after "Section", "Sections", "§" or
+  "§§", or listed after such a number, must be one the check reads next to a family
+  document's name, or a section of an RFC or a FIPS standard ("RFC 7519 §2", "FIPS 204
+  §5.3", "Section 4 of RFC 9449"). On the documents before this change the check reports 18
+  such numbers in 14 lists, in `schemas/README.md` and `docs/reference-implementation.md`.
+  Two of them meant broker profile sections whose numbers AAP-SPEC gives to other sections:
+  `schemas/README.md` cited the CPI modes as "§5", where its other 16 bare numbers mean
+  AAP-SPEC and AAP-SPEC Section 5 is the DA, and the reference implementation page cited
+  "the §4 invariant", where AAP-SPEC Section 4 is the CGT. Both now name the broker profile
+  (§5, the CPI, and §4, the context-hygiene invariant), the other 16 name AAP-SPEC, and each
+  resolves to a numbered heading of the document it names. No requirement, schema or token
+  changes. `scripts/test_check_section_citations.py` gains five tests; on the tree before
+  this change the test module does not import, and with the new check its repository test
+  fails on the documents before this change.
 
 ## [0.6.0-draft] - 2026-10-31
 
