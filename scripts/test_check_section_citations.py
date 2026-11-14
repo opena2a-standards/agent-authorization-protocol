@@ -24,6 +24,7 @@ from check_section_citations import (  # noqa: E402
     render_references,
     section_numbers,
     unnamed_citations,
+    unnamed_numbers,
     unnamed_texts,
     unresolved,
 )
@@ -96,6 +97,14 @@ Internet-Draft pairing: `draft-fane-opena2a-aap-03` (submitted 2026-01-02).
 def found(text, file="doc.md"):
     """Return (document name, numbers, names its text file) for each citation in text."""
     return [(c.doc.name, c.numbers, c.names_text) for c in citations(file, text)]
+
+
+def unnamed(text, file="doc.md"):
+    """Return, for each failure line of rule 6 in text, the numbers it names."""
+    return [
+        line.split(" no document is named for ", 1)[1].split(";", 1)[0]
+        for line in unnamed_numbers(file, text, citations(file, text))
+    ]
 
 
 class CitationTest(unittest.TestCase):
@@ -196,6 +205,63 @@ class CitationTest(unittest.TestCase):
         self.assertEqual(len(failures), 1)
         self.assertIn('ex.md:3: "Section 6 of the spec" does not name its document', failures[0])
         self.assertEqual(unnamed_citations("ex.md", "## 3. Flow (Section 6 of the broker profile)\n"), [])
+
+
+class UnnamedNumberTest(unittest.TestCase):
+    def test_a_section_number_that_names_no_document_fails(self):
+        cases = {
+            # The first two were in schemas/README.md and docs/reference-implementation.md:
+            # the CPI is broker profile Section 5 and the invariant broker profile
+            # Section 4, where AAP-SPEC Section 5 is the DA and Section 4 the CGT.
+            "CPI modes (`Retrieve` / `Assume` / `Exchange`, §5), CGT": ["5"],
+            "an end-to-end conformance test proving the §4 invariant over": ["4"],
+            "Scalar `signature` member (§3.2/§4.2) vs": ["3.2, 4.2"],
+            "the signature rules of AAP-SPEC §9 and the claim-semantics rules of §4–§6": ["4, 6"],
+            "the broker profile (§6, step 3, and §6.8)": ["6.8"],
+            "see AIP §4.1, 4.2 and": ["4.2"],
+            "broker profile Section 6.8 and 6.9": ["6.9"],
+            "Sections 4 and 5 hold it": ["4, 5"],
+            "§§3-4 hold it": ["3, 4"],
+        }
+        for text, expected in cases.items():
+            with self.subTest(text=text):
+                self.assertEqual(unnamed(text), expected)
+
+    def test_a_named_number_or_a_section_of_an_rfc_or_a_fips_standard_passes(self):
+        for text in (
+            "CPI modes (`Retrieve` / `Assume` / `Exchange`, broker profile §5), CGT",
+            "an end-to-end conformance test proving the broker profile §4 invariant over",
+            "Scalar `signature` member (AAP-SPEC §3.2/§4.2) vs",
+            "the signature rules of AAP-SPEC §9 and the claim-semantics rules of AAP-SPEC §4–§6",
+            "the flow of §6 of the broker profile",
+            "AIP Sections 4.1 and 4.2",
+            "(seconds since epoch, RFC 7519 §2)",
+            "[RFC 9421] Section 4",
+            "(RFC 7515, Section 7.2.1)",
+            "`pub` per FIPS 204 §5.3",
+            "Section 6.1 of RFC 9449",
+            "Section 6.1 of [RFC 9449]",
+            "## 3. Resolution flow",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(unnamed(text), [])
+
+    def test_a_citation_of_the_spec_is_left_to_rule_3(self):
+        for text in ("Section 6 of the spec", "Sections 4 and 5 of the specification"):
+            with self.subTest(text=text):
+                self.assertEqual(unnamed(text), [])
+                self.assertEqual(len(unnamed_citations("doc.md", text)), 1)
+
+    def test_a_failing_list_gives_one_line_with_its_first_line(self):
+        text = "one\ntwo (§3.2/\n§4.2) three\n"
+        self.assertEqual(
+            unnamed_numbers("doc.md", text, citations("doc.md", text)),
+            [
+                'doc.md:2: "§3.2/ §4.2": no document is named for 3.2, 4.2; write the'
+                ' document\'s name next to the number, as in "broker profile §5" or'
+                ' "AAP-SPEC §4.3"'
+            ],
+        )
 
 
 class ParseTest(unittest.TestCase):
@@ -422,6 +488,36 @@ class CheckTest(unittest.TestCase):
         failures, out = self.run_check(files)
         self.assertEqual(failures, 1, out)
         self.assertIn('examples/flow.md:2: "Section 4 of the spec" does not name its document', out)
+
+    def test_a_section_number_names_its_document_outside_the_specification_and_the_profile(self):
+        # A bare number is not checked in the specification or the broker profile and
+        # fails in any other Markdown document, one with numbered headings of its own
+        # included. The changelog, the decision notes and the render are not read by
+        # this rule.
+        bare = "\nNegotiation (§8.1) and the purpose (§4.1).\n"
+        files = self.base()
+        files["AAP-SPEC.md"] += bare
+        files["AAP-BROKER-PROFILE.md"] += bare
+        files["CHANGELOG.md"] = bare
+        files["decisions/2026-01-01-note.md"] = bare
+        files["draft-fane-opena2a-aap-03.xml"] = RENDER_XML.replace(
+            "The grammar", "A related draft limits it (its Section 2). The grammar"
+        )
+        failures, out = self.run_check(files)
+        self.assertEqual(failures, 0, out)
+        files["schemas/README.md"] = bare
+        failures, out = self.run_check(files)
+        self.assertEqual(failures, 2, out)
+        self.assertIn('FAIL  schemas/README.md:2: "§8.1": no document is named for 8.1;', out)
+        self.assertIn('FAIL  schemas/README.md:2: "§4.1": no document is named for 4.1;', out)
+        files["schemas/README.md"] = "\nNegotiation (broker profile §8.1) and the purpose (AAP-SPEC §4.1).\n"
+        failures, out = self.run_check(files)
+        self.assertEqual(failures, 0, out)
+        self.assertIn("schemas/README.md 2 (AAP-SPEC 1, broker profile 1)", out)
+        files["examples/flow.md"] = "# Flow\n\n## 3. Resolution flow\n\nThe steps of Section 3.\n"
+        failures, out = self.run_check(files)
+        self.assertEqual(failures, 1, out)
+        self.assertIn('FAIL  examples/flow.md:5: "Section 3": no document is named for 3;', out)
 
     def test_the_render_does_not_check_its_citations_of_aap_spec(self):
         # The render is the Internet-Draft of AAP-SPEC: its citations of AAP-SPEC are not

@@ -19,8 +19,10 @@ on reference classes), check_requirement_references.py (no sentence with a
 requirement keyword cites an RFC its document lists only as informative),
 check_section_citations.py (each citation it reads, a
 family document named next to a section number, resolves and says which text it
-means), check_raw_html.py (no HTML tag, such as an angle-bracket placeholder,
-in Markdown prose), check_spelling.py (American spelling of the -our and -ise
+means, and in each Markdown document other than the specification and the broker
+profile each number written after "Section", "Sections", "§" or "§§" names its
+document), check_raw_html.py (no HTML tag, such as an angle-bracket placeholder, in
+Markdown prose), check_spelling.py (American spelling of the -our and -ise
 word families in every Markdown document and Internet-Draft source) and
 check_version_labels.py (the version line of AAP-SPEC.md and of the broker
 profile says "plus unreleased changes" while the [Unreleased] section of
@@ -36,7 +38,9 @@ document expands the name AIM at first use, the specification, README.md and
 schemas/README.md use none of the wordings check_status_claims.py rejects, the specification
 and its newest render agree on reference classes, no requirement cites an
 informative-only RFC, every citation
-check_section_citations.py reads resolves, no Markdown prose carries an HTML
+check_section_citations.py reads resolves, each number after "Section" or "§" in a
+Markdown document other than the specification and the broker profile names its
+document, no Markdown prose carries an HTML
 tag, every document uses the American spelling check_spelling.py reads, each
 version line says whether main carries unreleased changes, and every unit test
 passes.

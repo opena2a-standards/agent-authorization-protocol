@@ -19,6 +19,9 @@ the numbers listed directly after that number ("§7, §11", "Sections 6.8, 6.9 a
 - a number after a link whose target is longer than 256 characters, as in
   "[AIP-SPEC.md](target) §7.2".
 
+In the specification and the broker profile a number in one of these forms is not
+checked; in any other Markdown document it fails (rule 6).
+
 The citations checked are those in the Markdown documents of this repository and in
 the newest Internet-Draft render (draft-fane-opena2a-aap-NN.xml), except the render's
 citations of AAP-SPEC, the specification it renders. CHANGELOG.md, the dated notes in
@@ -47,6 +50,18 @@ are not checked.
    section of CHANGELOG.md records as submitted ("`draft-fane-opena2a-aap-02`
    (submitted 2026-10-02") cannot change, so there an address that does not name its
    text is reported, not failed; in any other render it fails.
+6. In each Markdown document other than the specification and the broker profile, a
+   section number names its document. The specification and the broker profile use
+   the same numbers for different sections (Section 5 is the DA in AAP-SPEC and the
+   CPI in the broker profile), so a bare number in another document does not say
+   which of them it means. Each number written after "Section", "Sections", "§" or
+   "§§", or listed after such a number with or without its own marker, is one the
+   check reads in a citation above, or a section of an RFC or a FIPS standard ("RFC
+   7519 §2", "[RFC 9421] Section 4", "FIPS 204 §5.3", "Section 4 of RFC 9449"); any
+   other fails, including one that means a numbered heading of the citing document
+   itself. "CPI modes (`Exchange`, §5)" fails and "CPI modes (`Exchange`, broker
+   profile §5)" passes. A number in a citation of "the spec" is reported once, by
+   rule 3.
 
 Prints one census line. Exit code 0 = no failure. A document that is not valid UTF-8,
 or a render that is not well-formed XML, fails with a line naming where it stops
@@ -87,6 +102,8 @@ DOCUMENTS = (
 )
 BY_NAME = {doc.name: doc for doc in DOCUMENTS}
 BY_LABEL = {check_references.key(doc.label): doc for doc in DOCUMENTS}
+# The specification and the broker profile; rule 6 reads every other Markdown document.
+NUMBERED = {doc.text for doc in DOCUMENTS if doc.local}
 
 # (pattern, document, names its text file). A name that is only a document name may
 # be followed by a parenthesized number, "the broker profile (§6, step 3)"; AIP, ATP
@@ -133,6 +150,21 @@ NUMBER_FIRST = re.compile(
 )
 # "Section 6 of the spec": a citation that does not say which document.
 UNNAMED = re.compile(NUMBERS + r"\s+of\s+the\s+spec(?:ification)?\b")
+# The words after the numbers of such a citation, which rule 3 reports.
+OF_THE_SPEC = re.compile(r"\s+of\s+the\s+spec(?:ification)?\b")
+
+# A section number written after "Section", "Sections", "§" or "§§", with each later
+# number of its list, with or without its own marker: "§5", "§3.2/§4.2", "§4–§6",
+# "Sections 6.8, 6.9 and 7.3", and the "§4.1, 4.2" of "AIP §4.1, 4.2" (rule 6).
+WRITTEN = re.compile(rf"{MARKER}\s*{NUM}(?:{SEPARATOR}(?:{MARKER}\s*)?{NUM})*")
+# A section of an RFC or a FIPS standard, named before the number ("RFC 7519 §2",
+# "[RFC 9421] Section 4", "RFC 7515, Section 7.2.1", "FIPS 204 §5.3") or after it
+# ("Section 4 of RFC 9449").
+STANDARD = r"\[?(?:RFC|FIPS)\s*\d+\]?"
+STANDARD_BEFORE = re.compile(STANDARD + r",?\s*$")
+STANDARD_AFTER = re.compile(r"\s+of\s+" + STANDARD)
+# How many characters before a written number STANDARD_BEFORE reads.
+STANDARD_WINDOW = 24
 
 HEADING = re.compile(rf"#{{1,6}}\s+({NUM})\.?\s")
 # A References entry: "- [AIP], ..." or "- **ATP**, ...".
@@ -200,6 +232,41 @@ def unnamed_citations(file: str, text: str) -> list[str]:
             f"{file}:{line}: \"{' '.join(match.group(0).split())}\" does not name its"
             f" document; write AAP-SPEC or the broker profile"
         )
+    return failures
+
+
+def unnamed_numbers(file: str, text: str, cites: list[Citation]) -> list[str]:
+    """Return a failure line for each written list of section numbers that names no document.
+
+    Rule 6, for a Markdown document other than the specification and the broker
+    profile: a number passes when one of cites, the citations of text, reads it, or
+    when it is a section of an RFC or a FIPS standard. A list in a citation of "the
+    spec" is left to unnamed_citations(). A failing list ("§3.2/§4.2") gives one line,
+    with each of its numbers that no citation reads.
+    """
+    flat = text.replace("\n", " ")
+    read = {offset for cite in cites for offset in cite.offsets}
+    failures = []
+    for match in WRITTEN.finditer(flat):
+        before = flat[max(0, match.start() - STANDARD_WINDOW):match.start()]
+        if (
+            STANDARD_BEFORE.search(before)
+            or STANDARD_AFTER.match(flat, match.end())
+            or OF_THE_SPEC.match(flat, match.end())
+        ):
+            continue
+        numbers = [
+            number.group(0)
+            for number in NUMBER.finditer(match.group(0))
+            if match.start() + number.start() not in read
+        ]
+        if numbers:
+            line = text.count("\n", 0, match.start()) + 1
+            failures.append(
+                f"{file}:{line}: \"{' '.join(match.group(0).split())}\": no document is named"
+                f" for {', '.join(numbers)}; write the document's name next to the number,"
+                f" as in \"broker profile §5\" or \"AAP-SPEC §4.3\""
+            )
     return failures
 
 
@@ -333,6 +400,8 @@ def check(root: pathlib.Path = ROOT) -> int:
         failures += unnamed_texts(cites, reference_entries(text))
         if name != SPEC:
             failures += unnamed_citations(name, text)
+        if name not in NUMBERED:
+            failures += unnamed_numbers(name, text, cites)
         if cites:
             parts.append(f"{name} {census(cites)}")
 
